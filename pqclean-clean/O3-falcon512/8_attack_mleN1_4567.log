@@ -1,0 +1,906 @@
+
+
+* Load Traces
+
+################################################################################
+  key_id= 0: (f,g) = (2.14,2.14) dB → (18.38,18.27) dB
+the remaining coff after scaled classifier is 511
+the remaining coff after scaled classifier is 511
+total-determined (remove some after scaled classifier) is 617
+jinru
+need is 228
+len of candidates is 333
+the 0th key guess's state is 2
+################################################################################
+  key_id= 1: (f,g) = (2.14,2.11) dB → (18.16,18.28) dB
+the remaining coff after scaled classifier is 508
+the remaining coff after scaled classifier is 512
+total-determined (remove some after scaled classifier) is 624
+jinru
+need is 203
+len of candidates is 315
+the 1th key guess's state is 2
+################################################################################
+  key_id= 2: (f,g) = (2.17,2.12) dB → (18.67,18.22) dB
+the remaining coff after scaled classifier is 511
+the remaining coff after scaled classifier is 512
+total-determined (remove some after scaled classifier) is 631
+jinru
+need is 236
+len of candidates is 355
+the 2th key guess's state is 2
+################################################################################
+  key_id= 3: (f,g) = (2.18,2.11) dB → (18.63,18.23) dB
+the remaining coff after scaled classifier is 510
+the remaining coff after scaled classifier is 512
+total-determined (remove some after scaled classifier) is 623
+jinru
+need is 213
+len of candidates is 324
+the 3th key guess's state is 2
+################################################################################
+  key_id= 4: (f,g) = (2.15,2.10) dB → (18.21,17.72) dB
+the remaining coff after scaled classifier is 511
+the remaining coff after scaled classifier is 511
+total-determined (remove some after scaled classifier) is 628
+jinru
+need is 189
+len of candidates is 305
+the 4th key guess's state is 2
+################################################################################
+  key_id= 5: (f,g) = (2.18,2.12) dB → (18.62,18.22) dB
+the remaining coff after scaled classifier is 512
+the remaining coff after scaled classifier is 512
+total-determined (remove some after scaled classifier) is 637
+jinru
+need is 211
+len of candidates is 336
+the 5th key guess's state is 2
+################################################################################
+  key_id= 6: (f,g) = (2.17,2.09) dB → (18.57,17.82) dB
+the remaining coff after scaled classifier is 511
+the remaining coff after scaled classifier is 511
+total-determined (remove some after scaled classifier) is 622
+jinru
+need is 223
+len of candidates is 333
+the 6th key guess's state is 2
+################################################################################
+  key_id= 7: (f,g) = (2.12,2.09) dB → (18.21,17.85) dB
+the remaining coff after scaled classifier is 511
+the remaining coff after scaled classifier is 509
+total-determined (remove some after scaled classifier) is 624
+jinru
+need is 226
+len of candidates is 338
+the 7th key guess's state is 2
+################################################################################
+  key_id= 8: (f,g) = (2.15,2.08) dB → (18.51,17.82) dB
+the remaining coff after scaled classifier is 512
+the remaining coff after scaled classifier is 512
+total-determined (remove some after scaled classifier) is 625
+jinru
+need is 214
+len of candidates is 327
+the 8th key guess's state is 2
+################################################################################
+  key_id= 9: (f,g) = (2.17,2.08) dB → (18.49,17.83) dB
+the remaining coff after scaled classifier is 511
+the remaining coff after scaled classifier is 512
+total-determined (remove some after scaled classifier) is 636
+jinru
+need is 201
+len of candidates is 325
+the 9th key guess's state is 2
+################################################################################
+  key_id=10: (f,g) = (2.16,2.10) dB → (18.68,18.17) dB
+the remaining coff after scaled classifier is 511
+the remaining coff after scaled classifier is 512
+total-determined (remove some after scaled classifier) is 635
+jinru
+need is 207
+len of candidates is 330
+the 10th key guess's state is 2
+################################################################################
+  key_id=11: (f,g) = (2.17,2.10) dB → (18.66,18.21) dB
+the remaining coff after scaled classifier is 512
+the remaining coff after scaled classifier is 512
+total-determined (remove some after scaled classifier) is 630
+jinru
+need is 219
+len of candidates is 337
+the 11th key guess's state is 2
+################################################################################
+  key_id=12: (f,g) = (2.14,2.09) dB → (18.62,17.86) dB
+the remaining coff after scaled classifier is 512
+the remaining coff after scaled classifier is 512
+total-determined (remove some after scaled classifier) is 639
+jinru
+need is 199
+len of candidates is 326
+the 12th key guess's state is 2
+################################################################################
+  key_id=13: (f,g) = (2.15,2.11) dB → (18.64,18.20) dB
+the remaining coff after scaled classifier is 511
+the remaining coff after scaled classifier is 511
+total-determined (remove some after scaled classifier) is 619
+jinru
+need is 206
+len of candidates is 313
+the 13th key guess's state is 2
+################################################################################
+  key_id=14: (f,g) = (2.13,2.10) dB → (18.25,18.18) dB
+the remaining coff after scaled classifier is 512
+the remaining coff after scaled classifier is 510
+total-determined (remove some after scaled classifier) is 610
+jinru
+need is 237
+len of candidates is 335
+the 14th key guess's state is 2
+################################################################################
+  key_id=15: (f,g) = (2.15,2.11) dB → (18.65,18.18) dB
+the remaining coff after scaled classifier is 510
+the remaining coff after scaled classifier is 512
+total-determined (remove some after scaled classifier) is 630
+jinru
+need is 225
+len of candidates is 343
+the 15th key guess's state is 2
+################################################################################
+  key_id=16: (f,g) = (2.14,2.12) dB → (18.64,18.23) dB
+the remaining coff after scaled classifier is 510
+the remaining coff after scaled classifier is 512
+total-determined (remove some after scaled classifier) is 625
+jinru
+need is 204
+len of candidates is 317
+the 16th key guess's state is 2
+################################################################################
+  key_id=17: (f,g) = (2.12,2.12) dB → (18.26,18.18) dB
+the remaining coff after scaled classifier is 511
+the remaining coff after scaled classifier is 512
+total-determined (remove some after scaled classifier) is 631
+jinru
+need is 222
+len of candidates is 341
+the 17th key guess's state is 2
+################################################################################
+  key_id=18: (f,g) = (2.12,2.07) dB → (18.26,17.83) dB
+the remaining coff after scaled classifier is 512
+the remaining coff after scaled classifier is 512
+total-determined (remove some after scaled classifier) is 625
+jinru
+need is 219
+len of candidates is 332
+the 18th key guess's state is 2
+################################################################################
+  key_id=19: (f,g) = (2.14,2.12) dB → (18.26,18.22) dB
+the remaining coff after scaled classifier is 512
+the remaining coff after scaled classifier is 512
+total-determined (remove some after scaled classifier) is 626
+jinru
+need is 215
+len of candidates is 329
+the 19th key guess's state is 2
+################################################################################
+  key_id=20: (f,g) = (2.12,2.09) dB → (18.29,17.83) dB
+the remaining coff after scaled classifier is 510
+the remaining coff after scaled classifier is 512
+total-determined (remove some after scaled classifier) is 631
+jinru
+need is 199
+len of candidates is 318
+the 20th key guess's state is 2
+################################################################################
+  key_id=21: (f,g) = (2.14,2.08) dB → (18.26,17.68) dB
+the remaining coff after scaled classifier is 512
+the remaining coff after scaled classifier is 512
+total-determined (remove some after scaled classifier) is 628
+jinru
+need is 220
+len of candidates is 336
+the 21th key guess's state is 2
+################################################################################
+  key_id=22: (f,g) = (2.16,2.11) dB → (18.63,18.21) dB
+the remaining coff after scaled classifier is 511
+the remaining coff after scaled classifier is 512
+total-determined (remove some after scaled classifier) is 638
+jinru
+need is 201
+len of candidates is 327
+the 22th key guess's state is 2
+################################################################################
+  key_id=23: (f,g) = (2.16,2.10) dB → (18.65,18.20) dB
+the remaining coff after scaled classifier is 512
+the remaining coff after scaled classifier is 512
+total-determined (remove some after scaled classifier) is 629
+jinru
+need is 206
+len of candidates is 323
+the 23th key guess's state is 2
+################################################################################
+  key_id=24: (f,g) = (2.12,2.06) dB → (18.23,17.81) dB
+the remaining coff after scaled classifier is 511
+the remaining coff after scaled classifier is 512
+total-determined (remove some after scaled classifier) is 618
+jinru
+need is 234
+len of candidates is 340
+the 24th key guess's state is 2
+################################################################################
+  key_id=25: (f,g) = (2.13,2.05) dB → (18.23,17.80) dB
+the remaining coff after scaled classifier is 511
+the remaining coff after scaled classifier is 510
+total-determined (remove some after scaled classifier) is 617
+jinru
+need is 228
+len of candidates is 333
+the 25th key guess's state is 2
+################################################################################
+  key_id=26: (f,g) = (2.13,2.08) dB → (18.25,17.80) dB
+the remaining coff after scaled classifier is 511
+the remaining coff after scaled classifier is 511
+total-determined (remove some after scaled classifier) is 627
+jinru
+need is 201
+len of candidates is 316
+the 26th key guess's state is 2
+################################################################################
+  key_id=27: (f,g) = (2.16,2.10) dB → (18.65,18.20) dB
+the remaining coff after scaled classifier is 511
+the remaining coff after scaled classifier is 512
+total-determined (remove some after scaled classifier) is 658
+jinru
+need is 194
+len of candidates is 340
+the 27th key guess's state is 2
+################################################################################
+  key_id=28: (f,g) = (2.11,2.08) dB → (18.22,17.84) dB
+the remaining coff after scaled classifier is 511
+the remaining coff after scaled classifier is 512
+total-determined (remove some after scaled classifier) is 635
+jinru
+need is 206
+len of candidates is 329
+the 28th key guess's state is 2
+################################################################################
+  key_id=29: (f,g) = (2.14,2.09) dB → (18.61,18.20) dB
+the remaining coff after scaled classifier is 511
+the remaining coff after scaled classifier is 511
+total-determined (remove some after scaled classifier) is 613
+jinru
+need is 221
+len of candidates is 322
+the 29th key guess's state is 2
+################################################################################
+  key_id=30: (f,g) = (2.12,2.10) dB → (18.10,18.17) dB
+the remaining coff after scaled classifier is 509
+the remaining coff after scaled classifier is 512
+total-determined (remove some after scaled classifier) is 642
+jinru
+need is 210
+len of candidates is 340
+the 30th key guess's state is 2
+################################################################################
+  key_id=31: (f,g) = (2.14,2.11) dB → (18.22,18.20) dB
+the remaining coff after scaled classifier is 512
+the remaining coff after scaled classifier is 512
+total-determined (remove some after scaled classifier) is 634
+jinru
+need is 217
+len of candidates is 339
+the 31th key guess's state is 2
+################################################################################
+  key_id=32: (f,g) = (2.15,2.09) dB → (18.62,18.21) dB
+the remaining coff after scaled classifier is 511
+the remaining coff after scaled classifier is 511
+total-determined (remove some after scaled classifier) is 630
+jinru
+need is 220
+len of candidates is 338
+the 32th key guess's state is 2
+################################################################################
+  key_id=33: (f,g) = (2.16,2.12) dB → (18.63,18.24) dB
+the remaining coff after scaled classifier is 510
+the remaining coff after scaled classifier is 512
+total-determined (remove some after scaled classifier) is 646
+jinru
+need is 188
+len of candidates is 322
+the 33th key guess's state is 2
+################################################################################
+  key_id=34: (f,g) = (2.13,2.07) dB → (18.61,17.86) dB
+the remaining coff after scaled classifier is 511
+the remaining coff after scaled classifier is 510
+total-determined (remove some after scaled classifier) is 630
+jinru
+need is 215
+len of candidates is 333
+the 34th key guess's state is 2
+################################################################################
+  key_id=35: (f,g) = (2.13,2.09) dB → (18.62,18.21) dB
+the remaining coff after scaled classifier is 511
+the remaining coff after scaled classifier is 512
+total-determined (remove some after scaled classifier) is 629
+jinru
+need is 210
+len of candidates is 327
+the 35th key guess's state is 2
+################################################################################
+  key_id=36: (f,g) = (2.13,2.08) dB → (18.64,18.17) dB
+the remaining coff after scaled classifier is 512
+the remaining coff after scaled classifier is 512
+total-determined (remove some after scaled classifier) is 628
+jinru
+need is 217
+len of candidates is 333
+the 36th key guess's state is 2
+################################################################################
+  key_id=37: (f,g) = (2.14,2.08) dB → (18.65,18.15) dB
+the remaining coff after scaled classifier is 511
+the remaining coff after scaled classifier is 512
+total-determined (remove some after scaled classifier) is 627
+jinru
+need is 221
+len of candidates is 336
+the 37th key guess's state is 2
+################################################################################
+  key_id=38: (f,g) = (2.13,2.08) dB → (18.24,17.79) dB
+the remaining coff after scaled classifier is 512
+the remaining coff after scaled classifier is 512
+total-determined (remove some after scaled classifier) is 642
+jinru
+need is 186
+len of candidates is 316
+the 38th key guess's state is 2
+################################################################################
+  key_id=39: (f,g) = (2.12,2.09) dB → (18.24,17.85) dB
+the remaining coff after scaled classifier is 511
+the remaining coff after scaled classifier is 511
+total-determined (remove some after scaled classifier) is 635
+jinru
+need is 197
+len of candidates is 320
+the 39th key guess's state is 2
+################################################################################
+  key_id=40: (f,g) = (2.13,2.06) dB → (18.61,17.81) dB
+the remaining coff after scaled classifier is 511
+the remaining coff after scaled classifier is 512
+total-determined (remove some after scaled classifier) is 628
+jinru
+need is 198
+len of candidates is 314
+the 40th key guess's state is 2
+################################################################################
+  key_id=41: (f,g) = (2.11,2.09) dB → (18.22,17.83) dB
+the remaining coff after scaled classifier is 512
+the remaining coff after scaled classifier is 512
+total-determined (remove some after scaled classifier) is 635
+jinru
+need is 207
+len of candidates is 330
+the 41th key guess's state is 2
+################################################################################
+  key_id=42: (f,g) = (2.09,2.08) dB → (18.08,17.85) dB
+the remaining coff after scaled classifier is 511
+the remaining coff after scaled classifier is 512
+total-determined (remove some after scaled classifier) is 642
+jinru
+need is 214
+len of candidates is 344
+the 42th key guess's state is 2
+################################################################################
+  key_id=43: (f,g) = (2.11,2.10) dB → (18.23,18.18) dB
+the remaining coff after scaled classifier is 512
+the remaining coff after scaled classifier is 512
+total-determined (remove some after scaled classifier) is 618
+jinru
+need is 231
+len of candidates is 337
+the 43th key guess's state is 2
+################################################################################
+  key_id=44: (f,g) = (2.13,2.08) dB → (18.60,17.83) dB
+the remaining coff after scaled classifier is 509
+the remaining coff after scaled classifier is 511
+total-determined (remove some after scaled classifier) is 624
+jinru
+need is 217
+len of candidates is 329
+the 44th key guess's state is 2
+################################################################################
+  key_id=45: (f,g) = (2.14,2.07) dB → (18.60,18.16) dB
+the remaining coff after scaled classifier is 510
+the remaining coff after scaled classifier is 510
+total-determined (remove some after scaled classifier) is 634
+jinru
+need is 211
+len of candidates is 333
+the 45th key guess's state is 2
+################################################################################
+  key_id=46: (f,g) = (2.13,2.11) dB → (18.62,18.19) dB
+the remaining coff after scaled classifier is 512
+the remaining coff after scaled classifier is 509
+total-determined (remove some after scaled classifier) is 623
+jinru
+need is 214
+len of candidates is 325
+the 46th key guess's state is 2
+################################################################################
+  key_id=47: (f,g) = (2.14,2.09) dB → (18.62,18.19) dB
+the remaining coff after scaled classifier is 512
+the remaining coff after scaled classifier is 512
+total-determined (remove some after scaled classifier) is 628
+jinru
+need is 226
+len of candidates is 342
+the 47th key guess's state is 2
+################################################################################
+  key_id=48: (f,g) = (2.13,2.11) dB → (18.21,18.20) dB
+the remaining coff after scaled classifier is 512
+the remaining coff after scaled classifier is 512
+total-determined (remove some after scaled classifier) is 633
+jinru
+need is 216
+len of candidates is 337
+the 48th key guess's state is 2
+################################################################################
+  key_id=49: (f,g) = (2.13,2.08) dB → (18.59,18.19) dB
+the remaining coff after scaled classifier is 512
+the remaining coff after scaled classifier is 512
+total-determined (remove some after scaled classifier) is 633
+jinru
+need is 221
+len of candidates is 342
+the 49th key guess's state is 2
+################################################################################
+  key_id=50: (f,g) = (2.16,2.07) dB → (18.62,17.83) dB
+the remaining coff after scaled classifier is 511
+the remaining coff after scaled classifier is 512
+total-determined (remove some after scaled classifier) is 618
+jinru
+need is 222
+len of candidates is 328
+the 50th key guess's state is 2
+################################################################################
+  key_id=51: (f,g) = (2.15,2.10) dB → (18.63,18.17) dB
+the remaining coff after scaled classifier is 511
+the remaining coff after scaled classifier is 510
+total-determined (remove some after scaled classifier) is 647
+jinru
+need is 205
+len of candidates is 340
+the 51th key guess's state is 2
+################################################################################
+  key_id=52: (f,g) = (2.15,2.10) dB → (18.63,18.17) dB
+the remaining coff after scaled classifier is 512
+the remaining coff after scaled classifier is 509
+total-determined (remove some after scaled classifier) is 613
+jinru
+need is 215
+len of candidates is 316
+the 52th key guess's state is 2
+################################################################################
+  key_id=53: (f,g) = (2.15,2.09) dB → (18.62,18.20) dB
+the remaining coff after scaled classifier is 511
+the remaining coff after scaled classifier is 512
+total-determined (remove some after scaled classifier) is 651
+jinru
+need is 180
+len of candidates is 319
+the 53th key guess's state is 2
+################################################################################
+  key_id=54: (f,g) = (2.15,2.08) dB → (18.63,18.18) dB
+the remaining coff after scaled classifier is 511
+the remaining coff after scaled classifier is 512
+total-determined (remove some after scaled classifier) is 636
+jinru
+need is 208
+len of candidates is 332
+the 54th key guess's state is 2
+################################################################################
+  key_id=55: (f,g) = (2.11,2.05) dB → (18.24,17.80) dB
+the remaining coff after scaled classifier is 511
+the remaining coff after scaled classifier is 511
+total-determined (remove some after scaled classifier) is 633
+jinru
+need is 199
+len of candidates is 320
+the 55th key guess's state is 2
+################################################################################
+  key_id=56: (f,g) = (2.14,2.08) dB → (18.61,18.15) dB
+the remaining coff after scaled classifier is 510
+the remaining coff after scaled classifier is 512
+total-determined (remove some after scaled classifier) is 640
+jinru
+need is 200
+len of candidates is 328
+the 56th key guess's state is 2
+################################################################################
+  key_id=57: (f,g) = (2.12,2.09) dB → (18.62,18.16) dB
+the remaining coff after scaled classifier is 511
+the remaining coff after scaled classifier is 511
+total-determined (remove some after scaled classifier) is 630
+jinru
+need is 199
+len of candidates is 317
+the 57th key guess's state is 2
+################################################################################
+  key_id=58: (f,g) = (2.13,2.09) dB → (18.62,18.19) dB
+the remaining coff after scaled classifier is 512
+the remaining coff after scaled classifier is 512
+total-determined (remove some after scaled classifier) is 615
+jinru
+need is 215
+len of candidates is 318
+the 58th key guess's state is 2
+################################################################################
+  key_id=59: (f,g) = (2.12,2.09) dB → (18.57,18.18) dB
+the remaining coff after scaled classifier is 511
+the remaining coff after scaled classifier is 511
+total-determined (remove some after scaled classifier) is 612
+jinru
+need is 229
+len of candidates is 329
+the 59th key guess's state is 2
+################################################################################
+  key_id=60: (f,g) = (2.14,2.05) dB → (18.62,17.56) dB
+the remaining coff after scaled classifier is 511
+the remaining coff after scaled classifier is 512
+total-determined (remove some after scaled classifier) is 646
+jinru
+need is 197
+len of candidates is 331
+the 60th key guess's state is 2
+################################################################################
+  key_id=61: (f,g) = (2.12,2.09) dB → (18.21,17.82) dB
+the remaining coff after scaled classifier is 510
+the remaining coff after scaled classifier is 510
+total-determined (remove some after scaled classifier) is 616
+jinru
+need is 252
+len of candidates is 356
+the 61th key guess's state is 2
+################################################################################
+  key_id=62: (f,g) = (2.13,2.09) dB → (18.61,18.18) dB
+the remaining coff after scaled classifier is 511
+the remaining coff after scaled classifier is 511
+total-determined (remove some after scaled classifier) is 625
+jinru
+need is 222
+len of candidates is 335
+the 62th key guess's state is 2
+################################################################################
+  key_id=63: (f,g) = (2.13,2.09) dB → (18.60,18.20) dB
+the remaining coff after scaled classifier is 512
+the remaining coff after scaled classifier is 511
+total-determined (remove some after scaled classifier) is 636
+jinru
+need is 214
+len of candidates is 338
+the 63th key guess's state is 2
+################################################################################
+  key_id=64: (f,g) = (2.12,2.06) dB → (18.22,17.82) dB
+the remaining coff after scaled classifier is 510
+the remaining coff after scaled classifier is 512
+total-determined (remove some after scaled classifier) is 625
+jinru
+need is 232
+len of candidates is 345
+the 64th key guess's state is 2
+################################################################################
+  key_id=65: (f,g) = (2.10,2.09) dB → (18.22,17.83) dB
+the remaining coff after scaled classifier is 512
+the remaining coff after scaled classifier is 512
+total-determined (remove some after scaled classifier) is 643
+jinru
+need is 214
+len of candidates is 345
+the 65th key guess's state is 2
+################################################################################
+  key_id=66: (f,g) = (2.12,2.09) dB → (18.24,18.18) dB
+the remaining coff after scaled classifier is 512
+the remaining coff after scaled classifier is 512
+total-determined (remove some after scaled classifier) is 639
+jinru
+need is 214
+len of candidates is 341
+the 66th key guess's state is 2
+################################################################################
+  key_id=67: (f,g) = (2.12,2.09) dB → (18.62,18.17) dB
+the remaining coff after scaled classifier is 511
+the remaining coff after scaled classifier is 512
+total-determined (remove some after scaled classifier) is 645
+jinru
+need is 184
+len of candidates is 317
+the 67th key guess's state is 2
+################################################################################
+  key_id=68: (f,g) = (2.14,2.09) dB → (18.60,18.17) dB
+the remaining coff after scaled classifier is 510
+the remaining coff after scaled classifier is 512
+total-determined (remove some after scaled classifier) is 613
+jinru
+need is 215
+len of candidates is 316
+the 68th key guess's state is 2
+################################################################################
+  key_id=69: (f,g) = (2.14,2.08) dB → (18.59,17.82) dB
+the remaining coff after scaled classifier is 512
+the remaining coff after scaled classifier is 511
+total-determined (remove some after scaled classifier) is 633
+jinru
+need is 203
+len of candidates is 324
+the 69th key guess's state is 2
+################################################################################
+  key_id=70: (f,g) = (2.13,2.10) dB → (18.58,18.18) dB
+the remaining coff after scaled classifier is 510
+the remaining coff after scaled classifier is 512
+total-determined (remove some after scaled classifier) is 623
+jinru
+need is 225
+len of candidates is 336
+the 70th key guess's state is 2
+################################################################################
+  key_id=71: (f,g) = (2.12,2.08) dB → (18.59,17.85) dB
+the remaining coff after scaled classifier is 512
+the remaining coff after scaled classifier is 512
+total-determined (remove some after scaled classifier) is 618
+jinru
+need is 221
+len of candidates is 327
+the 71th key guess's state is 2
+################################################################################
+  key_id=72: (f,g) = (2.15,2.09) dB → (18.59,17.83) dB
+the remaining coff after scaled classifier is 511
+the remaining coff after scaled classifier is 512
+total-determined (remove some after scaled classifier) is 637
+jinru
+need is 199
+len of candidates is 324
+the 72th key guess's state is 2
+################################################################################
+  key_id=73: (f,g) = (2.13,2.08) dB → (18.62,18.18) dB
+the remaining coff after scaled classifier is 512
+the remaining coff after scaled classifier is 512
+total-determined (remove some after scaled classifier) is 619
+jinru
+need is 212
+len of candidates is 319
+the 73th key guess's state is 2
+################################################################################
+  key_id=74: (f,g) = (2.09,2.09) dB → (18.20,18.20) dB
+the remaining coff after scaled classifier is 511
+the remaining coff after scaled classifier is 512
+total-determined (remove some after scaled classifier) is 641
+jinru
+need is 206
+len of candidates is 335
+the 74th key guess's state is 2
+################################################################################
+  key_id=75: (f,g) = (2.11,2.12) dB → (18.20,18.16) dB
+the remaining coff after scaled classifier is 512
+the remaining coff after scaled classifier is 511
+total-determined (remove some after scaled classifier) is 632
+jinru
+need is 199
+len of candidates is 319
+the 75th key guess's state is 2
+################################################################################
+  key_id=76: (f,g) = (2.12,2.06) dB → (18.57,17.81) dB
+the remaining coff after scaled classifier is 511
+the remaining coff after scaled classifier is 512
+total-determined (remove some after scaled classifier) is 637
+jinru
+need is 200
+len of candidates is 325
+the 76th key guess's state is 2
+################################################################################
+  key_id=77: (f,g) = (2.13,2.09) dB → (18.63,18.15) dB
+the remaining coff after scaled classifier is 512
+the remaining coff after scaled classifier is 512
+total-determined (remove some after scaled classifier) is 639
+jinru
+need is 202
+len of candidates is 329
+the 77th key guess's state is 2
+################################################################################
+  key_id=78: (f,g) = (2.13,2.07) dB → (18.60,17.81) dB
+the remaining coff after scaled classifier is 511
+the remaining coff after scaled classifier is 512
+total-determined (remove some after scaled classifier) is 629
+jinru
+need is 209
+len of candidates is 326
+the 78th key guess's state is 2
+################################################################################
+  key_id=79: (f,g) = (2.12,2.10) dB → (18.22,18.16) dB
+the remaining coff after scaled classifier is 512
+the remaining coff after scaled classifier is 512
+total-determined (remove some after scaled classifier) is 634
+jinru
+need is 218
+len of candidates is 340
+the 79th key guess's state is 2
+################################################################################
+  key_id=80: (f,g) = (2.12,2.08) dB → (18.20,18.17) dB
+the remaining coff after scaled classifier is 511
+the remaining coff after scaled classifier is 512
+total-determined (remove some after scaled classifier) is 643
+jinru
+need is 188
+len of candidates is 319
+the 80th key guess's state is 2
+################################################################################
+  key_id=81: (f,g) = (2.14,2.08) dB → (18.61,17.81) dB
+the remaining coff after scaled classifier is 512
+the remaining coff after scaled classifier is 512
+total-determined (remove some after scaled classifier) is 647
+jinru
+need is 196
+len of candidates is 331
+the 81th key guess's state is 2
+################################################################################
+  key_id=82: (f,g) = (2.10,2.08) dB → (18.19,18.17) dB
+the remaining coff after scaled classifier is 512
+the remaining coff after scaled classifier is 512
+total-determined (remove some after scaled classifier) is 633
+jinru
+need is 189
+len of candidates is 310
+the 82th key guess's state is 2
+################################################################################
+  key_id=83: (f,g) = (2.12,2.11) dB → (18.57,18.19) dB
+the remaining coff after scaled classifier is 512
+the remaining coff after scaled classifier is 512
+total-determined (remove some after scaled classifier) is 637
+jinru
+need is 214
+len of candidates is 339
+the 83th key guess's state is 2
+################################################################################
+  key_id=84: (f,g) = (2.13,2.08) dB → (18.57,17.67) dB
+the remaining coff after scaled classifier is 511
+the remaining coff after scaled classifier is 511
+total-determined (remove some after scaled classifier) is 632
+jinru
+need is 211
+len of candidates is 331
+the 84th key guess's state is 2
+################################################################################
+  key_id=85: (f,g) = (2.13,2.09) dB → (18.60,18.17) dB
+the remaining coff after scaled classifier is 512
+the remaining coff after scaled classifier is 512
+total-determined (remove some after scaled classifier) is 634
+jinru
+need is 214
+len of candidates is 336
+the 85th key guess's state is 2
+################################################################################
+  key_id=86: (f,g) = (2.10,2.08) dB → (18.20,18.16) dB
+the remaining coff after scaled classifier is 512
+the remaining coff after scaled classifier is 511
+total-determined (remove some after scaled classifier) is 620
+jinru
+need is 219
+len of candidates is 327
+the 86th key guess's state is 2
+################################################################################
+  key_id=87: (f,g) = (2.10,2.07) dB → (18.08,17.80) dB
+the remaining coff after scaled classifier is 512
+the remaining coff after scaled classifier is 512
+total-determined (remove some after scaled classifier) is 624
+jinru
+need is 206
+len of candidates is 318
+the 87th key guess's state is 2
+################################################################################
+  key_id=88: (f,g) = (2.13,2.09) dB → (18.58,18.19) dB
+the remaining coff after scaled classifier is 511
+the remaining coff after scaled classifier is 512
+total-determined (remove some after scaled classifier) is 635
+jinru
+need is 204
+len of candidates is 327
+the 88th key guess's state is 2
+################################################################################
+  key_id=89: (f,g) = (2.14,2.10) dB → (18.59,18.16) dB
+the remaining coff after scaled classifier is 512
+the remaining coff after scaled classifier is 512
+total-determined (remove some after scaled classifier) is 631
+jinru
+need is 199
+len of candidates is 318
+the 89th key guess's state is 2
+################################################################################
+  key_id=90: (f,g) = (2.13,2.07) dB → (18.57,17.81) dB
+the remaining coff after scaled classifier is 510
+the remaining coff after scaled classifier is 512
+total-determined (remove some after scaled classifier) is 621
+jinru
+need is 221
+len of candidates is 330
+the 90th key guess's state is 2
+################################################################################
+  key_id=91: (f,g) = (2.13,2.09) dB → (18.60,18.16) dB
+the remaining coff after scaled classifier is 512
+the remaining coff after scaled classifier is 511
+total-determined (remove some after scaled classifier) is 638
+jinru
+need is 187
+len of candidates is 313
+the 91th key guess's state is 2
+################################################################################
+  key_id=92: (f,g) = (2.13,2.07) dB → (18.60,17.79) dB
+the remaining coff after scaled classifier is 512
+the remaining coff after scaled classifier is 512
+total-determined (remove some after scaled classifier) is 619
+jinru
+need is 199
+len of candidates is 306
+the 92th key guess's state is 2
+################################################################################
+  key_id=93: (f,g) = (2.14,2.11) dB → (18.57,18.22) dB
+the remaining coff after scaled classifier is 512
+the remaining coff after scaled classifier is 511
+total-determined (remove some after scaled classifier) is 623
+jinru
+need is 206
+len of candidates is 317
+the 93th key guess's state is 2
+################################################################################
+  key_id=94: (f,g) = (2.11,2.09) dB → (18.56,17.82) dB
+the remaining coff after scaled classifier is 512
+the remaining coff after scaled classifier is 510
+total-determined (remove some after scaled classifier) is 614
+jinru
+need is 238
+len of candidates is 340
+the 94th key guess's state is 2
+################################################################################
+  key_id=95: (f,g) = (2.12,2.07) dB → (18.57,17.66) dB
+the remaining coff after scaled classifier is 512
+the remaining coff after scaled classifier is 511
+total-determined (remove some after scaled classifier) is 640
+jinru
+need is 212
+len of candidates is 340
+the 95th key guess's state is 2
+################################################################################
+  key_id=96: (f,g) = (2.09,2.09) dB → (18.05,17.68) dB
+the remaining coff after scaled classifier is 512
+the remaining coff after scaled classifier is 512
+total-determined (remove some after scaled classifier) is 645
+jinru
+need is 196
+len of candidates is 329
+the 96th key guess's state is 2
+################################################################################
+  key_id=97: (f,g) = (2.10,2.11) dB → (18.16,18.16) dB
+the remaining coff after scaled classifier is 512
+the remaining coff after scaled classifier is 512
+total-determined (remove some after scaled classifier) is 621
+jinru
+need is 235
+len of candidates is 344
+the 97th key guess's state is 2
+################################################################################
+  key_id=98: (f,g) = (2.08,2.10) dB → (18.07,18.19) dB
+the remaining coff after scaled classifier is 512
+the remaining coff after scaled classifier is 512
+total-determined (remove some after scaled classifier) is 629
+jinru
+need is 220
+len of candidates is 337
+the 98th key guess's state is 2
+################################################################################
+  key_id=99: (f,g) = (2.10,2.10) dB → (18.59,18.20) dB
+the remaining coff after scaled classifier is 512
+the remaining coff after scaled classifier is 512
+total-determined (remove some after scaled classifier) is 631
+jinru
+need is 211
+len of candidates is 330
+the 99th key guess's state is 2
+the succ count is 100
+[182, 64, 453, 720, 1345, 84, 12, 9186, 10288, 741, 55, 14967, 296, 4888, 85, 223, 29145, 599, 400062, 2221, 23653, 23941, 1369, 183, 1253, 889, 28, 395, 1202, 1909, 47, 1858, 73, 74, 58, 1, 331, 3140, 418, 2475, 537, 1, 114, 1982, 934, 5, 81, 15757, 772, 1395, 17344, 13929, 41615, 3, 4389, 12, 3843, 41946, 72012, 4526, 4455, 93919, 40758, 16, 224, 38, 218, 615, 9343, 2098, 8503, 7, 541, 1, 202, 10840, 978, 51019, 261, 103, 257240, 69686, 76, 7582, 262, 447, 8479, 431, 6465, 21, 5, 9876, 1189, 18166, 57621, 101, 120, 405, 8, 19210]

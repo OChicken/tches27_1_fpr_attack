@@ -1,0 +1,107 @@
+#+TITLE: 1. Cycle Usage
+#+PROPERTY: header-args:python  :session Python/pqclean-clean
+#+PROPERTY: header-args:python+ :results silent
+
+This document presents a primitive observation to the cycle usage of =smallints_to_fpr= and =PQCLEAN_FALCON512_CLEAN_FFT=. It obtain the required Husky =N_CONCATENTATE=, in order to collect trace.
+
+* Common
+
+#+begin_src shell
+for d in O0 O1 O2 O3 Os; do
+    (cd "$d" && make build TEST_CYCLE=1 -B && make objdump-scaled && make objdump-mul)
+done
+#+end_src
+
+#+begin_src python
+OPT = "O3"
+FALCON_LOGN = 9
+FALCON_N = 2**FALCON_LOGN
+#+end_src
+
+#+begin_src python
+import os
+import time
+import math
+import pickle
+import numpy as np
+import chipwhisperer as cw
+import subprocess
+from tqdm import trange, tnrange
+from setup_generic import hardware_setup, clkgen_freq_setup, scope_reset, \
+    tracewhisperer_husky_setup
+from setup_generic import input2hex, cw_core_routine
+
+if OPT == "O0":
+    MCU_FREQ = 40_000_000
+    PPC = 4
+else:
+    MCU_FREQ = 25_000_000
+    PPC = 8
+HUSKY_MAX_SAMPLES = 131070
+PROGRAM = True
+#+end_src
+
+#+begin_src python
+scope, target = hardware_setup(f"{OPT}/build-stm32f4/pqclean-clean.hex",
+                               "stm32f4", 'SS_VER_1_0', PROGRAM)
+#+end_src
+
+#+begin_src python
+scope_reset(scope)
+tracewhisperer = tracewhisperer_husky_setup(scope, target)
+clkgen_freq_setup(scope, target, MCU_FREQ)
+scope.clock.adc_mul = PPC
+scope.adc.samples = HUSKY_MAX_SAMPLES
+scope.gain.db = 12
+
+target.flush()
+scope_reset(scope)
+#+end_src
+
+#+begin_src python
+def set_key(cmd, key, target):
+    target.write(cmd + input2hex(key) + '\n')
+    buf = ''
+    while 'z00\n' not in buf:
+        buf += target.read(num_char=0xffff)
+    print(buf[:-5])
+    target.flush()
+#+end_src
+
+#+begin_src python :results output replace :exports both
+key_f = np.load(f"keys/Falcon{FALCON_N}_f_1000.npy", allow_pickle=True)
+key_id = 0  # or any other indices less then len(key_f)
+set_key('k', key_f[key_id].tolist(), target)
+#+end_src
+
+#+RESULTS:
+: [-2, 10, ..., -2,  3]
+
+
+* Cycle Usage
+
+We shall measure trace segment-wise. It's calculated by
+
+: #CONCATENATE = TOTAL_SAMPLES // HUSKY_MAX_SAMPLES + 1
+: TOTAL_SAMPLES = TOTAL_CYCLES * PPC
+
+To measure =TOTAL_CYCLES=, wrap =HAL_CYCCNT= around the interested parts.
+
+#+begin_src python :results output replace :exports both
+_, _ = cw_core_routine('p', '', scope, target)
+data = ''
+while 'z00\n' not in data:
+    data += target.read(num_char=0xffff)
+print(data[:-5])
+#+end_src
+
+#+RESULTS:
+: smallints_to_fpr: 81928
+: PQCLEAN_FALCON512_CLEAN_FFT: 240820
+
+|                             |         O0 |     O1 |     O2 |     O3 |     Os |
+|-----------------------------+------------+--------+--------+--------+--------|
+| =smallints_to_fpr=            |     582729 |  85513 |  81928 |  81928 |  93191 |
+| =PQCLEAN_FALCON512_CLEAN_FFT= |    1827911 | 240872 | 240820 | 240820 | 268225 |
+| total                       |    2410640 | 326385 | 322748 | 322748 | 361416 |
+| #concatenate                | 74 (PPC=4) |     20 |     20 |     20 |     23 |

@@ -1,0 +1,156 @@
+#+TITLE: O3 PoI
+#+PROPERTY: header-args:python  :session Python/O3
+#+PROPERTY: header-args:python+ :results silent
+
+* Common
+
+#+begin_src python
+import os
+
+FALCON_N = 512
+#+end_src
+
+#+begin_src python
+import numpy as np
+import matplotlib.pyplot as plt
+from scipy.signal import find_peaks
+#+end_src
+
+#+begin_src python
+import json
+
+with open("../cycloc_params.json") as f:
+    cfg_pqclean = json.load(f)
+#+end_src
+
+#+begin_src python
+from utils import calc_Fcrit, calc_R2, calc_snr
+from utils import leakage_markers_fp, print_peaks
+#+end_src
+
+
+* Load
+
+#+begin_src python :results output replace :exports both
+print(cfg_pqclean["O3"]["scaled"]["cycle_usage"])
+addr_O3_scaled = cfg_pqclean["O3"]["scaled"]["addr_cycloc"]
+F_O3_scaled = np.load("F-statistics/F_scaled.npy")
+dof_O3_scaled = np.loadtxt("F-statistics/dof_scaled.txt", dtype=int)
+SNR_O3_scaled  = calc_snr (F_O3_scaled, dof_O3_scaled)
+ics_O3_scaled_sort = np.loadtxt("ics/ics_scaled_sort.txt", dtype=int)
+print(ics_O3_scaled_sort)
+#+end_src
+
+#+RESULTS:
+: 125
+: Max SNR: 16.8865
+: [ 84  75  83  43  85  89  80  60  79   4   0  81  90  61  51  37  36  74
+:   44   5  70  42  76  52  88  78  82  64  47  94 108  59 104   3  69  95
+:   98  58  93  54  41  53  49  71  99 109 105 110  92  56  97  91   6  96
+:  113 100  63  68  38  66  86 111   1 106   9  46 115  45  55  10 107  72
+:   57  87 112 114  20 103 116  34  77  62  12  11  65 117  19  21 119   2
+:  101 120 118  35  15  22 121 102   7   8  26  27  73  13  17  40  28  39
+:  122 123  67  50  48  23  25  33  24  18 124  14  29  16  32  31  30]
+
+#+begin_src python :results output replace :exports both
+print(cfg_pqclean["O3"]["mul_shift55"]["cycle_usage"])
+addr_O3_mul_shift55 = cfg_pqclean["O3"]["mul_shift55"]["addr_cycloc"]
+F_O3_mul_shift55_2_3 = np.load("F-statistics/F_mul_shift55_2_3.npy")
+dof_O3_mul_shift55_2_3 = np.loadtxt("F-statistics/dof_mul_shift55_2_3.txt", dtype=int)
+SNR_O3_mul_shift55_2_3 = calc_snr (F_O3_mul_shift55_2_3, dof_O3_mul_shift55_2_3)
+ics_O3_mul_shift55_2_3_sort = np.loadtxt("ics/ics_mul_shift55_2_3_sort.txt", dtype=int)
+print(ics_O3_mul_shift55_2_3_sort)
+#+end_src
+
+#+RESULTS:
+: 44
+: Max SNR: 4.7612
+: [ 7  8 13 12 19 11 14 17 20 24 16 10 25 22  9 15 18  6 26 28 31 27 21 32
+:   3 35 30  4 34 23 41  5 40  1 39  0 29 43 36 37 38 33 42  2]
+
+#+begin_src python :results output replace :exports both
+print(cfg_pqclean["O3"]["mul_shift55"]["cycle_usage"])
+addr_O3_mul_shift55 = cfg_pqclean["O3"]["mul_shift55"]["addr_cycloc"]
+F_O3_mul_shift55_4_7 = np.load("F-statistics/F_mul_shift55_4_7.npy")
+dof_O3_mul_shift55_4_7 = np.loadtxt("F-statistics/dof_mul_shift55_4_7.txt", dtype=int)
+SNR_O3_mul_shift55_4_7 = calc_snr (F_O3_mul_shift55_4_7, dof_O3_mul_shift55_4_7)
+ics_O3_mul_shift55_4_7_sort = np.loadtxt("ics/ics_mul_shift55_4_7_sort.txt", dtype=int)
+print(ics_O3_mul_shift55_4_7_sort)
+#+end_src
+
+#+RESULTS:
+: 44
+: Max SNR: 8.8036
+: [ 7  8  3 13  9 19  2 29 28 12 20 25 43 24 14  1 17  4  6 35 16 10 34 22
+:  30 27 11 15  0 23 26 36 40 18 39 31 42 33 32  5 21 41 38 37]
+
+
+* PoI
+
+#+begin_src python :results output replace :exports both
+ics_scaled, rects = leakage_markers_fp(SNR_O3_scaled, gap_peak=1, height_frac=0.02)
+print_peaks(ics_scaled, addr_O3_scaled, SNR_O3_scaled)
+np.savetxt(f'ics/ics_scaled.txt', ics_scaled, fmt='%d')
+#+end_src
+
+#+RESULTS:
+#+begin_example
+0x106  84 16.8865
+0xe6   75  9.3915
+0x76   43  7.2678
+0x118  89  5.4773
+0xf6   80  5.4352
+0xb2   60  5.3831
+0x0     4  4.1108
+0x94   51  3.1699
+0x62   37  3.1277
+0xd4   70  2.5384
+0xbe   64  1.9421
+0x84   47  1.9163
+0x12a  94  1.8227
+0x152 108  1.7873
+0x146 104  1.6785
+0x134  98  1.3211
+0xa4   56  0.8380
+0x164 113  0.6473
+0xa     9  0.4660
+0x2a   20  0.3530
+#+end_example
+
+#+begin_src python :results output replace :exports both
+ics_mul_shift55_2_3, rects = leakage_markers_fp(SNR_O3_mul_shift55_2_3, gap_peak=0, distance=1, height_frac=0.00)
+print_peaks(ics_mul_shift55_2_3, addr_O3_mul_shift55, SNR_O3_mul_shift55_2_3)
+np.savetxt(f'ics/ics_mul_shift55_2_3.txt', ics_mul_shift55_2_3, fmt='%d')
+#+end_src
+
+#+RESULTS:
+#+begin_example
+0x44  7 4.7612
+0x56 13 2.6772
+0x6c 19 1.2385
+0x64 17 0.6496
+0x7c 24 0.5058
+0x76 22 0.1604
+0x8c 28 0.0686
+0x94 31 0.0601
+0x34  3 0.0402
+0xa2 35 0.0360
+0xb6 41 0.0223
+0x2c  1 0.0110
+#+end_example
+
+#+begin_src python :results output replace :exports both
+ics_mul_shift55_4_7, rects = leakage_markers_fp(SNR_O3_mul_shift55_4_7, gap_peak=0)
+print_peaks(ics_mul_shift55_4_7, addr_O3_mul_shift55, SNR_O3_mul_shift55_4_7)
+np.savetxt(f'ics/ics_mul_shift55_4_7.txt', ics_mul_shift55_4_7, fmt='%d')
+#+end_src
+
+#+RESULTS:
+: 0x44  7 8.8036
+: 0x34  3 3.3058
+: 0x56 13 2.9921
+: 0x6c 19 1.9418
+: 0x8e 29 1.6687
+: 0x80 25 1.4230
+: 0xa2 35 0.8577
+: 0xb2 40 0.3042

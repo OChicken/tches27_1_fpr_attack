@@ -1,0 +1,489 @@
+
+build-stm32f4/obj/fpr.o:     file format elf32-littlearm
+
+
+Disassembly of section .text.fpr_ursh:
+
+Disassembly of section .text.fpr_ulsh:
+
+Disassembly of section .text.FPR:
+
+Disassembly of section .text.fpr_trunc:
+
+Disassembly of section .text.PQCLEAN_FALCON512_CLEAN_fpr_scaled:
+
+00000000 <PQCLEAN_FALCON512_CLEAN_fpr_scaled>:
+   0:	stmdb	sp!, {r4, r5, r7, r8, r9, sl, fp, lr}
+   4:	sub	sp, #368	@ 0x170
+   6:	add	r7, sp, #0
+   8:	strd	r0, r1, [r7, #328]	@ 0x148
+   c:	str.w	r2, [r7, #324]	@ 0x144
+  10:	ldrd	r2, r3, [r7, #328]	@ 0x148
+  14:	mov.w	r0, #0
+  18:	mov.w	r1, #0
+  1c:	lsrs	r0, r3, #31
+  1e:	movs	r1, #0
+  20:	mov	r3, r0
+  22:	str.w	r3, [r7, #364]	@ 0x16c
+  26:	ldr.w	r3, [r7, #364]	@ 0x16c
+  2a:	asrs	r2, r3, #31
+  2c:	mov	r8, r3
+  2e:	mov	r9, r2
+  30:	movs	r3, #0
+  32:	rsbs	r4, r8, #0
+  36:	sbc.w	r5, r3, r9
+  3a:	ldrd	r2, r3, [r7, #328]	@ 0x148
+  3e:	eor.w	sl, r2, r4
+  42:	eor.w	fp, r3, r5
+  46:	strd	sl, fp, [r7, #328]	@ 0x148
+  4a:	ldr.w	r3, [r7, #364]	@ 0x16c
+  4e:	asrs	r2, r3, #31
+  50:	str.w	r3, [r7, #312]	@ 0x138
+  54:	str.w	r2, [r7, #316]	@ 0x13c
+  58:	ldrd	r2, r3, [r7, #328]	@ 0x148
+  5c:	ldrd	r4, r5, [r7, #312]	@ 0x138
+  60:	mov	r1, r4
+  62:	adds	r1, r2, r1
+  64:	str	r1, [r7, #72]	@ 0x48
+  66:	mov	r1, r5
+  68:	adc.w	r1, r3, r1
+  6c:	str	r1, [r7, #76]	@ 0x4c
+  6e:	ldrd	r3, r4, [r7, #72]	@ 0x48
+  72:	strd	r3, r4, [r7, #328]	@ 0x148
+  76:	ldrd	r2, r3, [r7, #328]	@ 0x148
+  7a:	strd	r2, r3, [r7, #352]	@ 0x160
+  7e:	ldr.w	r3, [r7, #324]	@ 0x144
+  82:	adds	r3, #9
+  84:	str.w	r3, [r7, #348]	@ 0x15c
+  88:	ldr.w	r3, [r7, #348]	@ 0x15c
+  8c:	subs	r3, #63	@ 0x3f
+  8e:	str.w	r3, [r7, #348]	@ 0x15c
+  92:	ldrd	r2, r3, [r7, #352]	@ 0x160
+  96:	mov.w	r0, #0
+  9a:	mov.w	r1, #0
+  9e:	movs	r0, r3
+  a0:	movs	r1, #0
+  a2:	mov	r3, r0
+  a4:	str.w	r3, [r7, #344]	@ 0x158
+  a8:	ldr.w	r3, [r7, #344]	@ 0x158
+  ac:	negs	r2, r3
+  ae:	ldr.w	r3, [r7, #344]	@ 0x158
+  b2:	orrs	r3, r2
+  b4:	lsrs	r3, r3, #31
+  b6:	str.w	r3, [r7, #344]	@ 0x158
+  ba:	ldrd	r2, r3, [r7, #352]	@ 0x160
+  be:	mov.w	r0, #0
+  c2:	mov.w	r1, #0
+  c6:	movs	r1, r2
+  c8:	movs	r0, #0
+  ca:	ldrd	r2, r3, [r7, #352]	@ 0x160
+  ce:	eor.w	r4, r0, r2
+  d2:	str.w	r4, [r7, #304]	@ 0x130
+  d6:	eors	r3, r1
+  d8:	str.w	r3, [r7, #308]	@ 0x134
+  dc:	ldr.w	r3, [r7, #344]	@ 0x158
+  e0:	movs	r2, #0
+  e2:	str.w	r3, [r7, #296]	@ 0x128
+  e6:	str.w	r2, [r7, #300]	@ 0x12c
+  ea:	ldrd	r1, r2, [r7, #296]	@ 0x128
+  ee:	mov	r3, r1
+  f0:	subs	r3, #1
+  f2:	str.w	r3, [r7, #288]	@ 0x120
+  f6:	mov	r3, r2
+  f8:	adc.w	r3, r3, #4294967295	@ 0xffffffff
+  fc:	str.w	r3, [r7, #292]	@ 0x124
+ 100:	ldrd	r3, r4, [r7, #304]	@ 0x130
+ 104:	mov	r0, r3
+ 106:	ldrd	r1, r2, [r7, #288]	@ 0x120
+ 10a:	mov	r5, r1
+ 10c:	ands	r0, r5
+ 10e:	str.w	r0, [r7, #280]	@ 0x118
+ 112:	mov	r3, r4
+ 114:	ands	r3, r2
+ 116:	str.w	r3, [r7, #284]	@ 0x11c
+ 11a:	ldrd	r2, r3, [r7, #352]	@ 0x160
+ 11e:	ldrd	r0, r1, [r7, #280]	@ 0x118
+ 122:	mov	r4, r0
+ 124:	eors	r4, r2
+ 126:	str	r4, [r7, #64]	@ 0x40
+ 128:	eors	r1, r3
+ 12a:	str	r1, [r7, #68]	@ 0x44
+ 12c:	ldrd	r3, r4, [r7, #64]	@ 0x40
+ 130:	strd	r3, r4, [r7, #352]	@ 0x160
+ 134:	ldr.w	r3, [r7, #344]	@ 0x158
+ 138:	lsls	r2, r3, #5
+ 13a:	ldr.w	r3, [r7, #348]	@ 0x15c
+ 13e:	add	r3, r2
+ 140:	str.w	r3, [r7, #348]	@ 0x15c
+ 144:	ldrd	r2, r3, [r7, #352]	@ 0x160
+ 148:	mov.w	r0, #0
+ 14c:	mov.w	r1, #0
+ 150:	lsrs	r0, r3, #16
+ 152:	movs	r1, #0
+ 154:	mov	r3, r0
+ 156:	str.w	r3, [r7, #344]	@ 0x158
+ 15a:	ldr.w	r3, [r7, #344]	@ 0x158
+ 15e:	negs	r2, r3
+ 160:	ldr.w	r3, [r7, #344]	@ 0x158
+ 164:	orrs	r3, r2
+ 166:	lsrs	r3, r3, #31
+ 168:	str.w	r3, [r7, #344]	@ 0x158
+ 16c:	ldrd	r2, r3, [r7, #352]	@ 0x160
+ 170:	mov.w	r0, #0
+ 174:	mov.w	r1, #0
+ 178:	lsls	r1, r3, #16
+ 17a:	orr.w	r1, r1, r2, lsr #16
+ 17e:	lsls	r0, r2, #16
+ 180:	ldrd	r2, r3, [r7, #352]	@ 0x160
+ 184:	eor.w	r4, r0, r2
+ 188:	str.w	r4, [r7, #272]	@ 0x110
+ 18c:	eors	r3, r1
+ 18e:	str.w	r3, [r7, #276]	@ 0x114
+ 192:	ldr.w	r3, [r7, #344]	@ 0x158
+ 196:	movs	r2, #0
+ 198:	str.w	r3, [r7, #264]	@ 0x108
+ 19c:	str.w	r2, [r7, #268]	@ 0x10c
+ 1a0:	ldrd	r1, r2, [r7, #264]	@ 0x108
+ 1a4:	mov	r3, r1
+ 1a6:	subs	r3, #1
+ 1a8:	str.w	r3, [r7, #256]	@ 0x100
+ 1ac:	mov	r3, r2
+ 1ae:	adc.w	r3, r3, #4294967295	@ 0xffffffff
+ 1b2:	str.w	r3, [r7, #260]	@ 0x104
+ 1b6:	ldrd	r3, r4, [r7, #272]	@ 0x110
+ 1ba:	mov	r0, r3
+ 1bc:	ldrd	r1, r2, [r7, #256]	@ 0x100
+ 1c0:	mov	r5, r1
+ 1c2:	ands	r0, r5
+ 1c4:	str.w	r0, [r7, #248]	@ 0xf8
+ 1c8:	mov	r3, r4
+ 1ca:	ands	r3, r2
+ 1cc:	str.w	r3, [r7, #252]	@ 0xfc
+ 1d0:	ldrd	r2, r3, [r7, #352]	@ 0x160
+ 1d4:	ldrd	r0, r1, [r7, #248]	@ 0xf8
+ 1d8:	mov	r4, r0
+ 1da:	eors	r4, r2
+ 1dc:	str	r4, [r7, #56]	@ 0x38
+ 1de:	eors	r1, r3
+ 1e0:	str	r1, [r7, #60]	@ 0x3c
+ 1e2:	ldrd	r3, r4, [r7, #56]	@ 0x38
+ 1e6:	strd	r3, r4, [r7, #352]	@ 0x160
+ 1ea:	ldr.w	r3, [r7, #344]	@ 0x158
+ 1ee:	lsls	r2, r3, #4
+ 1f0:	ldr.w	r3, [r7, #348]	@ 0x15c
+ 1f4:	add	r3, r2
+ 1f6:	str.w	r3, [r7, #348]	@ 0x15c
+ 1fa:	ldrd	r2, r3, [r7, #352]	@ 0x160
+ 1fe:	mov.w	r0, #0
+ 202:	mov.w	r1, #0
+ 206:	lsrs	r0, r3, #24
+ 208:	movs	r1, #0
+ 20a:	mov	r3, r0
+ 20c:	str.w	r3, [r7, #344]	@ 0x158
+ 210:	ldr.w	r3, [r7, #344]	@ 0x158
+ 214:	negs	r2, r3
+ 216:	ldr.w	r3, [r7, #344]	@ 0x158
+ 21a:	orrs	r3, r2
+ 21c:	lsrs	r3, r3, #31
+ 21e:	str.w	r3, [r7, #344]	@ 0x158
+ 222:	ldrd	r2, r3, [r7, #352]	@ 0x160
+ 226:	mov.w	r0, #0
+ 22a:	mov.w	r1, #0
+ 22e:	lsls	r1, r3, #8
+ 230:	orr.w	r1, r1, r2, lsr #24
+ 234:	lsls	r0, r2, #8
+ 236:	ldrd	r2, r3, [r7, #352]	@ 0x160
+ 23a:	eor.w	r4, r0, r2
+ 23e:	str.w	r4, [r7, #240]	@ 0xf0
+ 242:	eors	r3, r1
+ 244:	str.w	r3, [r7, #244]	@ 0xf4
+ 248:	ldr.w	r3, [r7, #344]	@ 0x158
+ 24c:	movs	r2, #0
+ 24e:	str.w	r3, [r7, #232]	@ 0xe8
+ 252:	str.w	r2, [r7, #236]	@ 0xec
+ 256:	ldrd	r1, r2, [r7, #232]	@ 0xe8
+ 25a:	mov	r3, r1
+ 25c:	subs	r3, #1
+ 25e:	str.w	r3, [r7, #224]	@ 0xe0
+ 262:	mov	r3, r2
+ 264:	adc.w	r3, r3, #4294967295	@ 0xffffffff
+ 268:	str.w	r3, [r7, #228]	@ 0xe4
+ 26c:	ldrd	r3, r4, [r7, #240]	@ 0xf0
+ 270:	mov	r0, r3
+ 272:	ldrd	r1, r2, [r7, #224]	@ 0xe0
+ 276:	mov	r5, r1
+ 278:	ands	r0, r5
+ 27a:	str.w	r0, [r7, #216]	@ 0xd8
+ 27e:	mov	r3, r4
+ 280:	ands	r3, r2
+ 282:	str.w	r3, [r7, #220]	@ 0xdc
+ 286:	ldrd	r2, r3, [r7, #352]	@ 0x160
+ 28a:	ldrd	r0, r1, [r7, #216]	@ 0xd8
+ 28e:	mov	r4, r0
+ 290:	eors	r4, r2
+ 292:	str	r4, [r7, #48]	@ 0x30
+ 294:	eors	r1, r3
+ 296:	str	r1, [r7, #52]	@ 0x34
+ 298:	ldrd	r3, r4, [r7, #48]	@ 0x30
+ 29c:	strd	r3, r4, [r7, #352]	@ 0x160
+ 2a0:	ldr.w	r3, [r7, #344]	@ 0x158
+ 2a4:	lsls	r2, r3, #3
+ 2a6:	ldr.w	r3, [r7, #348]	@ 0x15c
+ 2aa:	add	r3, r2
+ 2ac:	str.w	r3, [r7, #348]	@ 0x15c
+ 2b0:	ldrd	r2, r3, [r7, #352]	@ 0x160
+ 2b4:	mov.w	r0, #0
+ 2b8:	mov.w	r1, #0
+ 2bc:	lsrs	r0, r3, #28
+ 2be:	movs	r1, #0
+ 2c0:	mov	r3, r0
+ 2c2:	str.w	r3, [r7, #344]	@ 0x158
+ 2c6:	ldr.w	r3, [r7, #344]	@ 0x158
+ 2ca:	negs	r2, r3
+ 2cc:	ldr.w	r3, [r7, #344]	@ 0x158
+ 2d0:	orrs	r3, r2
+ 2d2:	lsrs	r3, r3, #31
+ 2d4:	str.w	r3, [r7, #344]	@ 0x158
+ 2d8:	ldrd	r2, r3, [r7, #352]	@ 0x160
+ 2dc:	mov.w	r0, #0
+ 2e0:	mov.w	r1, #0
+ 2e4:	lsls	r1, r3, #4
+ 2e6:	orr.w	r1, r1, r2, lsr #28
+ 2ea:	lsls	r0, r2, #4
+ 2ec:	ldrd	r2, r3, [r7, #352]	@ 0x160
+ 2f0:	eor.w	r4, r0, r2
+ 2f4:	str.w	r4, [r7, #208]	@ 0xd0
+ 2f8:	eors	r3, r1
+ 2fa:	str.w	r3, [r7, #212]	@ 0xd4
+ 2fe:	ldr.w	r3, [r7, #344]	@ 0x158
+ 302:	movs	r2, #0
+ 304:	str.w	r3, [r7, #200]	@ 0xc8
+ 308:	str.w	r2, [r7, #204]	@ 0xcc
+ 30c:	ldrd	r1, r2, [r7, #200]	@ 0xc8
+ 310:	mov	r3, r1
+ 312:	subs	r3, #1
+ 314:	str.w	r3, [r7, #192]	@ 0xc0
+ 318:	mov	r3, r2
+ 31a:	adc.w	r3, r3, #4294967295	@ 0xffffffff
+ 31e:	str.w	r3, [r7, #196]	@ 0xc4
+ 322:	ldrd	r3, r4, [r7, #208]	@ 0xd0
+ 326:	mov	r0, r3
+ 328:	ldrd	r1, r2, [r7, #192]	@ 0xc0
+ 32c:	mov	r5, r1
+ 32e:	ands	r0, r5
+ 330:	str.w	r0, [r7, #184]	@ 0xb8
+ 334:	mov	r3, r4
+ 336:	ands	r3, r2
+ 338:	str.w	r3, [r7, #188]	@ 0xbc
+ 33c:	ldrd	r2, r3, [r7, #352]	@ 0x160
+ 340:	ldrd	r0, r1, [r7, #184]	@ 0xb8
+ 344:	mov	r4, r0
+ 346:	eors	r4, r2
+ 348:	str	r4, [r7, #40]	@ 0x28
+ 34a:	eors	r1, r3
+ 34c:	str	r1, [r7, #44]	@ 0x2c
+ 34e:	ldrd	r3, r4, [r7, #40]	@ 0x28
+ 352:	strd	r3, r4, [r7, #352]	@ 0x160
+ 356:	ldr.w	r3, [r7, #344]	@ 0x158
+ 35a:	lsls	r2, r3, #2
+ 35c:	ldr.w	r3, [r7, #348]	@ 0x15c
+ 360:	add	r3, r2
+ 362:	str.w	r3, [r7, #348]	@ 0x15c
+ 366:	ldrd	r2, r3, [r7, #352]	@ 0x160
+ 36a:	mov.w	r0, #0
+ 36e:	mov.w	r1, #0
+ 372:	lsrs	r0, r3, #30
+ 374:	movs	r1, #0
+ 376:	mov	r3, r0
+ 378:	str.w	r3, [r7, #344]	@ 0x158
+ 37c:	ldr.w	r3, [r7, #344]	@ 0x158
+ 380:	negs	r2, r3
+ 382:	ldr.w	r3, [r7, #344]	@ 0x158
+ 386:	orrs	r3, r2
+ 388:	lsrs	r3, r3, #31
+ 38a:	str.w	r3, [r7, #344]	@ 0x158
+ 38e:	ldrd	r2, r3, [r7, #352]	@ 0x160
+ 392:	mov.w	r0, #0
+ 396:	mov.w	r1, #0
+ 39a:	lsls	r1, r3, #2
+ 39c:	orr.w	r1, r1, r2, lsr #30
+ 3a0:	lsls	r0, r2, #2
+ 3a2:	ldrd	r2, r3, [r7, #352]	@ 0x160
+ 3a6:	eor.w	r4, r0, r2
+ 3aa:	str.w	r4, [r7, #176]	@ 0xb0
+ 3ae:	eors	r3, r1
+ 3b0:	str.w	r3, [r7, #180]	@ 0xb4
+ 3b4:	ldr.w	r3, [r7, #344]	@ 0x158
+ 3b8:	movs	r2, #0
+ 3ba:	str.w	r3, [r7, #168]	@ 0xa8
+ 3be:	str.w	r2, [r7, #172]	@ 0xac
+ 3c2:	ldrd	r1, r2, [r7, #168]	@ 0xa8
+ 3c6:	mov	r3, r1
+ 3c8:	subs	r3, #1
+ 3ca:	str.w	r3, [r7, #160]	@ 0xa0
+ 3ce:	mov	r3, r2
+ 3d0:	adc.w	r3, r3, #4294967295	@ 0xffffffff
+ 3d4:	str.w	r3, [r7, #164]	@ 0xa4
+ 3d8:	ldrd	r3, r4, [r7, #176]	@ 0xb0
+ 3dc:	mov	r0, r3
+ 3de:	ldrd	r1, r2, [r7, #160]	@ 0xa0
+ 3e2:	mov	r5, r1
+ 3e4:	ands	r0, r5
+ 3e6:	str.w	r0, [r7, #152]	@ 0x98
+ 3ea:	mov	r3, r4
+ 3ec:	ands	r3, r2
+ 3ee:	str.w	r3, [r7, #156]	@ 0x9c
+ 3f2:	ldrd	r2, r3, [r7, #352]	@ 0x160
+ 3f6:	ldrd	r0, r1, [r7, #152]	@ 0x98
+ 3fa:	mov	r4, r0
+ 3fc:	eors	r4, r2
+ 3fe:	str	r4, [r7, #32]
+ 400:	eors	r1, r3
+ 402:	str	r1, [r7, #36]	@ 0x24
+ 404:	ldrd	r3, r4, [r7, #32]
+ 408:	strd	r3, r4, [r7, #352]	@ 0x160
+ 40c:	ldr.w	r3, [r7, #344]	@ 0x158
+ 410:	lsls	r2, r3, #1
+ 412:	ldr.w	r3, [r7, #348]	@ 0x15c
+ 416:	add	r3, r2
+ 418:	str.w	r3, [r7, #348]	@ 0x15c
+ 41c:	ldrd	r2, r3, [r7, #352]	@ 0x160
+ 420:	mov.w	r0, #0
+ 424:	mov.w	r1, #0
+ 428:	lsrs	r0, r3, #31
+ 42a:	movs	r1, #0
+ 42c:	mov	r3, r0
+ 42e:	str.w	r3, [r7, #344]	@ 0x158
+ 432:	ldrd	r2, r3, [r7, #352]	@ 0x160
+ 436:	adds	r1, r2, r2
+ 438:	str	r1, [r7, #24]
+ 43a:	adcs	r3, r3
+ 43c:	str	r3, [r7, #28]
+ 43e:	ldrd	r0, r1, [r7, #24]
+ 442:	ldrd	r2, r3, [r7, #352]	@ 0x160
+ 446:	eor.w	r4, r0, r2
+ 44a:	str.w	r4, [r7, #144]	@ 0x90
+ 44e:	eors	r3, r1
+ 450:	str.w	r3, [r7, #148]	@ 0x94
+ 454:	ldr.w	r3, [r7, #344]	@ 0x158
+ 458:	movs	r2, #0
+ 45a:	str.w	r3, [r7, #136]	@ 0x88
+ 45e:	str.w	r2, [r7, #140]	@ 0x8c
+ 462:	ldrd	r1, r2, [r7, #136]	@ 0x88
+ 466:	mov	r3, r1
+ 468:	subs	r3, #1
+ 46a:	str.w	r3, [r7, #128]	@ 0x80
+ 46e:	mov	r3, r2
+ 470:	adc.w	r3, r3, #4294967295	@ 0xffffffff
+ 474:	str.w	r3, [r7, #132]	@ 0x84
+ 478:	ldrd	r3, r4, [r7, #144]	@ 0x90
+ 47c:	mov	r0, r3
+ 47e:	ldrd	r1, r2, [r7, #128]	@ 0x80
+ 482:	mov	r5, r1
+ 484:	ands	r0, r5
+ 486:	str	r0, [r7, #120]	@ 0x78
+ 488:	mov	r3, r4
+ 48a:	ands	r3, r2
+ 48c:	str	r3, [r7, #124]	@ 0x7c
+ 48e:	ldrd	r2, r3, [r7, #352]	@ 0x160
+ 492:	ldrd	r0, r1, [r7, #120]	@ 0x78
+ 496:	mov	r4, r0
+ 498:	eors	r4, r2
+ 49a:	str	r4, [r7, #16]
+ 49c:	eors	r1, r3
+ 49e:	str	r1, [r7, #20]
+ 4a0:	ldrd	r3, r4, [r7, #16]
+ 4a4:	strd	r3, r4, [r7, #352]	@ 0x160
+ 4a8:	ldr.w	r2, [r7, #344]	@ 0x158
+ 4ac:	ldr.w	r3, [r7, #348]	@ 0x15c
+ 4b0:	add	r3, r2
+ 4b2:	str.w	r3, [r7, #348]	@ 0x15c
+ 4b6:	ldr.w	r3, [r7, #352]	@ 0x160
+ 4ba:	ubfx	r3, r3, #0, #9
+ 4be:	addw	r3, r3, #511	@ 0x1ff
+ 4c2:	movs	r2, #0
+ 4c4:	str	r3, [r7, #112]	@ 0x70
+ 4c6:	str	r2, [r7, #116]	@ 0x74
+ 4c8:	ldrd	r2, r3, [r7, #352]	@ 0x160
+ 4cc:	ldrd	r0, r1, [r7, #112]	@ 0x70
+ 4d0:	mov	r4, r0
+ 4d2:	orrs	r4, r2
+ 4d4:	str	r4, [r7, #8]
+ 4d6:	orrs	r1, r3
+ 4d8:	str	r1, [r7, #12]
+ 4da:	ldrd	r3, r4, [r7, #8]
+ 4de:	strd	r3, r4, [r7, #352]	@ 0x160
+ 4e2:	ldrd	r0, r1, [r7, #352]	@ 0x160
+ 4e6:	mov.w	r2, #0
+ 4ea:	mov.w	r3, #0
+ 4ee:	lsrs	r2, r0, #9
+ 4f0:	orr.w	r2, r2, r1, lsl #23
+ 4f4:	lsrs	r3, r1, #9
+ 4f6:	strd	r2, r3, [r7, #352]	@ 0x160
+ 4fa:	ldrd	r2, r3, [r7, #328]	@ 0x148
+ 4fe:	movs	r1, #0
+ 500:	negs	r0, r2
+ 502:	str	r0, [r7, #104]	@ 0x68
+ 504:	sbc.w	r3, r1, r3
+ 508:	str	r3, [r7, #108]	@ 0x6c
+ 50a:	ldrd	r2, r3, [r7, #328]	@ 0x148
+ 50e:	ldrd	r0, r1, [r7, #104]	@ 0x68
+ 512:	mov	r4, r0
+ 514:	orrs	r4, r2
+ 516:	str	r4, [r7, #96]	@ 0x60
+ 518:	orrs	r1, r3
+ 51a:	str	r1, [r7, #100]	@ 0x64
+ 51c:	ldrd	r0, r1, [r7, #96]	@ 0x60
+ 520:	mov.w	r2, #0
+ 524:	mov.w	r3, #0
+ 528:	lsrs	r2, r1, #31
+ 52a:	movs	r3, #0
+ 52c:	mov	r3, r2
+ 52e:	str.w	r3, [r7, #340]	@ 0x154
+ 532:	ldr.w	r3, [r7, #340]	@ 0x154
+ 536:	movs	r2, #0
+ 538:	str	r3, [r7, #88]	@ 0x58
+ 53a:	str	r2, [r7, #92]	@ 0x5c
+ 53c:	movs	r3, #0
+ 53e:	ldrd	r0, r1, [r7, #88]	@ 0x58
+ 542:	mov	r2, r0
+ 544:	negs	r2, r2
+ 546:	str	r2, [r7, #80]	@ 0x50
+ 548:	mov	r2, r1
+ 54a:	sbc.w	r3, r3, r2
+ 54e:	str	r3, [r7, #84]	@ 0x54
+ 550:	ldrd	r2, r3, [r7, #352]	@ 0x160
+ 554:	ldrd	r0, r1, [r7, #80]	@ 0x50
+ 558:	mov	r4, r0
+ 55a:	ands	r4, r2
+ 55c:	str	r4, [r7, #0]
+ 55e:	ands	r1, r3
+ 560:	str	r1, [r7, #4]
+ 562:	ldrd	r3, r4, [r7]
+ 566:	strd	r3, r4, [r7, #352]	@ 0x160
+ 56a:	ldr.w	r3, [r7, #340]	@ 0x154
+ 56e:	negs	r3, r3
+ 570:	ldr.w	r2, [r7, #348]	@ 0x15c
+ 574:	ands	r3, r2
+ 576:	str.w	r3, [r7, #348]	@ 0x15c
+ 57a:	ldrd	r2, r3, [r7, #352]	@ 0x160
+ 57e:	ldr.w	r1, [r7, #348]	@ 0x15c
+ 582:	ldr.w	r0, [r7, #364]	@ 0x16c
+ 586:	bl	0 <PQCLEAN_FALCON512_CLEAN_fpr_scaled>
+ 58a:	mov	r2, r0
+ 58c:	mov	r3, r1
+ 58e:	mov	r0, r2
+ 590:	mov	r1, r3
+ 592:	add.w	r7, r7, #368	@ 0x170
+ 596:	mov	sp, r7
+ 598:	ldmia.w	sp!, {r4, r5, r7, r8, r9, sl, fp, pc}
+
+Disassembly of section .text.PQCLEAN_FALCON512_CLEAN_fpr_add:
+
+Disassembly of section .text.PQCLEAN_FALCON512_CLEAN_fpr_mul:
+
+Disassembly of section .text.PQCLEAN_FALCON512_CLEAN_fpr_div:
+
+Disassembly of section .text.PQCLEAN_FALCON512_CLEAN_fpr_sqrt:
+
+Disassembly of section .text.PQCLEAN_FALCON512_CLEAN_fpr_expm_p63:

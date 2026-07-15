@@ -1,0 +1,572 @@
+* Common
+
+** Algo
+
+#+begin_src python :session :results silent
+FALCON_N = 512
+FALCON_LOGN = 9
+logn = FALCON_LOGN.to_bytes(1, byteorder='little')
+#+end_src
+
+
+** Addresses
+
+#+begin_src python :session :results silent
+ADDR_SCALED = 0x08000e00
+ADDR_MUL    = 0x08000fbe
+#+end_src
+
+
+** CW
+
+#+begin_src python :session :results silent
+import os
+import time
+import math
+import pickle
+import numpy as np
+import chipwhisperer as cw
+import subprocess
+from tqdm import trange, tnrange
+from setup_generic import hardware_setup, clkgen_freq_setup, scope_reset, \
+    tracewhisperer_husky_setup
+from setup_generic import input2hex, cw_core_routine
+
+MCU_FREQ = 10_000_000
+PPC = 20
+HUSKY_MAX_SAMPLES = 131070
+#+end_src
+
+#+begin_src python :session :results silent
+PROGRAM = False
+scope, target = hardware_setup(f"build-stm32f4/fpemu.hex", "stm32f4", 'SS_VER_1_0', PROGRAM)
+scope_reset(scope)
+tracewhisperer = tracewhisperer_husky_setup(scope, target)
+clkgen_freq_setup(scope, target, MCU_FREQ)
+
+target.flush()
+scope_reset(scope)
+scope.clock.adc_mul = PPC
+scope.adc.samples = HUSKY_MAX_SAMPLES
+scope.gain.db = 12
+#+end_src
+
+
+** Key
+
+#+begin_src python :session :results silent
+import pandas as pd
+
+KEY_TYPE = 'f'  # change 'f' to 'g'
+N_rows = 1000  # read the first 100 rows. 'header=None' b.c. no csv header.
+df = pd.read_csv(f'keys/Falcon{FALCON_N}_{KEY_TYPE}_1000.csv', header=None, nrows=N_rows)
+
+# #col/row should be consistence with FALCON_N
+if df.shape[1] != FALCON_N:
+    raise ValueError(f"#col/row is not {FALCON_N}, instead {df.shape[1]}")
+
+key_list = df.values.tolist()
+#+end_src
+
+Send key:
+
+#+begin_src python :session :results output :exports both
+key_id = 0  # or any other indices less then len(key_list)
+key = key_list[key_id]
+target.write('k' + input2hex(key) + '\n')
+data = target.read(num_char=0xffff)
+print(data)
+target.flush()
+#+end_src
+
+#+RESULTS:
+: -2, 3
+: z00
+
+
+** determine cycle location
+
+#+begin_src python :session :results silent
+from cycloc import rm_etm_abnormal, cycloc_pair
+
+def debug(loc):
+    for i in range(len(loc)):  # <
+        delta = loc[i][0] - loc[i-1][1] if i > 0 else loc[i][0]
+        print(f"{loc[i][0]:8} rule # 0, delta = {delta}")
+        print(f"{loc[i][1]:8} rule # 0, delta = {loc[i][1] - loc[i][0]}")
+#+end_src
+
+
+
+* Diagnostics
+
+Step through =cw_core_routine= manually with =:results output= to find where
+the empty-loc failure occurs.
+
+#+begin_src python :session :results output
+target.flush()
+print(f"trace_synced: {tracewhisperer.trace_synced}")
+tracewhisperer.set_isync_matches(ADDR_SCALED + 0x00, ADDR_SCALED + 0x80, match=0)
+tracewhisperer.arm_trace()
+scope.arm()
+target.write('p' + input2hex(logn) + '\n')
+ret = scope.capture()
+print(f"scope.capture() timeout: {ret}")
+print(f"FIFO empty after capture: {tracewhisperer.fifo_empty()}")
+raw = tracewhisperer.read_capture_data()
+print(f"raw entries: {len(raw)}")
+if raw:
+    print(f"first 5 raw entries (cmd,data): {[list(e) for e in raw[:5]]}")
+    cmds = [e[0] for e in raw]
+    from collections import Counter
+    print(f"cmd type counts: {Counter(cmds)}")
+cycle_loc = tracewhisperer.get_rule_match_times(raw, rawtimes=False, verbose=False)
+print(f"cycle_loc length: {len(cycle_loc)}")
+data = ''
+while 'z00\n' not in data:
+    data += target.read(num_char=0xffff)
+print(f"z00 response: {repr(data)}")
+#+end_src
+
+#+RESULTS:
+: trace_synced: True
+: scope.capture() timeout: False
+: FIFO empty after capture: False
+: raw entries: 3
+: first 5 raw entries (cmd,data): [[255, 255, 146], [255, 255, 146], [255, 255, 134]]
+: cmd type counts: Counter({255: 3})
+: cycle_loc length: 0
+: z00 response: 'z00\nz00\n'
+
+Note: the diagnostic above had a bug -- =e[0]= is the time-increment byte, not the
+command. The actual cmd is =e[2] & 0x3=:
+- =e[2] & 0x3 = 146 & 3 = 2= → =FE_FIFO_CMD_TIME= for all three entries
+All three entries are TIME overflows (~196K FPGA ticks with zero pattern matches).
+The SWO stream carried *no* bytes that matched =[3, 8, 32]=.
+
+Enable =raw=True= to capture raw SWO bytes and confirm whether SWO data flows at all.
+
+#+begin_src python :session :results output
+from collections import Counter
+target.flush()
+tracewhisperer.capture.raw = True
+tracewhisperer.set_isync_matches(ADDR_SCALED + 0x00, ADDR_SCALED + 0x80, match=0)
+tracewhisperer.arm_trace()
+scope.arm()
+target.write('p' + input2hex(logn) + '\n')
+ret = scope.capture()
+print(f"timeout: {ret}")
+print(f"FIFO empty: {tracewhisperer.fifo_empty()}")
+raw2 = tracewhisperer.read_capture_data()
+print(f"raw entries: {len(raw2)}")
+actual_cmds = [e[2] & 0x3 for e in raw2]
+print(f"cmd type counts: {Counter(actual_cmds)}")
+# FE_FIFO_CMD_STRM = 3: raw SWO bytes
+strm_bytes = [e[1] for e in raw2 if (e[2] & 0x3) == 3]
+print(f"STRM byte count: {len(strm_bytes)}")
+if strm_bytes:
+    print(f"first 32 SWO bytes: {strm_bytes[:32]}")
+tracewhisperer.capture.raw = False
+data = ''
+while 'z00\n' not in data:
+    data += target.read(num_char=0xffff)
+print(f"z00: {repr(data)}")
+#+end_src
+
+#+RESULTS:
+: timeout: False
+: FIFO empty: False
+: raw entries: 3
+: cmd type counts: Counter({2: 3})
+: STRM byte count: 0
+: z00: 'z00\nz00\n'
+
+SWO pin is completely idle during the trigger window -- the TPIU is not
+transmitting. Check hardware register state and FPGA clock measurements.
+
+#+begin_src python :session :results output
+# -- FPGA clock health ------------------------------------------------------
+print(f"fe_freq (target clock as seen by FPGA): {tracewhisperer.clock.fe_freq:.3e} Hz")
+print(f"swo_clock_freq (FPGA SWO sampler clock): {tracewhisperer.clock.swo_clock_freq:.3e} Hz")
+print(f"swo_div: {tracewhisperer.swo_div}")
+print(f"swo_clock_locked: {tracewhisperer.clock.swo_clock_locked}")
+print(f"SWO baud = swo_clock_freq / swo_div = {tracewhisperer.clock.swo_clock_freq / tracewhisperer.swo_div:.3e}")
+
+# -- MCU hardware registers (via getreg 'g' command) -----------------------
+def getreg(idx):
+    target.write('g' + f'{idx:02x}' + '00000000\n')
+    import time; time.sleep(0.05)
+    resp = target.read(num_char=0xffff)
+    # response format: 8 hex chars + '\n'
+    lines = [l for l in resp.split('\n') if len(l) >= 8]
+    if lines:
+        return int(lines[0][:8], 16)
+    return None
+
+target.flush()
+print()
+print(f"TPIU->ACPR  (idx 8): {getreg(8):#010x}  (expected 0x00000000)")
+print(f"TPIU->SPPR  (idx 9): {getreg(9):#010x}  (expected 0x00000002 = SWO NRZ)")
+print(f"TPIU->FFCR  (idx10): {getreg(10):#010x}  (expected 0x00000102)")
+print(f"DWT->COMP0  (idx 1): {getreg(1):#010x}  (expected 0x08000e00 after set_isync_matches)")
+print(f"ETM->TEEVR  (idx 5): {getreg(5):#010x}  (expected 0x00000020)")
+print(f"ETM->CR     (idx 3): {getreg(3):#010x}  (expected ETM_CR_ETMEN|...)")
+#+end_src
+
+#+RESULTS:
+#+begin_example
+fe_freq (target clock as seen by FPGA): 1.000e+07 Hz
+swo_clock_freq (FPGA SWO sampler clock): 8.000e+07 Hz
+swo_div: 8
+swo_clock_locked: True
+SWO baud = swo_clock_freq / swo_div = 1.000e+07
+
+TPIU->ACPR  (idx 8): 0x00000000  (expected 0x00000000)
+TPIU->SPPR  (idx 9): 0x00000002  (expected 0x00000002 = SWO NRZ)
+TPIU->FFCR  (idx10): 0x00000102  (expected 0x00000102)
+DWT->COMP0  (idx 1): 0x08000e00  (expected 0x08000e00 after set_isync_matches)
+ETM->TEEVR  (idx 5): 0x00000020  (expected 0x00000020)
+ETM->CR     (idx 3): 0x00000800  (expected ETM_CR_ETMEN|...)
+#+end_example
+
+*Root cause*: =ETM->CR bit[0] (ETMEN) = 0= -- ETM is disabled. With ETM off and
+=DWT_FUNCTION0=8= (CMPMATCH → ETM trigger only, no DWT data packet), the SWO line
+stays completely idle.
+
+The bug is in =enable_trace()=: it writes =ETM->CR = 0x1= (ETMEN=1) which exits
+programming mode, but the subsequent =ETM_TraceMode()= call inside =set_isync_matches=
+reads back the hardware *reset* value =0x800= (bit[11] is hardwired=1 in this ETM
+implementation) and writes =0x800 & ~0x20 = 0x800= -- silently clearing ETMEN.
+
+Fix: write =ETM->CR= with *both* =ETMEN= (bit0) and =PROGRAMMING= (bit5) set so that
+=ETM_TraceMode()= reads =0x821=, clears only bit5, and writes =0x801= (ETMEN=1).
+
+setreg index 3, val=0x00000821:
+bytes [0x03, 0x00, 0x00, 0x08, 0x21] → command ='s0300000821\n'=
+
+#+begin_src python :session :results output
+from collections import Counter
+import time
+
+# 1. Apply the fix: setreg(3, 0x821) → ETMEN=1 stays after ETM_TraceMode
+target.flush()
+target.write('s' + '0300000821' + '\n')
+time.sleep(0.05)
+target.read(num_char=0xffff)  # consume z00 response
+
+print(f"ETM->CR after fix: {getreg(3):#010x}  (bit0=ETMEN should be 1)")
+target.flush()
+
+# 2. Redo set_isync_matches (TEEVR may have been touched by setreg)
+tracewhisperer.set_isync_matches(ADDR_SCALED + 0x00, ADDR_SCALED + 0x80, match=0)
+print(f"ETM->CR after set_isync_matches: {getreg(3):#010x}  (ETMEN must survive)")
+print(f"ETM->TEEVR: {getreg(5):#010x}  (expected 0x00000020)")
+target.flush()
+
+# 3. Re-run raw capture to verify SWO bytes now flow
+tracewhisperer.capture.raw = True
+tracewhisperer.arm_trace()
+scope.arm()
+target.write('p' + input2hex(logn) + '\n')
+ret = scope.capture()
+print(f"\ntimeout: {ret}")
+raw3 = tracewhisperer.read_capture_data()
+actual_cmds = [e[2] & 0x3 for e in raw3]
+print(f"cmd type counts: {Counter(actual_cmds)}")
+strm_bytes = [e[1] for e in raw3 if (e[2] & 0x3) == 3]
+print(f"STRM byte count: {len(strm_bytes)}  (should be > 0 now)")
+if strm_bytes:
+    print(f"first 32 SWO bytes: {strm_bytes[:32]}")
+tracewhisperer.capture.raw = False
+data = ''
+while 'z00\n' not in data:
+    data += target.read(num_char=0xffff)
+print(f"z00: {repr(data)}")
+#+end_src
+
+#+RESULTS:
+: ETM->CR after fix: 0x00000821  (bit0=ETMEN should be 1)
+: ETM->CR after set_isync_matches: 0x00000821  (ETMEN must survive)
+: ETM->TEEVR: 0x00000020  (expected 0x00000020)
+:
+: timeout: False
+: cmd type counts: Counter({2: 2})
+: STRM byte count: 0  (should be > 0 now)
+: z00: 'z00\n'
+
+*Root cause analysis*: The "fix" above was wrong.  =arm_etm.h= defines:
+- =ETM_CR_POWERDOWN = 0x00000001= (bit 0) — NOT ETMEN
+- =ETM_CR_PROGRAMMING = 0x00000400= (bit 10) — NOT bit 5
+- =ETM_CR_ETMEN = 0x00000800= (bit 11) — NOT bit 0
+
+So =ETM->CR = 0x800= was already *correct* (ETMEN=1, PROGRAMMING=0, POWERDOWN=0).
+Writing =0x821= set POWERDOWN=1 (bit0) and PORTSIZE_16BIT=1 (bit5) — corrupting ETM state.
+
+Separately, =enable_trace()= writes =TPIU->CSPSR = 0x8= (4-bit parallel port) even
+though =SPPR=2= selects SWO (1-bit serial).  CSPSR must be =0x1= for SWO output.
+
+Fix:
+1. Restore =ETM->CR = 0x800= (setreg 3, val 0x00000800)
+2. Set =TPIU->CSPSR = 0x1= (setreg 11=0x0b, val 0x00000001)
+
+#+begin_src python :session :results output
+from collections import Counter
+import time
+
+target.flush()
+
+# 1. Restore ETM->CR to 0x800 (ETMEN=1, POWERDOWN=0, clear our bad 0x821 write)
+target.write('s' + '0300000800' + '\n')
+time.sleep(0.05); target.read(num_char=0xffff)
+print(f"ETM->CR restored:  {getreg(3):#010x}  (expected 0x00000800)")
+target.flush()
+
+# 2. Fix TPIU->CSPSR = 0x1 (1-bit SWO port; enable_trace wrote 0x8 = 4-bit)
+target.write('s' + '0b00000001' + '\n')
+time.sleep(0.05); target.read(num_char=0xffff)
+print(f"TPIU->CSPSR fixed: {getreg(11):#010x}  (expected 0x00000001)")
+target.flush()
+
+# 3. Re-run raw capture to check if SWO bytes now flow
+tracewhisperer.set_isync_matches(ADDR_SCALED + 0x00, ADDR_SCALED + 0x80, match=0)
+tracewhisperer.capture.raw = True
+tracewhisperer.arm_trace()
+scope.arm()
+target.write('p' + input2hex(logn) + '\n')
+ret = scope.capture()
+print(f"\ntimeout: {ret}")
+raw4 = tracewhisperer.read_capture_data()
+actual_cmds = [e[2] & 0x3 for e in raw4]
+print(f"cmd type counts: {Counter(actual_cmds)}")
+strm_bytes = [e[1] for e in raw4 if (e[2] & 0x3) == 3]
+print(f"STRM byte count: {len(strm_bytes)}  (>0 means SWO is now working)")
+if strm_bytes:
+    print(f"first 32 SWO bytes: {strm_bytes[:32]}")
+tracewhisperer.capture.raw = False
+data = ''
+while 'z00\n' not in data:
+    data += target.read(num_char=0xffff)
+print(f"z00: {repr(data)}")
+#+end_src
+
+#+RESULTS:
+: ETM->CR restored:  0x00000800  (expected 0x00000800)
+: TPIU->CSPSR fixed: 0x00000001  (expected 0x00000001)
+:
+: timeout: False
+: cmd type counts: Counter({1: 915, 2: 2})
+: STRM byte count: 0  (>0 means SWO is now working)
+: z00: 'z00\nz00\n'
+
+=FE_FIFO_CMD_STAT = 1= means *decoded SWO bytes* (the FPGA NRZ decoder produced 915
+bytes). SWO is flowing. =STRM (cmd=3)= is the raw serial bit-level path and is not
+used in normal operation.  The remaining issue is that 0 =DATA (cmd=0)= entries
+were returned → no rule match fired.  =raw4= still holds the 915-byte capture.
+Decode with =get_raw_trace_packets= to see what is in the SWO stream, and re-run
+=cw_core_routine= with the fixed hardware state to test end-to-end.
+
+#+begin_src python :session :results output
+# Decode the 915 STAT bytes from raw4 to see actual ETM packets
+packets = tracewhisperer.get_raw_trace_packets(raw4, removesyncs=True, verbose=False)
+print(f"pseudo-frames: {len(packets)}")
+for i, pf in enumerate(packets[:10]):
+    print(f"  [{i}] len={len(pf)}  bytes={[hex(b) for b in pf[:16]]}")
+
+# Also show the raw STAT bytes (first 64) to inspect the SWO stream
+stat_bytes = [e[1] for e in raw4 if (e[2] & 0x3) == 1]
+print(f"\nTotal STAT bytes: {len(stat_bytes)}")
+print(f"First 64: {[hex(b) for b in stat_bytes[:64]]}")
+
+# What byte values are present that match our pattern [3, 8, 32]?
+from collections import Counter
+print(f"\nByte value histogram (top 16): {Counter(stat_bytes).most_common(16)}")
+#+end_src
+
+#+RESULTS:
+: pseudo-frames: 0
+: 
+: Total STAT bytes: 915
+: First 64: ['0x3', '0x8', '0x20', '0x1', '0xe', '0x0', '0x8', '0x84', '0x3', '0x8', '0x20', '0x1', '0xe', '0x0', '0x8', '0x22', '0x84', '0x8', '0x20', '0x1', '0xe', '0x0', '0x8', '0x84', '0x8', '0x21', '0x0', '0xe', '0x0', '0x8', '0x84', '0x22', '0x8', '0x21', '0x0', '0xe', '0x0', '0x8', '0x84', '0x8', '0x20', '0x1', '0xe', '0x0', '0x8', '0x84', '0x8', '0x12', '0x20', '0x1', '0xe', '0x0', '0x8', '0x84', '0x8', '0x21', '0x0', '0xe', '0x0', '0x8', '0x84', '0x8', '0x20', '0x91']
+:
+: Byte value histogram (top 16): [(8, 243), (0, 186), (14, 122), (132, 121), (32, 66), (1, 59), (33, 56), (34, 10), (18, 9), (145, 8), (137, 8), (72, 7), (68, 7), (36, 7), (3, 5), (144, 1)]
+
+=capture.raw= is mutually exclusive: =raw=True= stores STAT entries (SWO bytes);
+=raw=False= stores DATA entries (rule matches). Previous blocks set =raw=True=, so
+rule matching was disabled — explaining why 0 DATA entries appeared even though the
+pattern =[3, 8, 32]= = =[0x03, 0x08, 0x20]= is literally the first 3 SWO bytes.
+
+Hardware is now correct (ETM->CR=0x800, CSPSR=0x1, raw=False).
+Run =cw_core_routine= directly to test end-to-end cycle location.
+
+#+begin_src python :session :results output
+from collections import Counter
+
+# Hardware is correct: ETM->CR=0x800, CSPSR=0x1, capture.raw=False
+# Run cw_core_routine for both match=0 and match=1 to get loc0, loc1
+_, loc0 = cw_core_routine('p', logn, scope, target, tracewhisperer,
+                           ADDR_SCALED, 0x00, 0x80, 0)
+data = ''
+while 'z00\n' not in data:
+    data += target.read(num_char=0xffff)
+target.flush()
+print(f"loc0: len={len(loc0)}  (expected {FALCON_N})")
+if loc0:
+    print(f"  first 4: {loc0[:4]}")
+
+_, loc1 = cw_core_routine('p', logn, scope, target, tracewhisperer,
+                           ADDR_SCALED, 0x00, 0x80, 1)
+data = ''
+while 'z00\n' not in data:
+    data += target.read(num_char=0xffff)
+target.flush()
+print(f"loc1: len={len(loc1)}  (expected {FALCON_N})")
+if loc1:
+    print(f"  first 4: {loc1[:4]}")
+#+end_src
+
+#+RESULTS:
+: loc0: len=0  (expected 512)
+: loc1: len=0  (expected 512)
+
+=len(loc0)=len(loc1)=0= with no visible exception.  Possible causes:
+
+1. *Silent exception* from =arm_trace()= (AssertionError) swallowed by Org-mode.
+2. *Pattern [3,8,32] fires only ~5 times* — byte =0x3= appears only 5 times in
+   915 STAT bytes.  Most fpr_scaled calls produce short branch packets (1–2 bytes)
+   instead of a full I-sync; the I-sync only fires when ETM re-enters trace mode.
+3. *FPGA state corrupted* after multiple raw/normal captures.
+
+Check all of these.
+
+#+begin_src python :session :results output
+import traceback
+
+# ---- FPGA state -------------------------------------------------------
+print("=== FPGA state ===")
+print(f"trace_synced:         {tracewhisperer.trace_synced}")
+print(f"enabled:              {tracewhisperer.enabled}")
+print(f"capture.raw:          {tracewhisperer.capture.raw}")
+print(f"capture.rules_enabled:{tracewhisperer.capture.rules_enabled}")
+print(f"errors:               {tracewhisperer.errors}")
+
+# ---- fresh pattern + re-arm -------------------------------------------
+print("\n=== Re-init FPGA pattern ===")
+tracewhisperer.set_pattern_match(0, [3, 8, 32])
+tracewhisperer.capture.rules_enabled = [0]
+tracewhisperer.capture.raw = False
+print(f"capture.rules_enabled:{tracewhisperer.capture.rules_enabled}")
+print(f"capture.raw:          {tracewhisperer.capture.raw}")
+
+# ---- manual capture: catch any exception silently dropped by Org ------
+print("\n=== Manual capture (raw=False) ===")
+try:
+    tracewhisperer.set_isync_matches(ADDR_SCALED, ADDR_SCALED + 0x80, match=0)
+    tracewhisperer.arm_trace()
+    scope.arm()
+    target.write('p' + input2hex(logn) + '\n')
+    ret = scope.capture()
+    print(f"timeout: {ret}")
+    raw5 = tracewhisperer.read_capture_data()
+    from collections import Counter
+    cmds = [e[2] & 0x3 for e in raw5]
+    print(f"FIFO entries: {len(raw5)},  cmd counts: {Counter(cmds)}")
+    data_entries = [e for e in raw5 if (e[2] & 0x3) == 0]
+    print(f"DATA (rule-match) entries: {len(data_entries)}")
+    if data_entries:
+        print(f"  first 4: {data_entries[:4]}")
+    cycle_loc = tracewhisperer.get_rule_match_times(raw5, rawtimes=False, verbose=False)
+    print(f"cycle_loc length: {len(cycle_loc)}")
+except Exception as e:
+    print(f"EXCEPTION: {e}")
+    traceback.print_exc()
+data = ''
+while 'z00\n' not in data:
+    data += target.read(num_char=0xffff)
+target.flush()
+#+end_src
+
+#+RESULTS:
+#+begin_example
+=== FPGA state ===
+trace_synced:         True
+enabled:              True
+capture.raw:          False
+capture.rules_enabled:[0]
+errors:               False
+
+=== Re-init FPGA pattern ===
+capture.rules_enabled:[0]
+capture.raw:          False
+
+=== Manual capture (raw=False) ===
+timeout: False
+FIFO entries: 3,  cmd counts: Counter({2: 3})
+DATA (rule-match) entries: 0
+cycle_loc length: 0
+#+end_example
+
+Everything looks correct in software but pattern never fires.  The raw=True path
+(STAT entries) receives bytes from the UART decoder directly.  The raw=False path
+(DATA entries) may pass through a TPIU deframer that requires sync frames.  With
+sync frames disabled (=FFCR=0x102= but no DWT SYNCTAP), the deframer never
+syncs → pattern matcher sees no bytes.
+
+Two tests:
+1. Read back the actual 8-byte pattern/mask stored in the FPGA to confirm it is
+   =[0,0,0,0,0,3,8,32]= with mask =[0,0,0,0,0,255,255,255]=.
+2. Set an all-zero mask (match-anything after 8 bytes) and capture; if DATA
+   entries appear the deframing hypothesis is wrong and [3,8,32] simply
+   doesn't appear in the deframed stream; if still 0, deframer never syncs.
+
+#+begin_src python :session :results output
+import traceback
+from collections import Counter
+
+# 1. Read actual pattern and mask from FPGA
+print("=== Actual FPGA pattern/mask ===")
+rules = tracewhisperer.capture.rules
+for r in rules:
+    print(f"  rule {r['rule']}: patt={list(r['patt'])}  mask={list(r['mask'])}")
+
+# 2. Test with all-zeros mask: should fire after every byte once 8 are received
+print("\n=== Test: all-zero mask (match-anything) ===")
+try:
+    tracewhisperer.set_pattern_match(0, [0], mask=[0])
+    # re-read to confirm
+    rules2 = tracewhisperer.capture.rules
+    for r in rules2:
+        print(f"  rule {r['rule']}: patt={list(r['patt'])}  mask={list(r['mask'])}")
+    tracewhisperer.capture.rules_enabled = [0]
+    tracewhisperer.capture.raw = False
+
+    tracewhisperer.set_isync_matches(ADDR_SCALED, ADDR_SCALED + 0x80, match=0)
+    tracewhisperer.arm_trace()
+    scope.arm()
+    target.write('p' + input2hex(logn) + '\n')
+    ret = scope.capture()
+    print(f"timeout: {ret}")
+    raw6 = tracewhisperer.read_capture_data()
+    cmds6 = [e[2] & 0x3 for e in raw6]
+    print(f"FIFO entries: {len(raw6)},  cmd counts: {Counter(cmds6)}")
+    data6 = [e for e in raw6 if (e[2] & 0x3) == 0]
+    print(f"DATA entries: {len(data6)}")
+    if data6:
+        print(f"  first 4: {data6[:4]}")
+except Exception as e:
+    print(f"EXCEPTION: {e}")
+    traceback.print_exc()
+data = ''
+while 'z00\n' not in data:
+    data += target.read(num_char=0xffff)
+target.flush()
+#+end_src
+
+#+RESULTS:
+: === Actual FPGA pattern/mask ===
+:   rule 0: patt=[0, 0, 0, 0, 0, 3, 8, 32]  mask=[0, 0, 0, 0, 0, 255, 255, 255]
+: 
+: === Test: all-zero mask (match-anything) ===
+:   rule 0: patt=[0, 0, 0, 0, 0, 0, 0, 0]  mask=[0, 0, 0, 0, 0, 0, 0, 0]
+: timeout: False
+: FIFO entries: 2,  cmd counts: Counter({2: 2})
+: DATA entries: 0

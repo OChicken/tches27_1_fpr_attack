@@ -1,0 +1,932 @@
+#+TITLE: 4. ANOVA
+#+PROPERTY: header-args:python  :session Python/fpemu
+#+PROPERTY: header-args:python+ :results silent
+#+PROPERTY: header-args:python+ :tangle 4_anova.py
+
+This document assesses whether the three targeted leakage sources --- =fpr_scaled=, =fpr_mul= shift55, and =fpr_mul= multiply --- carry statistically detectable leakage, and whether a classical Gaussian template attack can exploit it.
+
+This document is used to
+1. confirm leakage exists via pairwise Welch's t-test (TVLA);
+2. visualise leakage strength with SOST/SNR diagrams and identify POIs;
+3. evaluate classical Gaussian template attack success rates as a baseline.
+
+The template attack success rates establish a baseline for what simple profiling can achieve.  Weaker sub-ranges (e.g. =fpr_mul= [16, 22]) motivate the ML-based discriminative classifier used in =5_profile.org=.
+
+#+begin_src python
+print("#+TITLE: 4. ANOVA")
+#+end_src
+
+* Preliminary
+
+Run the following scripts before this document.  =traces.py= collects the raw power traces; =cycloc.py= records the ETM cycle locations used for cropping.
+
+#+begin_src shell
+OPT=O0
+FALCON_N=512
+echo Run $OPT
+
+python cycloc.py $OPT scaled      $FALCON_N profile -22 23
+python cycloc.py $OPT mul         $FALCON_N profile -22 23
+python cycloc.py $OPT shift55     $FALCON_N profile -22 23
+python cycloc.py $OPT mul_shift55 $FALCON_N profile -22 23
+
+python traces.py $OPT  512 profile -22 23
+# python traces.py $OPT 1024 profile -15 16
+#+end_src
+
+Dir structure:
+
+#+begin_example
+O0/
+├── traces_attack/
+│   └── ...
+└── traces_profile/
+    ├── loc_scaled.pkl
+    ├── loc_shift55.pkl
+    ├── loc_mul.pkl
+    ├── loc_mul_shift55.pkl
+    ├── profile_-22/
+    │   ├── trace_00.npy
+    │   ├── ...
+    │   └── trace_09.npy
+    ├── profile_-21/
+    │   ├── trace_00.npy
+    │   ├── ...
+    │   └── trace_09.npy
+    ├── ...
+    └── profile_22/
+        ├── trace_00.npy
+        ├── ...
+        └── trace_09.npy
+#+end_example
+
+
+* Common
+
+#+begin_src python
+import os
+OPT = os.environ.get("OPT", "O0")   # default when run interactively
+#+end_src
+
+#+begin_src python
+FALCON_N = 512
+if FALCON_N == 512:
+    LABEL_RANGE = range(-22, 23)
+if FALCON_N == 1024:
+    LABEL_RANGE = range(-15, 16)
+KEY_TYPE = 'profile'
+PREFIX = "."
+TRACES_PATH = f"{PREFIX}/{OPT}-falcon{FALCON_N}/traces_profile"
+#+end_src
+
+#+begin_src python
+import numpy as np
+import matplotlib.pyplot as plt
+
+from utils import class_coeffs_map_scaled
+from utils import class_coeffs_map_shift55
+from utils import class_coeffs_map_mul_4_5
+from utils import class_coeffs_map_mul_6_7
+from utils import class_coeffs_map_mul_8_11
+from utils import class_coeffs_map_mul_12_15
+from utils import class_coeffs_map_mul_16_22
+from utils import class_coeffs_map_mul_2_3
+from utils import class_coeffs_map_mul_4_7
+
+MCU_FREQ = 25_000_000
+PPC = 8
+ADC_FREQ = MCU_FREQ * PPC
+CUTOFF_FREQ = MCU_FREQ / 2
+#+end_src
+
+#+begin_src python
+import json
+with open("cycloc_params.json") as f:
+    json_file = json.load(f)
+    cfg = json_file[OPT]
+CYC_SCALED      = cfg["scaled"]["cycle_usage"]
+CYC_MUL         = cfg["mul"]["cycle_usage"]
+CYC_SHIFT55     = cfg["shift55"]["cycle_usage"]
+CYC_MUL_SHIFT55 = cfg["mul_shift55"]["cycle_usage"]
+#+end_src
+
+#+begin_src python
+from utils import calc_trace_snr
+from utils import trace_butter_lpf
+from utils import select_and_split
+from utils import select_traces_accto_class, trace_categorize
+from utils import ttest_table
+from utils import ftest
+from utils import calc_Fcrit, calc_R2, calc_snr
+#+end_src
+
+#+begin_src python
+test_split = 0.25
+#+end_src
+
+
+* Load Traces and Crop
+
+#+begin_src python
+print("\n\n* Load Traces\n")
+#+end_src
+
+#+begin_src python
+import glob
+
+trace_downsampled = {}
+trace_snr = {}
+for key_id in LABEL_RANGE:
+    trace_dir = f"{TRACES_PATH}/profile_{key_id}"
+    files = sorted(glob.glob(f"{trace_dir}/trace_*.npy"))
+    trace_raw = np.array([np.load(f, mmap_mode='r') for f in files])
+    trace_lpf = trace_butter_lpf(trace_raw, ADC_FREQ, CUTOFF_FREQ)
+
+    # Down-sampling
+    n_trace = trace_lpf.shape[0]
+    n_cycles = trace_lpf.shape[1] // PPC
+    trace_downsampled[key_id] = trace_lpf[:, :n_cycles*PPC].reshape(n_trace, n_cycles, PPC).sum(axis=2)
+
+    snr_raw = calc_trace_snr(trace_raw)
+    snr_lpf = calc_trace_snr(trace_lpf)
+    snr_downsampled = calc_trace_snr(trace_downsampled[key_id])
+    trace_snr[key_id] = [snr_raw, snr_lpf, snr_downsampled]
+#+end_src
+
+#+begin_src python
+print("#+begin_example")
+for key_id in trace_snr.keys():
+    snr_raw, snr_lpf, snr_downsampled = trace_snr[key_id]
+    print(f"  key_id={key_id:3}: {snr_raw:.4f} dB → {snr_lpf:.4f} dB → {snr_downsampled:.4f} dB")
+snr_vals = np.array(list(trace_snr.values()))
+print(f"Raw: mean {np.mean(snr_vals[:,0]):7.4f} dB, min {np.min(snr_vals[:,0]):.4f} dB, max {np.max(snr_vals[:,0]):.4f} dB")
+print(f"LPF: mean {np.mean(snr_vals[:,1]):7.4f} dB, min {np.min(snr_vals[:,1]):.4f} dB, max {np.max(snr_vals[:,1]):.4f} dB")
+print(f"Down-sampled: mean {np.mean(snr_vals[:,2]):7.4f} dB, min {np.min(snr_vals[:,2]):.4f} dB, max {np.max(snr_vals[:,2]):.4f} dB")
+print("#+end_example\n")
+#+end_src
+
+So applying LPF can significantly improve the SNR. In the subsequent processing, we will implicitly apply LPF when loading the raw data.
+
+Down-sampling step only applies to F-statistics, ICS, POI steps. For profiling (which uses POI), do NOT do down-sampling.
+
+Crop:
+
+#+begin_src python
+import pickle
+
+with open(f"{TRACES_PATH}/loc_scaled.pkl", 'rb') as f:
+    loc_scaled = pickle.load(f)
+with open(f"{TRACES_PATH}/loc_mul.pkl", 'rb') as f:
+    loc_mul = pickle.load(f)
+with open(f"{TRACES_PATH}/loc_shift55.pkl", 'rb') as f:
+    loc_shift55 = pickle.load(f)
+with open(f"{TRACES_PATH}/loc_mul_shift55.pkl", 'rb') as f:
+    loc_mul_shift55 = pickle.load(f)
+#+end_src
+
+The =[start:end]= crop above fails: =loc0= (rule-0 start) and =loc1= (rule-1 end) are captured in two separate runs, so =end - start= jitters (49/61 for scaled, 9/10/11 for mul, 11/12/13 for shift55) and the per-event crops have ragged widths --- =np.array= then raises /inhomogeneous shape/. Instead, anchor a fixed =CYC*PPC= window at the start (rule-0), which is exactly what the following =reshape(-1, CYC*PPC)= expects:
+
+#+begin_src python
+trace_scaled = {}
+trace_mul = {}
+trace_shift55 = {}
+trace_mul_shift55 = {}
+
+for key_id in LABEL_RANGE:
+    trace_scaled[key_id] = np.array([
+        trace_downsampled[key_id][:, loc_scaled[key_id][i][0] : loc_scaled[key_id][i][0] + CYC_SCALED]
+        for i in range(FALCON_N)
+    ]).transpose(1, 0, 2).reshape(-1, CYC_SCALED)
+    trace_mul[key_id] = np.array([
+        trace_downsampled[key_id][:, loc_mul[key_id][i][0] : loc_mul[key_id][i][0] + CYC_MUL]
+        for i in range(FALCON_N)
+    ]).transpose(1, 0, 2).reshape(-1, CYC_MUL)
+    trace_shift55[key_id] = np.array([
+        trace_downsampled[key_id][:, loc_shift55[key_id][i][0] : loc_shift55[key_id][i][0] + CYC_SHIFT55]
+        for i in range(FALCON_N)
+    ]).transpose(1, 0, 2).reshape(-1, CYC_SHIFT55)
+    trace_mul_shift55[key_id] = np.array([
+        trace_downsampled[key_id][:, loc_mul_shift55[key_id][i][0] : loc_mul_shift55[key_id][i][0] + CYC_MUL_SHIFT55]
+        for i in range(FALCON_N)
+    ]).transpose(1, 0, 2).reshape(-1, CYC_MUL_SHIFT55)
+
+print("#+begin_example")
+print(f"shape summary: for FALCON_N = {FALCON_N}, PPC = {PPC},")
+print(f"  trace_scaled[coeff]:      {trace_scaled[0].shape}")
+print(f"  trace_mul[coeff]:         {trace_mul[0].shape}")
+print(f"  trace_shift55[coeff]:     {trace_shift55[0].shape}")
+print(f"  trace_mul_shift55[coeff]: {trace_mul_shift55[0].shape}")
+print("recall:")
+print(f"  CYC_SCALED      = {CYC_SCALED}")
+print(f"  CYC_MUL         = {CYC_MUL}")
+print(f"  CYC_SHIFT55     = {CYC_SHIFT55}")
+print(f"  CYC_MUL_SHIFT55 = {CYC_MUL_SHIFT55}")
+print("#+end_example")
+#+end_src
+
+#+begin_src python
+del trace_downsampled
+#+end_src
+
+
+* Pairwise Welch's t-tests
+
+#+begin_src python
+print("\n\n* Pairwise Welch's t-test\n")
+#+end_src
+
+#+begin_src python
+print("\n** fpr_scaled\n")
+
+print("#+begin_example")
+traces, label = select_traces_accto_class(trace_scaled, class_coeffs_map_scaled)
+fpr_scaled = trace_categorize(traces, label)
+ttest_table(fpr_scaled)
+print("#+end_example\n")
+#+end_src
+
+#+begin_src python
+print("\n** fpr_mul shift55\n")
+
+print("#+begin_example")
+traces, label = select_traces_accto_class(trace_shift55, class_coeffs_map_shift55)
+fpr_mul_shift55 = trace_categorize(traces, label)
+ttest_table(fpr_mul_shift55)
+print("#+end_example\n")
+#+end_src
+
+#+begin_src python
+print("\n** fpr_mul mul [4, 5]\n")
+
+print("#+begin_example")
+traces, label = select_traces_accto_class(trace_mul, class_coeffs_map_mul_4_5)
+fpr_mul_4_5 = trace_categorize(traces, label)
+ttest_table(fpr_mul_4_5)
+print("#+end_example\n")
+#+end_src
+
+#+begin_src python
+print("\n** fpr_mul mul [6, 7]\n")
+
+print("#+begin_example")
+traces, label = select_traces_accto_class(trace_mul, class_coeffs_map_mul_6_7)
+fpr_mul_6_7 = trace_categorize(traces, label)
+ttest_table(fpr_mul_6_7)
+print("#+end_example\n")
+#+end_src
+
+#+begin_src python
+print("\n** fpr_mul mul [8, 11]\n")
+
+print("#+begin_example")
+traces, label = select_traces_accto_class(trace_mul, class_coeffs_map_mul_8_11)
+fpr_mul_8_11 = trace_categorize(traces, label)
+ttest_table(fpr_mul_8_11)
+print("#+end_example\n")
+#+end_src
+
+#+begin_src python
+print("\n** fpr_mul mul [12, 15]\n")
+
+print("#+begin_example")
+traces, label = select_traces_accto_class(trace_mul, class_coeffs_map_mul_12_15)
+fpr_mul_12_15 = trace_categorize(traces, label)
+ttest_table(fpr_mul_12_15)
+print("#+end_example\n")
+#+end_src
+
+#+begin_src python
+print("\n** fpr_mul mul [16, 22]\n")
+
+print("#+begin_example")
+traces, label = select_traces_accto_class(trace_mul, class_coeffs_map_mul_16_22)
+fpr_mul_16_22 = trace_categorize(traces, label)
+ttest_table(fpr_mul_16_22)
+print("#+end_example\n")
+#+end_src
+
+#+begin_src python
+print("\n** fpr_mul mul_shift55 [2, 3]\n")
+
+print("#+begin_example")
+traces, label = select_traces_accto_class(trace_mul_shift55, class_coeffs_map_mul_2_3)
+fpr_mul_2_3 = trace_categorize(traces, label)
+ttest_table(fpr_mul_2_3)
+print("#+end_example\n")
+#+end_src
+
+#+begin_src python
+print("\n** fpr_mul mul_shift55 [4, 7]\n")
+
+print("#+begin_example")
+traces, label = select_traces_accto_class(trace_mul_shift55, class_coeffs_map_mul_4_7)
+fpr_mul_4_7 = trace_categorize(traces, label)
+ttest_table(fpr_mul_4_7)
+print("#+end_example\n")
+#+end_src
+
+
+* F-Statistics
+
+#+begin_src python
+print("\n\n* F-Statistics\n")
+#+end_src
+
+#+begin_src python
+ALPHA = 0.001
+#+end_src
+
+
+** fpr_scaled
+
+#+begin_src python
+print("\n** fpr_scaled\n")
+#+end_src
+
+#+begin_src python
+print("#+begin_example")
+traces_train, traces_test, label_train, label_test = \
+    select_and_split(trace_scaled, class_coeffs_map_scaled, test_split)
+traces_train_dict = trace_categorize(traces_train, label_train)
+print("#+end_example\n")
+#+end_src
+
+#+begin_src python
+print("#+begin_example")
+F_scaled, dof_scaled = ftest(traces_train_dict)
+Fcrit_scaled = calc_Fcrit(F_scaled, dof_scaled, alpha=ALPHA)
+print(f"dof: {dof_scaled}")
+print(f"#sample below {ALPHA} threshold:", len(F_scaled[F_scaled < Fcrit_scaled]))  # )
+R2_scaled  = calc_R2 (F_scaled, dof_scaled)
+SNR_scaled = calc_snr(F_scaled, dof_scaled)
+print("#+end_example\n")
+#+end_src
+
+#+begin_src python
+print("#+begin_example")
+R2crit_scaled  = calc_R2 (Fcrit_scaled, dof_scaled)
+SNRcrit_scaled = calc_snr(Fcrit_scaled, dof_scaled)  # (
+ics_scaled     = np.where(R2_scaled > R2crit_scaled)[0]
+print(ics_scaled)
+print("#+end_example\n")
+#+end_src
+
+#+begin_src python
+cyc2addr = {c: addr for addr, cycs in cfg["scaled"]["addr_cycloc"].items() for c in cycs}
+R2_scaled_sort  = np.argsort(R2_scaled)[::-1]
+SNR_scaled_sort = np.argsort(SNR_scaled)[::-1]
+assert (R2_scaled_sort == SNR_scaled_sort).all()
+#+end_src
+
+#+begin_src python
+print("#+begin_example")
+print(" addr cycloc      R2      SNR")
+for i in R2_scaled_sort:
+    print(f"0x{int(cyc2addr[i], 16):03x} {i:6d}  {R2_scaled[i]:.4f}  {SNR_scaled[i]:7.4f}")
+print("#+end_example\n")
+#+end_src
+
+#+begin_src python
+np.save(f'{OPT}-falcon{FALCON_N}/F-statistics/F_scaled.npy',   F_scaled)
+np.savetxt(f'{OPT}-falcon{FALCON_N}/F-statistics/dof_scaled.txt', dof_scaled, fmt='%d')
+np.savetxt(f'{OPT}-falcon{FALCON_N}/ics/ics_scaled.txt', ics_scaled, fmt='%d')
+np.savetxt(f'{OPT}-falcon{FALCON_N}/ics/ics_scaled_sort.txt', R2_scaled_sort, fmt='%d')
+#+end_src
+
+
+** fpr_mul shift55
+
+#+begin_src python
+print("\n** fpr_mul shift55\n")
+#+end_src
+
+#+begin_src python
+print("#+begin_example")
+traces_train, traces_test, label_train, label_test = \
+    select_and_split(trace_shift55, class_coeffs_map_shift55, test_split)
+traces_train_dict = trace_categorize(traces_train, label_train)
+print("#+end_example\n")
+#+end_src
+
+#+begin_src python
+print("#+begin_example")
+F_shift55, dof_shift55 = ftest(traces_train_dict)
+Fcrit_shift55 = calc_Fcrit(F_shift55, dof_shift55, alpha=ALPHA)
+print(f"dof: {dof_shift55}")
+print(f"#sample below {ALPHA} threshold:", len(F_shift55[F_shift55 < Fcrit_shift55]))  # )
+R2_shift55  = calc_R2 (F_shift55, dof_shift55)
+SNR_shift55 = calc_snr(F_shift55, dof_shift55)
+print("#+end_example\n")
+#+end_src
+
+#+begin_src python
+print("#+begin_example")
+R2crit_shift55  = calc_R2 (Fcrit_shift55, dof_shift55)
+SNRcrit_shift55 = calc_snr(Fcrit_shift55, dof_shift55)  # (
+ics_shift55     = np.where(R2_shift55 > R2crit_shift55)[0]
+print(ics_shift55)
+print("#+end_example\n")
+#+end_src
+
+#+begin_src python
+cyc2addr = {c: addr for addr, cycs in cfg["shift55"]["addr_cycloc"].items() for c in cycs}
+R2_shift55_sort  = np.argsort(R2_shift55)[::-1]
+SNR_shift55_sort = np.argsort(SNR_shift55)[::-1]
+assert (R2_shift55_sort == SNR_shift55_sort).all()
+#+end_src
+
+#+begin_src python
+print("#+begin_example")
+print(" addr cycloc      R2      SNR")
+for i in R2_shift55_sort:
+    print(f"0x{int(cyc2addr[i], 16):03x} {i:6d}  {R2_shift55[i]:.4f}  {SNR_shift55[i]:7.4f}")
+print("#+end_example\n")
+#+end_src
+
+#+begin_src python
+np.save(f'{OPT}-falcon{FALCON_N}/F-statistics/F_shift55.npy',   F_shift55)
+np.savetxt(f'{OPT}-falcon{FALCON_N}/F-statistics/dof_shift55.txt', dof_shift55, fmt='%d')
+np.savetxt(f'{OPT}-falcon{FALCON_N}/ics/ics_shift55.txt', ics_shift55, fmt='%d')
+np.savetxt(f'{OPT}-falcon{FALCON_N}/ics/ics_shift55_sort.txt', R2_shift55_sort, fmt='%d')
+#+end_src
+
+
+** fpr_mul mul [4, 5]
+
+#+begin_src python
+print("\n** fpr_mul mul [4, 5]\n")
+#+end_src
+
+#+begin_src python
+print("#+begin_example")
+traces_train, traces_test, label_train, label_test = \
+    select_and_split(trace_mul, class_coeffs_map_mul_4_5, test_split)
+traces_train_dict = trace_categorize(traces_train, label_train)
+print("#+end_example\n")
+#+end_src
+
+#+begin_src python
+print("#+begin_example")
+F_mul_4_5, dof_mul_4_5 = ftest(traces_train_dict)
+Fcrit_mul_4_5 = calc_Fcrit(F_mul_4_5, dof_mul_4_5, alpha=ALPHA)
+print(f"dof: {dof_mul_4_5}")
+print(f"#sample below {ALPHA} threshold:", len(F_mul_4_5[F_mul_4_5 < Fcrit_mul_4_5]))  # )
+R2_mul_4_5  = calc_R2 (F_mul_4_5, dof_mul_4_5)
+SNR_mul_4_5 = calc_snr(F_mul_4_5, dof_mul_4_5)
+print("#+end_example\n")
+#+end_src
+
+#+begin_src python
+print("#+begin_example")
+R2crit_mul_4_5  = calc_R2 (Fcrit_mul_4_5, dof_mul_4_5)
+SNRcrit_mul_4_5 = calc_snr(Fcrit_mul_4_5, dof_mul_4_5)  # (
+ics_mul_4_5     = np.where(R2_mul_4_5 > R2crit_mul_4_5)[0]
+print(ics_mul_4_5)
+print("#+end_example\n")
+#+end_src
+
+#+begin_src python
+cyc2addr = {c: addr for addr, cycs in cfg["mul"]["addr_cycloc"].items() for c in cycs}
+R2_mul_4_5_sort  = np.argsort(R2_mul_4_5)[::-1]
+SNR_mul_4_5_sort = np.argsort(SNR_mul_4_5)[::-1]
+assert (R2_mul_4_5_sort == SNR_mul_4_5_sort).all()
+#+end_src
+
+#+begin_src python
+print("#+begin_example")
+print(" addr cycloc      R2      SNR")
+for i in R2_mul_4_5_sort:
+    print(f"0x{int(cyc2addr[i], 16):03x} {i:6d}  {R2_mul_4_5[i]:.4f}  {SNR_mul_4_5[i]:7.4f}")
+print("#+end_example\n")
+#+end_src
+
+#+begin_src python
+np.save(f'{OPT}-falcon{FALCON_N}/F-statistics/F_mul_4_5.npy',   F_mul_4_5)
+np.savetxt(f'{OPT}-falcon{FALCON_N}/F-statistics/dof_mul_4_5.txt', dof_mul_4_5, fmt='%d')
+np.savetxt(f'{OPT}-falcon{FALCON_N}/ics/ics_mul_4_5.txt', ics_mul_4_5, fmt='%d')
+np.savetxt(f'{OPT}-falcon{FALCON_N}/ics/ics_mul_4_5_sort.txt', R2_mul_4_5_sort, fmt='%d')
+#+end_src
+
+
+** fpr_mul mul [6, 7]
+
+#+begin_src python
+print("\n** fpr_mul mul [6, 7]\n")
+#+end_src
+
+#+begin_src python
+print("#+begin_example")
+traces_train, traces_test, label_train, label_test = \
+    select_and_split(trace_mul, class_coeffs_map_mul_6_7, test_split)
+traces_train_dict = trace_categorize(traces_train, label_train)
+print("#+end_example\n")
+#+end_src
+
+#+begin_src python
+print("#+begin_example")
+F_mul_6_7, dof_mul_6_7 = ftest(traces_train_dict)
+Fcrit_mul_6_7 = calc_Fcrit(F_mul_6_7, dof_mul_6_7, alpha=ALPHA)
+print(f"dof: {dof_mul_6_7}")
+print(f"#sample below {ALPHA} threshold:", len(F_mul_6_7[F_mul_6_7 < Fcrit_mul_6_7]))  # )
+R2_mul_6_7  = calc_R2 (F_mul_6_7, dof_mul_6_7)
+SNR_mul_6_7 = calc_snr(F_mul_6_7, dof_mul_6_7)
+print("#+end_example\n")
+#+end_src
+
+#+begin_src python
+print("#+begin_example")
+R2crit_mul_6_7  = calc_R2 (Fcrit_mul_6_7, dof_mul_6_7)
+SNRcrit_mul_6_7 = calc_snr(Fcrit_mul_6_7, dof_mul_6_7)  # (
+ics_mul_6_7     = np.where(R2_mul_6_7 > R2crit_mul_6_7)[0]
+print(ics_mul_6_7)
+print("#+end_example\n")
+#+end_src
+
+#+begin_src python
+cyc2addr = {c: addr for addr, cycs in cfg["mul"]["addr_cycloc"].items() for c in cycs}
+R2_mul_6_7_sort  = np.argsort(R2_mul_6_7)[::-1]
+SNR_mul_6_7_sort = np.argsort(SNR_mul_6_7)[::-1]
+assert (R2_mul_6_7_sort == SNR_mul_6_7_sort).all()
+#+end_src
+
+#+begin_src python
+print("#+begin_example")
+print(" addr cycloc      R2      SNR")
+for i in R2_mul_6_7_sort:
+    print(f"0x{int(cyc2addr[i], 16):03x} {i:6d}  {R2_mul_6_7[i]:.4f}  {SNR_mul_6_7[i]:7.4f}")
+print("#+end_example\n")
+#+end_src
+
+#+begin_src python
+np.save(f'{OPT}-falcon{FALCON_N}/F-statistics/F_mul_6_7.npy',   F_mul_6_7)
+np.savetxt(f'{OPT}-falcon{FALCON_N}/F-statistics/dof_mul_6_7.txt', dof_mul_6_7, fmt='%d')
+np.savetxt(f'{OPT}-falcon{FALCON_N}/ics/ics_mul_6_7.txt', ics_mul_6_7, fmt='%d')
+np.savetxt(f'{OPT}-falcon{FALCON_N}/ics/ics_mul_6_7_sort.txt', R2_mul_6_7_sort, fmt='%d')
+#+end_src
+
+
+** fpr_mul mul [8, 11]
+
+#+begin_src python
+print("\n** fpr_mul mul [8, 11]\n")
+#+end_src
+
+#+begin_src python
+print("#+begin_example")
+traces_train, traces_test, label_train, label_test = \
+    select_and_split(trace_mul, class_coeffs_map_mul_8_11, test_split)
+traces_train_dict = trace_categorize(traces_train, label_train)
+print("#+end_example\n")
+#+end_src
+
+#+begin_src python
+print("#+begin_example")
+F_mul_8_11, dof_mul_8_11 = ftest(traces_train_dict)
+Fcrit_mul_8_11 = calc_Fcrit(F_mul_8_11, dof_mul_8_11, alpha=ALPHA)
+print(f"dof: {dof_mul_8_11}")
+print(f"#sample below {ALPHA} threshold:", len(F_mul_8_11[F_mul_8_11 < Fcrit_mul_8_11]))  # )
+R2_mul_8_11  = calc_R2 (F_mul_8_11, dof_mul_8_11)
+SNR_mul_8_11 = calc_snr(F_mul_8_11, dof_mul_8_11)
+print("#+end_example\n")
+#+end_src
+
+#+begin_src python
+print("#+begin_example")
+R2crit_mul_8_11  = calc_R2 (Fcrit_mul_8_11, dof_mul_8_11)
+SNRcrit_mul_8_11 = calc_snr(Fcrit_mul_8_11, dof_mul_8_11)  # (
+ics_mul_8_11     = np.where(R2_mul_8_11 > R2crit_mul_8_11)[0]
+print(ics_mul_8_11)
+print("#+end_example\n")
+#+end_src
+
+#+begin_src python
+cyc2addr = {c: addr for addr, cycs in cfg["mul"]["addr_cycloc"].items() for c in cycs}
+R2_mul_8_11_sort  = np.argsort(R2_mul_8_11)[::-1]
+SNR_mul_8_11_sort = np.argsort(SNR_mul_8_11)[::-1]
+assert (R2_mul_8_11_sort == SNR_mul_8_11_sort).all()
+#+end_src
+
+#+begin_src python
+print("#+begin_example")
+print(" addr cycloc      R2      SNR")
+for i in R2_mul_8_11_sort:
+    print(f"0x{int(cyc2addr[i], 16):03x} {i:6d}  {R2_mul_8_11[i]:.4f}  {SNR_mul_8_11[i]:7.4f}")
+print("#+end_example\n")
+#+end_src
+
+#+begin_src python
+np.save(f'{OPT}-falcon{FALCON_N}/F-statistics/F_mul_8_11.npy',   F_mul_8_11)
+np.savetxt(f'{OPT}-falcon{FALCON_N}/F-statistics/dof_mul_8_11.txt', dof_mul_8_11, fmt='%d')
+np.savetxt(f'{OPT}-falcon{FALCON_N}/ics/ics_mul_8_11.txt', ics_mul_8_11, fmt='%d')
+np.savetxt(f'{OPT}-falcon{FALCON_N}/ics/ics_mul_8_11_sort.txt', R2_mul_8_11_sort, fmt='%d')
+#+end_src
+
+
+** fpr_mul mul [12, 15]
+
+#+begin_src python
+print("\n** fpr_mul mul [12, 15]\n")
+#+end_src
+
+#+begin_src python
+print("#+begin_example")
+traces_train, traces_test, label_train, label_test = \
+    select_and_split(trace_mul, class_coeffs_map_mul_12_15, test_split)
+traces_train_dict = trace_categorize(traces_train, label_train)
+print("#+end_example\n")
+#+end_src
+
+#+begin_src python
+print("#+begin_example")
+F_mul_12_15, dof_mul_12_15 = ftest(traces_train_dict)
+Fcrit_mul_12_15 = calc_Fcrit(F_mul_12_15, dof_mul_12_15, alpha=ALPHA)
+print(f"dof: {dof_mul_12_15}")
+print(f"#sample below {ALPHA} threshold:", len(F_mul_12_15[F_mul_12_15 < Fcrit_mul_12_15]))  # )
+R2_mul_12_15  = calc_R2 (F_mul_12_15, dof_mul_12_15)
+SNR_mul_12_15 = calc_snr(F_mul_12_15, dof_mul_12_15)
+print("#+end_example\n")
+#+end_src
+
+#+begin_src python
+print("#+begin_example")
+R2crit_mul_12_15  = calc_R2 (Fcrit_mul_12_15, dof_mul_12_15)
+SNRcrit_mul_12_15 = calc_snr(Fcrit_mul_12_15, dof_mul_12_15)  # (
+ics_mul_12_15     = np.where(R2_mul_12_15 > R2crit_mul_12_15)[0]
+print(ics_mul_12_15)
+print("#+end_example\n")
+#+end_src
+
+#+begin_src python
+cyc2addr = {c: addr for addr, cycs in cfg["mul"]["addr_cycloc"].items() for c in cycs}
+R2_mul_12_15_sort  = np.argsort(R2_mul_12_15)[::-1]
+SNR_mul_12_15_sort = np.argsort(SNR_mul_12_15)[::-1]
+assert (R2_mul_12_15_sort == SNR_mul_12_15_sort).all()
+#+end_src
+
+#+begin_src python
+print("#+begin_example")
+print(" addr cycloc      R2      SNR")
+for i in R2_mul_12_15_sort:
+    print(f"0x{int(cyc2addr[i], 16):03x} {i:6d}  {R2_mul_12_15[i]:.4f}  {SNR_mul_12_15[i]:7.4f}")
+print("#+end_example\n")
+#+end_src
+
+#+begin_src python
+np.save(f'{OPT}-falcon{FALCON_N}/F-statistics/F_mul_12_15.npy',   F_mul_12_15)
+np.savetxt(f'{OPT}-falcon{FALCON_N}/F-statistics/dof_mul_12_15.txt', dof_mul_12_15, fmt='%d')
+np.savetxt(f'{OPT}-falcon{FALCON_N}/ics/ics_mul_12_15.txt', ics_mul_12_15, fmt='%d')
+np.savetxt(f'{OPT}-falcon{FALCON_N}/ics/ics_mul_12_15_sort.txt', R2_mul_12_15_sort, fmt='%d')
+#+end_src
+
+
+** fpr_mul mul [16, 22]
+
+#+begin_src python
+print("\n** fpr_mul mul [16, 22]\n")
+#+end_src
+
+#+begin_src python
+print("#+begin_example")
+traces_train, traces_test, label_train, label_test = \
+    select_and_split(trace_mul, class_coeffs_map_mul_16_22, test_split)
+traces_train_dict = trace_categorize(traces_train, label_train)
+print("#+end_example\n")
+#+end_src
+
+#+begin_src python
+print("#+begin_example")
+F_mul_16_22, dof_mul_16_22 = ftest(traces_train_dict)
+Fcrit_mul_16_22 = calc_Fcrit(F_mul_16_22, dof_mul_16_22, alpha=ALPHA)
+print(f"dof: {dof_mul_16_22}")
+print(f"#sample below {ALPHA} threshold:", len(F_mul_16_22[F_mul_16_22 < Fcrit_mul_16_22]))  # )
+R2_mul_16_22  = calc_R2 (F_mul_16_22, dof_mul_16_22)
+SNR_mul_16_22 = calc_snr(F_mul_16_22, dof_mul_16_22)
+print("#+end_example\n")
+#+end_src
+
+#+begin_src python
+print("#+begin_example")
+R2crit_mul_16_22  = calc_R2 (Fcrit_mul_16_22, dof_mul_16_22)
+SNRcrit_mul_16_22 = calc_snr(Fcrit_mul_16_22, dof_mul_16_22)  # (
+ics_mul_16_22     = np.where(R2_mul_16_22 > R2crit_mul_16_22)[0]
+print(ics_mul_16_22)
+print("#+end_example\n")
+#+end_src
+
+#+begin_src python
+cyc2addr = {c: addr for addr, cycs in cfg["mul"]["addr_cycloc"].items() for c in cycs}
+R2_mul_16_22_sort  = np.argsort(R2_mul_16_22)[::-1]
+SNR_mul_16_22_sort = np.argsort(SNR_mul_16_22)[::-1]
+assert (R2_mul_16_22_sort == SNR_mul_16_22_sort).all()
+#+end_src
+
+#+begin_src python
+print("#+begin_example")
+print(" addr cycloc      R2      SNR")
+for i in R2_mul_16_22_sort:
+    print(f"0x{int(cyc2addr[i], 16):03x} {i:6d}  {R2_mul_16_22[i]:.4f}  {SNR_mul_16_22[i]:7.4f}")
+print("#+end_example\n")
+#+end_src
+
+#+begin_src python
+np.save(f'{OPT}-falcon{FALCON_N}/F-statistics/F_mul_16_22.npy',   F_mul_16_22)
+np.savetxt(f'{OPT}-falcon{FALCON_N}/F-statistics/dof_mul_16_22.txt', dof_mul_16_22, fmt='%d')
+np.savetxt(f'{OPT}-falcon{FALCON_N}/ics/ics_mul_16_22.txt', ics_mul_16_22, fmt='%d')
+np.savetxt(f'{OPT}-falcon{FALCON_N}/ics/ics_mul_16_22_sort.txt', R2_mul_16_22_sort, fmt='%d')
+#+end_src
+
+
+** fpr_mul mul_shift55 [2, 3]
+
+#+begin_src python
+print("\n** fpr_mul mul_shift55 [2, 3]\n")
+#+end_src
+
+#+begin_src python
+print("#+begin_example")
+traces_train, traces_test, label_train, label_test = \
+    select_and_split(trace_mul_shift55, class_coeffs_map_mul_2_3, test_split)
+traces_train_dict = trace_categorize(traces_train, label_train)
+print("#+end_example\n")
+#+end_src
+
+#+begin_src python
+print("#+begin_example")
+F_mul_shift55_2_3, dof_mul_shift55_2_3 = ftest(traces_train_dict)
+Fcrit_mul_shift55_2_3 = calc_Fcrit(F_mul_shift55_2_3, dof_mul_shift55_2_3, alpha=ALPHA)
+print(f"dof: {dof_mul_shift55_2_3}")
+print(f"#sample below {ALPHA} threshold:", len(F_mul_shift55_2_3[F_mul_shift55_2_3 < Fcrit_mul_shift55_2_3]))  # )
+R2_mul_shift55_2_3  = calc_R2 (F_mul_shift55_2_3, dof_mul_shift55_2_3)
+SNR_mul_shift55_2_3 = calc_snr(F_mul_shift55_2_3, dof_mul_shift55_2_3)
+print("#+end_example\n")
+#+end_src
+
+#+begin_src python
+print("#+begin_example")
+R2crit_mul_shift55_2_3  = calc_R2 (Fcrit_mul_shift55_2_3, dof_mul_shift55_2_3)
+SNRcrit_mul_shift55_2_3 = calc_snr(Fcrit_mul_shift55_2_3, dof_mul_shift55_2_3)  # (
+ics_mul_shift55_2_3     = np.where(R2_mul_shift55_2_3 > R2crit_mul_shift55_2_3)[0]
+print(ics_mul_shift55_2_3)
+print("#+end_example\n")
+#+end_src
+
+#+begin_src python
+cyc2addr = {c: addr for addr, cycs in cfg["mul_shift55"]["addr_cycloc"].items() for c in cycs}
+R2_mul_2_3_sort  = np.argsort(R2_mul_shift55_2_3)[::-1]
+SNR_mul_2_3_sort = np.argsort(SNR_mul_shift55_2_3)[::-1]
+assert (R2_mul_2_3_sort == SNR_mul_2_3_sort).all()
+#+end_src
+
+#+begin_src python
+print("#+begin_example")
+print(" addr cycloc      R2      SNR")
+for i in R2_mul_2_3_sort:
+    print(f"0x{int(cyc2addr[i], 16):03x} {i:6d}  {R2_mul_shift55_2_3[i]:.4f}  {SNR_mul_shift55_2_3[i]:7.4f}")
+print("#+end_example\n")
+#+end_src
+
+#+begin_src python
+np.save(f'{OPT}-falcon{FALCON_N}/F-statistics/F_mul_shift55_2_3.npy',   F_mul_shift55_2_3)
+np.savetxt(f'{OPT}-falcon{FALCON_N}/F-statistics/dof_mul_shift55_2_3.txt', dof_mul_shift55_2_3, fmt='%d')
+np.savetxt(f'{OPT}-falcon{FALCON_N}/ics/ics_mul_shift55_2_3.txt', ics_mul_shift55_2_3, fmt='%d')
+np.savetxt(f'{OPT}-falcon{FALCON_N}/ics/ics_mul_shift55_2_3_sort.txt', R2_mul_2_3_sort, fmt='%d')
+#+end_src
+
+
+** fpr_mul mul_shift55 [4, 7]
+
+#+begin_src python
+print("\n** fpr_mul mul_shift55 [4, 7]\n")
+#+end_src
+
+#+begin_src python
+print("#+begin_example")
+traces_train, traces_test, label_train, label_test = \
+    select_and_split(trace_mul_shift55, class_coeffs_map_mul_4_7, test_split)
+traces_train_dict = trace_categorize(traces_train, label_train)
+print("#+end_example\n")
+#+end_src
+
+#+begin_src python
+print("#+begin_example")
+F_mul_shift55_4_7, dof_mul_shift55_4_7 = ftest(traces_train_dict)
+Fcrit_mul_shift55_4_7 = calc_Fcrit(F_mul_shift55_4_7, dof_mul_shift55_4_7, alpha=ALPHA)
+print(f"dof: {dof_mul_shift55_4_7}")
+print(f"#sample below {ALPHA} threshold:", len(F_mul_shift55_4_7[F_mul_shift55_4_7 < Fcrit_mul_shift55_4_7]))  # )
+R2_mul_shift55_4_7  = calc_R2 (F_mul_shift55_4_7, dof_mul_shift55_4_7)
+SNR_mul_shift55_4_7 = calc_snr(F_mul_shift55_4_7, dof_mul_shift55_4_7)
+print("#+end_example\n")
+#+end_src
+
+#+begin_src python
+print("#+begin_example")
+R2crit_mul_shift55_4_7  = calc_R2 (Fcrit_mul_shift55_4_7, dof_mul_shift55_4_7)
+SNRcrit_mul_shift55_4_7 = calc_snr(Fcrit_mul_shift55_4_7, dof_mul_shift55_4_7)  # (
+ics_mul_shift55_4_7     = np.where(R2_mul_shift55_4_7 > R2crit_mul_shift55_4_7)[0]
+print(ics_mul_shift55_4_7)
+print("#+end_example\n")
+#+end_src
+
+#+begin_src python
+cyc2addr = {c: addr for addr, cycs in cfg["mul_shift55"]["addr_cycloc"].items() for c in cycs}
+R2_mul_4_7_sort  = np.argsort(R2_mul_shift55_4_7)[::-1]
+SNR_mul_4_7_sort = np.argsort(SNR_mul_shift55_4_7)[::-1]
+assert (R2_mul_4_7_sort == SNR_mul_4_7_sort).all()
+#+end_src
+
+#+begin_src python
+print("#+begin_example")
+print(" addr cycloc      R2      SNR")
+for i in R2_mul_4_7_sort:
+    print(f"0x{int(cyc2addr[i], 16):03x} {i:6d}  {R2_mul_shift55_4_7[i]:.4f}  {SNR_mul_shift55_4_7[i]:7.4f}")
+print("#+end_example\n")
+#+end_src
+
+#+begin_src python
+np.save(f'{OPT}-falcon{FALCON_N}/F-statistics/F_mul_shift55_4_7.npy',   F_mul_shift55_4_7)
+np.savetxt(f'{OPT}-falcon{FALCON_N}/F-statistics/dof_mul_shift55_4_7.txt', dof_mul_shift55_4_7, fmt='%d')
+np.savetxt(f'{OPT}-falcon{FALCON_N}/ics/ics_mul_shift55_4_7.txt', ics_mul_shift55_4_7, fmt='%d')
+np.savetxt(f'{OPT}-falcon{FALCON_N}/ics/ics_mul_shift55_4_7_sort.txt', R2_mul_4_7_sort, fmt='%d')
+#+end_src
+
+
+* Summary
+
+Each cell: =Max R2 / Max SNR=.
+
+| stage               | fpemu         |
+|---------------------+---------------|
+| scaled              | 0.8970/8.7057 |
+| shift55             | 0.2841/0.3969 |
+| mul [4,5]           | 0.7493/2.9884 |
+| mul [6,7]           | 0.2914/0.4112 |
+| mul [8,11]          | 0.7516/3.0255 |
+| mul [12,15]         | 0.3440/0.5243 |
+| mul [16,22]         | 0.6516/1.8701 |
+| mul [2,3] + shift55 | 0.8298/4.8756 |
+| mul [4,7] + shift55 | 0.6945/2.2738 |
+
+Dir structure:
+
+#+begin_example
+O0
+├── cycloc_params.json
+├── traces_attack/
+│   └── ...
+├── F-statistics/
+│   ├── F_scaled.npy
+│   ├── F_shift55.npy
+│   ├── F_mul_4_5.npy
+│   ├── F_mul_6_7.npy
+│   ├── F_mul_8_11.npy
+│   ├── F_mul_12_15.npy
+│   ├── F_mul_16_22.npy
+│   ├── F_mul_shift55_2_3.npy
+│   ├── F_mul_shift55_4_7.npy
+│   ├── dof_scaled.txt
+│   ├── dof_shift55.txt
+│   ├── dof_mul_4_5.txt
+│   ├── dof_mul_6_7.txt
+│   ├── dof_mul_8_11.txt
+│   ├── dof_mul_12_15.txt
+│   ├── dof_mul_16_22.txt
+│   ├── dof_mul_shift55_2_3.txt
+│   └── dof_mul_shift55_4_7.txt
+├── ics/
+│   ├── ics_scaled.txt
+│   ├── ics_scaled_sort.txt
+│   ├── ics_shift55.txt
+│   ├── ics_shift55_sort.txt
+│   ├── ics_mul_4_5.txt
+│   ├── ics_mul_4_5_sort.txt
+│   ├── ics_mul_6_7.txt
+│   ├── ics_mul_6_7_sort.txt
+│   ├── ics_mul_8_11.txt
+│   ├── ics_mul_8_11_sort.txt
+│   ├── ics_mul_12_15.txt
+│   ├── ics_mul_12_15_sort.txt
+│   ├── ics_mul_16_22.txt
+│   ├── ics_mul_16_22_sort.txt
+│   ├── ics_mul_shift55_2_3.txt
+│   ├── ics_mul_shift55_2_3_sort.txt
+│   ├── ics_mul_shift55_4_7.txt
+│   └── ics_mul_shift55_4_7_sort.txt
+└── traces_profile/
+    ├── loc_scaled.pkl
+    ├── loc_shift55.pkl
+    ├── loc_mul.pkl
+    ├── loc_mul_shift55.pkl
+    ├── profile_-22/
+    │   ├── trace_00.npy
+    │   ├── ...
+    │   └── trace_09.npy
+    ├── profile_-21/
+    │   ├── trace_00.npy
+    │   ├── ...
+    │   └── trace_09.npy
+    ├── ...
+    └── profile_22/
+        ├── trace_00.npy
+        ├── ...
+        └── trace_09.npy
+#+end_example

@@ -1,0 +1,70 @@
+
+build-stm32f4/obj/fpr.o:     file format elf32-littlearm
+
+
+Disassembly of section .text.fpr_trunc:
+
+Disassembly of section .text.falcon_inner_fpr_scaled:
+
+00000000 <falcon_inner_fpr_scaled>:
+
+__attribute__((naked))
+fpr
+fpr_scaled(int64_t i __attribute__((unused)), int sc __attribute__((unused)))
+{
+	__asm__ (
+   0:	push	{r4, r5, r6, lr}
+   2:	asrs	r3, r1, #31
+   4:	eors	r0, r3
+   6:	eors	r1, r3
+   8:	subs	r0, r0, r3
+   a:	sbcs	r1, r3
+   c:	addw	r2, r2, #1022	@ 0x3fe
+  10:	orrs.w	r4, r0, r1
+  14:	bics.w	r4, r4, r2, asr #31
+  18:	negs	r5, r4
+  1a:	orrs	r4, r5
+  1c:	ands.w	r2, r2, r4, asr #31
+  20:	adds	r2, #32
+  22:	negs	r4, r1
+  24:	orrs	r4, r1
+  26:	eors.w	r5, r0, r1
+  2a:	bics.w	r5, r5, r4, asr #31
+  2e:	eors	r1, r5
+  30:	ands.w	r0, r0, r4, asr #31
+  34:	lsrs	r4, r4, #31
+  36:	adds.w	r2, r2, r4, lsl #5
+  3a:	clz	r4, r1
+  3e:	subs	r2, r2, r4
+  40:	rsbs	r5, r4, #32
+  44:	lsls	r1, r4
+  46:	lsrs.w	r5, r0, r5
+  4a:	lsls	r0, r4
+  4c:	orrs	r1, r5
+  4e:	bfc	r1, #31, #1
+  52:	movs	r5, r0
+  54:	lsrs	r0, r0, #11
+  56:	orrs.w	r0, r0, r1, lsl #21
+  5a:	lsrs	r1, r1, #11
+  5c:	orrs.w	r1, r1, r2, lsl #20
+  60:	ubfx	r6, r5, #0, #9
+  64:	addw	r6, r6, #511	@ 0x1ff
+  68:	orrs	r5, r6
+  6a:	ubfx	r5, r5, #9, #3
+  6e:	movs	r6, #200	@ 0xc8
+  70:	lsrs	r6, r5
+  72:	ands.w	r6, r6, #1
+  76:	adds	r0, r0, r6
+  78:	adcs.w	r1, r1, #0
+  7c:	orrs.w	r1, r1, r3, lsl #31
+  80:	pop	{r4, r5, r6, pc}
+
+Disassembly of section .text.falcon_inner_fpr_add:
+
+Disassembly of section .text.falcon_inner_fpr_mul:
+
+Disassembly of section .text.falcon_inner_fpr_div:
+
+Disassembly of section .text.falcon_inner_fpr_sqrt:
+
+Disassembly of section .text.falcon_inner_fpr_expm_p63:

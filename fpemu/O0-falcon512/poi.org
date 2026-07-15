@@ -1,0 +1,123 @@
+#+TITLE: fpemu O0 PoI
+#+PROPERTY: header-args:python  :session Python/fpemu
+#+PROPERTY: header-args:python+ :results silent
+
+* Common
+
+#+begin_src python
+import os
+
+FALCON_N = 512
+#+end_src
+
+#+begin_src python
+import numpy as np
+import matplotlib.pyplot as plt
+from scipy.signal import find_peaks
+#+end_src
+
+#+begin_src python
+import json
+
+with open("../cycloc_params.json") as f:
+    cfg_fpemu = json.load(f)
+#+end_src
+
+#+begin_src python
+from utils import calc_Fcrit, calc_R2, calc_snr
+from utils import leakage_markers_fp, print_peaks
+#+end_src
+
+
+* Load
+
+#+begin_src python :results output replace :exports both
+print(cfg_fpemu["O0"]["scaled"]["cycle_usage"])
+addr_fpemu_scaled = cfg_fpemu["O0"]["scaled"]["addr_cycloc"]
+F_fpemu_scaled = np.load("F-statistics/F_scaled.npy")
+dof_fpemu_scaled = np.loadtxt("F-statistics/dof_scaled.txt", dtype=int)
+SNR_fpemu_scaled  = calc_snr (F_fpemu_scaled, dof_fpemu_scaled)
+ics_fpemu_scaled_sort = np.loadtxt("ics/ics_scaled_sort.txt", dtype=int)
+print(ics_fpemu_scaled_sort)
+#+end_src
+
+#+RESULTS:
+: 49
+: Max SNR: 10.4028
+: [33 34 29 26 32 35 30 39 27  4 44  5 38 45  3 43  0  2 40  6  1 17 37 46
+:  28 16 11 25  7 10 31 12 36  9 42 13 20 41 21 22 18  8 23 15 47 19 14 48
+:  24]
+
+#+begin_src python :results output replace :exports both
+print(cfg_fpemu["O0"]["mul_shift55"]["cycle_usage"])
+addr_fpemu_mul_shift55 = cfg_fpemu["O0"]["mul_shift55"]["addr_cycloc"]
+F_fpemu_mul_shift55_2_3 = np.load("F-statistics/F_mul_shift55_2_3.npy")
+dof_fpemu_mul_shift55_2_3 = np.loadtxt("F-statistics/dof_mul_shift55_2_3.txt", dtype=int)
+SNR_fpemu_mul_shift55_2_3 = calc_snr (F_fpemu_mul_shift55_2_3, dof_fpemu_mul_shift55_2_3)
+ics_fpemu_mul_shift55_2_3_sort = np.loadtxt("ics/ics_mul_shift55_2_3_sort.txt", dtype=int)
+print(ics_fpemu_mul_shift55_2_3_sort)
+#+end_src
+
+#+RESULTS:
+: 25
+: Max SNR: 5.8104
+: [ 7  6 12 17 15  3 22  8  1 16  9 14  4  2 21 11  5 18 10 20  0 23 24 13
+:  19]
+
+#+begin_src python :results output replace :exports both
+print(cfg_fpemu["O0"]["mul_shift55"]["cycle_usage"])
+addr_fpemu_mul_shift55 = cfg_fpemu["O0"]["mul_shift55"]["addr_cycloc"]
+F_fpemu_mul_shift55_4_7 = np.load("F-statistics/F_mul_shift55_4_7.npy")
+dof_fpemu_mul_shift55_4_7 = np.loadtxt("F-statistics/dof_mul_shift55_4_7.txt", dtype=int)
+SNR_fpemu_mul_shift55_4_7 = calc_snr (F_fpemu_mul_shift55_4_7, dof_fpemu_mul_shift55_4_7)
+ics_fpemu_mul_shift55_4_7_sort = np.loadtxt("ics/ics_mul_shift55_4_7_sort.txt", dtype=int)
+print(ics_fpemu_mul_shift55_4_7_sort)
+#+end_src
+
+#+RESULTS:
+: 25
+: Max SNR: 2.5514
+: [ 7  6 12  5 17  4 13  3  1 16 15  8 11  2  9 10  0 23 24 22 18 14 19 21
+:  20]
+
+
+* PoI
+
+#+begin_src python :results output replace :exports both
+ics_scaled, rects = leakage_markers_fp(SNR_fpemu_scaled, gap_peak=4)
+print_peaks(ics_scaled, addr_fpemu_scaled, SNR_fpemu_scaled)
+np.savetxt(f'ics/ics_scaled.txt', ics_scaled, fmt='%d')
+#+end_src
+
+#+RESULTS:
+: 0x4e 33 10.4028
+: 0x60 39  1.7557
+: 0x0   4  1.5387
+: 0x70 44  1.3654
+: 0x20 17  0.5242
+
+#+begin_src python :results output replace :exports both
+ics_mul_shift55_2_3, rects = leakage_markers_fp(SNR_fpemu_mul_shift55_2_3, gap_peak=0)
+print_peaks(ics_mul_shift55_2_3, addr_fpemu_mul_shift55, SNR_fpemu_mul_shift55_2_3)
+np.savetxt(f'ics/ics_mul_shift55_2_3.txt', ics_mul_shift55_2_3, fmt='%d')
+#+end_src
+
+#+RESULTS:
+: 0x44  7 5.8104
+: 0x58 12 0.9118
+: 0x6a 17 0.3518
+: 0x34  3 0.3254
+: 0x7e 22 0.2929
+
+#+begin_src python :results output replace :exports both
+ics_mul_shift55_4_7, rects = leakage_markers_fp(SNR_fpemu_mul_shift55_4_7, gap_peak=0)
+print_peaks(ics_mul_shift55_4_7, addr_fpemu_mul_shift55, SNR_fpemu_mul_shift55_4_7)
+np.savetxt(f'ics/ics_mul_shift55_4_7.txt', ics_mul_shift55_4_7, fmt='%d')
+#+end_src
+
+#+RESULTS:
+: 0x44  7 2.5514
+: 0x58 12 1.7678
+: 0x6a 17 0.5570
+: 0x2c  1 0.2916
+: 0x82 23 0.0885

@@ -1,0 +1,139 @@
+#+TITLE: Os PoI
+#+PROPERTY: header-args:python  :session Python/Os
+#+PROPERTY: header-args:python+ :results silent
+
+* Common
+
+#+begin_src python
+import os
+
+FALCON_N = 512
+#+end_src
+
+#+begin_src python
+import numpy as np
+import matplotlib.pyplot as plt
+from scipy.signal import find_peaks
+#+end_src
+
+#+begin_src python
+import json
+
+with open("../cycloc_params.json") as f:
+    cfg_pqclean = json.load(f)
+#+end_src
+
+#+begin_src python
+from utils import calc_Fcrit, calc_R2, calc_snr
+from utils import leakage_markers_fp, print_peaks
+#+end_src
+
+
+* Load
+
+#+begin_src python :results output replace :exports both
+print(cfg_pqclean["Os"]["scaled"]["cycle_usage"])
+addr_Os_scaled = cfg_pqclean["Os"]["scaled"]["addr_cycloc"]
+F_Os_scaled = np.load("F-statistics/F_scaled.npy")
+dof_Os_scaled = np.loadtxt("F-statistics/dof_scaled.txt", dtype=int)
+SNR_Os_scaled  = calc_snr (F_Os_scaled, dof_Os_scaled)
+ics_Os_scaled_sort = np.loadtxt("ics/ics_scaled_sort.txt", dtype=int)
+print(ics_Os_scaled_sort)
+#+end_src
+
+#+RESULTS:
+: 118
+: Max SNR: 13.8510
+: [ 65  70  84  85  79  69  80  44  50  71  86   1  55  87  66  81   0  64
+:   54  45  72  56  53  92  51  91  83  46   2  88  60  82  93  77  35  59
+:   67  57  43  90   6  52  68  89  36  78  76   7   5  73  75  61  98  58
+:   97  94  12  49  63 100  62  11   4   8  99 114  13 101  74  37  48  42
+:  106 105  47  10 115 102  18 104  96  19  95 103 107  20  17 117   3  34
+:   14 108  31  30  24  32 116  16 110  25  23  39 111  41 109  26  29  15
+:   22  38   9  28  21 112  40 113  27  33]
+
+#+begin_src python :results output replace :exports both
+print(cfg_pqclean["Os"]["mul_shift55"]["cycle_usage"])
+addr_Os_mul_shift55 = cfg_pqclean["Os"]["mul_shift55"]["addr_cycloc"]
+F_Os_mul_shift55_2_3 = np.load("F-statistics/F_mul_shift55_2_3.npy")
+dof_Os_mul_shift55_2_3 = np.loadtxt("F-statistics/dof_mul_shift55_2_3.txt", dtype=int)
+SNR_Os_mul_shift55_2_3 = calc_snr (F_Os_mul_shift55_2_3, dof_Os_mul_shift55_2_3)
+ics_Os_mul_shift55_2_3_sort = np.loadtxt("ics/ics_mul_shift55_2_3_sort.txt", dtype=int)
+print(ics_Os_mul_shift55_2_3_sort)
+#+end_src
+
+#+RESULTS:
+: 34
+: Max SNR: 1.4673
+: [10 21 22 30 25 11 26 24  8 31  7  5  2 16  4 20 33  6 12  9  3 13 32  0
+:  15 17 29 19  1 27 23 14 18 28]
+
+#+begin_src python :results output replace :exports both
+print(cfg_pqclean["Os"]["mul_shift55"]["cycle_usage"])
+addr_Os_mul_shift55 = cfg_pqclean["Os"]["mul_shift55"]["addr_cycloc"]
+F_Os_mul_shift55_4_7 = np.load("F-statistics/F_mul_shift55_4_7.npy")
+dof_Os_mul_shift55_4_7 = np.loadtxt("F-statistics/dof_mul_shift55_4_7.txt", dtype=int)
+SNR_Os_mul_shift55_4_7 = calc_snr (F_Os_mul_shift55_4_7, dof_Os_mul_shift55_4_7)
+ics_Os_mul_shift55_4_7_sort = np.loadtxt("ics/ics_mul_shift55_4_7_sort.txt", dtype=int)
+print(ics_Os_mul_shift55_4_7_sort)
+#+end_src
+
+#+RESULTS:
+: 34
+: Max SNR: 8.2509
+: [25  6  1 26 24  2  5 20 12 21 19  7 11  0 31 23 32  8 10 30 13  3 27 17
+:   9 33 16 22  4 18 29 14 15 28]
+
+
+* PoI
+
+#+begin_src python :results output replace :exports both
+ics_scaled, rects = leakage_markers_fp(SNR_Os_scaled, gap_peak=4)
+print_peaks(ics_scaled, addr_Os_scaled, SNR_Os_scaled)
+np.savetxt(f'ics/ics_scaled.txt', ics_scaled, fmt='%d')
+#+end_src
+
+#+RESULTS:
+#+begin_example
+0xac  65 13.8510
+0xbe  70 13.7105
+0xe8  84 11.4302
+0xd8  79 10.7855
+0x6a  44  8.8319
+0x80  50  8.7509
+0x8e  55  6.5108
+0x104 92  3.5686
+0x9c  60  2.2645
+0x54  35  1.8441
+0x0    6  1.3828
+0x118 98  0.6621
+0x10  12  0.4374
+#+end_example
+
+#+begin_src python :results output replace :exports both
+ics_mul_shift55_2_3, rects = leakage_markers_fp(SNR_Os_mul_shift55_2_3, gap_peak=0)
+print_peaks(ics_mul_shift55_2_3, addr_Os_mul_shift55, SNR_Os_mul_shift55_2_3)
+np.savetxt(f'ics/ics_mul_shift55_2_3.txt', ics_mul_shift55_2_3, fmt='%d')
+#+end_src
+
+#+RESULTS:
+: 0x4e 10 1.4673
+: 0x72 21 0.5614
+: 0x92 30 0.3855
+: 0x80 25 0.3261
+: 0x3e  5 0.1005
+: 0x60 16 0.0978
+
+#+begin_src python :results output replace :exports both
+ics_mul_shift55_4_7, rects = leakage_markers_fp(SNR_Os_mul_shift55_4_7, gap_peak=4)
+print_peaks(ics_mul_shift55_4_7, addr_Os_mul_shift55, SNR_Os_mul_shift55_4_7)
+np.savetxt(f'ics/ics_mul_shift55_4_7.txt', ics_mul_shift55_4_7, fmt='%d')
+#+end_src
+
+#+RESULTS:
+: 0x80 25 8.2509
+: 0x40  6 6.0760
+: 0x2e  1 5.8168
+: 0x70 20 3.4328
+: 0x52 12 2.7808
+: 0x96 31 1.7335

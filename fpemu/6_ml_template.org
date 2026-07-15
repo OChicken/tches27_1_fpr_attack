@@ -1,0 +1,624 @@
+#+TITLE: 6. ML Template
+#+PROPERTY: header-args:python  :session Python/fpemu
+#+PROPERTY: header-args:python+ :results silent
+#+PROPERTY: header-args:python+ :tangle 6_ml_template.py
+
+#+begin_src python
+print("#+TITLE: 6. ML Template")
+#+end_src
+
+* Preliminary
+
+Going through =4_anova.org= is not necessary but we suggest you still do so. The dir structure, that being interested in this notebook, is:
+
+#+begin_example
+O0-falcon512/
+├── cycloc_params.json
+├── traces-attack/
+│   └── ...
+└── traces_profile/
+    ├── loc_scaled.pkl
+    ├── loc_shift55.pkl
+    ├── loc_mul.pkl
+    ├── loc_mul_shift55.pkl
+    ├── profile_-22/
+    │   ├── trace_00.npy
+    │   └── trace_01.npy
+    ├── profile_-21/
+    │   ├── trace_00.npy
+    │   └── trace_01.npy
+    ├── ...
+    └── profile_22/
+        ├── trace_00.npy
+        └── trace_01.npy
+#+end_example
+
+
+* Common
+
+#+begin_src python
+import os
+OPT = os.environ.get("OPT", "O0")   # default when run interactively
+#+end_src
+
+#+begin_src python
+FALCON_N = 512
+if FALCON_N == 512:
+    LABEL_RANGE = range(-22, 23)
+if FALCON_N == 1024:
+    LABEL_RANGE = range(-15, 16)
+KEY_TYPE = 'profile'
+PREFIX = "."
+TRACES_PATH = f"{PREFIX}/{OPT}-falcon{FALCON_N}/traces_profile"
+#+end_src
+
+#+begin_src python
+import numpy as np
+import matplotlib.pyplot as plt
+
+from utils import class_coeffs_map_scaled
+from utils import class_coeffs_map_shift55
+from utils import class_coeffs_map_mul_4_5
+from utils import class_coeffs_map_mul_6_7
+from utils import class_coeffs_map_mul_8_11
+from utils import class_coeffs_map_mul_12_15
+from utils import class_coeffs_map_mul_16_22
+from utils import class_coeffs_map_mul_2_3
+from utils import class_coeffs_map_mul_4_7
+
+MCU_FREQ = 25_000_000
+PPC = 8
+ADC_FREQ = MCU_FREQ * PPC
+CUTOFF_FREQ = MCU_FREQ / 2
+#+end_src
+
+#+begin_src python
+import json
+with open("cycloc_params.json") as f:
+    json_file = json.load(f)
+    cfg = json_file[OPT]
+CYC_SCALED      = cfg["scaled"]["cycle_usage"]
+CYC_MUL         = cfg["mul"]["cycle_usage"]
+CYC_SHIFT55     = cfg["shift55"]["cycle_usage"]
+CYC_MUL_SHIFT55 = cfg["mul_shift55"]["cycle_usage"]
+#+end_src
+
+#+begin_src python
+from utils import calc_trace_snr
+from utils import trace_butter_lpf
+from utils import select_and_split
+#+end_src
+
+#+begin_src python
+test_split = 0.25
+#+end_src
+
+
+* Load Traces and Crop
+
+#+begin_src python
+print("\n\n* Load Traces and Crop\n")
+#+end_src
+
+#+begin_src python
+import glob
+
+trace_lpf = {}
+trace_snr = {}
+for key_id in LABEL_RANGE:
+    trace_dir = f"{TRACES_PATH}/profile_{key_id}"
+    files = sorted(glob.glob(f"{trace_dir}/trace_*.npy"))
+    trace_raw = np.array([np.load(f, mmap_mode='r') for f in files])
+    trace_lpf[key_id] = trace_butter_lpf(trace_raw, ADC_FREQ, CUTOFF_FREQ)
+
+    snr_raw = calc_trace_snr(trace_raw)
+    snr_lpf = calc_trace_snr(trace_lpf[key_id])
+    trace_snr[key_id] = [snr_raw, snr_lpf]
+#+end_src
+
+#+begin_src python
+print("#+begin_example")
+for key_id in trace_snr.keys():
+    snr_raw, snr_lpf = trace_snr[key_id]
+    print(f"  key_id={key_id:3}: {snr_raw:.4f} dB → {snr_lpf:.4f} dB")
+snr_vals = np.array(list(trace_snr.values()))
+print(f"Raw: mean {np.mean(snr_vals[:,0]):7.4f} dB, min {np.min(snr_vals[:,0]):.4f} dB, max {np.max(snr_vals[:,0]):.4f} dB")
+print(f"LPF: mean {np.mean(snr_vals[:,1]):7.4f} dB, min {np.min(snr_vals[:,1]):.4f} dB, max {np.max(snr_vals[:,1]):.4f} dB")
+print("#+end_example\n")
+#+end_src
+
+#+begin_src python
+import pickle
+
+with open(f"{TRACES_PATH}/loc_scaled.pkl", 'rb') as f:
+    loc_scaled = pickle.load(f)
+with open(f"{TRACES_PATH}/loc_mul.pkl", 'rb') as f:
+    loc_mul = pickle.load(f)
+with open(f"{TRACES_PATH}/loc_shift55.pkl", 'rb') as f:
+    loc_shift55 = pickle.load(f)
+with open(f"{TRACES_PATH}/loc_mul_shift55.pkl", 'rb') as f:
+    loc_mul_shift55 = pickle.load(f)
+#+end_src
+
+#+begin_src python
+trace_scaled = {}
+trace_mul = {}
+trace_shift55 = {}
+trace_mul_shift55 = {}
+
+for key_id in LABEL_RANGE:
+    trace_scaled[key_id] = np.array([
+        trace_lpf[key_id][:, loc_scaled[key_id][i][0]*PPC : loc_scaled[key_id][i][0]*PPC + CYC_SCALED*PPC]
+        for i in range(FALCON_N)
+    ]).transpose(1, 0, 2).reshape(-1, CYC_SCALED*PPC)
+    trace_mul[key_id] = np.array([
+        trace_lpf[key_id][:, loc_mul[key_id][i][0]*PPC : loc_mul[key_id][i][0]*PPC + CYC_MUL*PPC]
+        for i in range(FALCON_N)
+    ]).transpose(1, 0, 2).reshape(-1, CYC_MUL*PPC)
+    trace_shift55[key_id] = np.array([
+        trace_lpf[key_id][:, loc_shift55[key_id][i][0]*PPC : loc_shift55[key_id][i][0]*PPC + CYC_SHIFT55*PPC]
+        for i in range(FALCON_N)
+    ]).transpose(1, 0, 2).reshape(-1, CYC_SHIFT55*PPC)
+    trace_mul_shift55[key_id] = np.array([
+        trace_lpf[key_id][:, loc_mul_shift55[key_id][i][0]*PPC : loc_mul_shift55[key_id][i][0]*PPC + CYC_MUL_SHIFT55*PPC]
+        for i in range(FALCON_N)
+    ]).transpose(1, 0, 2).reshape(-1, CYC_MUL_SHIFT55*PPC)
+
+print("#+begin_example")
+print(f"shape summary: for FALCON_N = {FALCON_N}, PPC = {PPC},")
+print(f"  trace_scaled[coeff]:      {trace_scaled[0].shape}")
+print(f"  trace_mul[coeff]:         {trace_mul[0].shape}")
+print(f"  trace_shift55[coeff]:     {trace_shift55[0].shape}")
+print(f"  trace_mul_shift55[coeff]: {trace_mul_shift55[0].shape}")
+print("recall:")
+print(f"  CYC_SCALED      = {CYC_SCALED}")
+print(f"  CYC_MUL         = {CYC_MUL}")
+print(f"  CYC_SHIFT55     = {CYC_SHIFT55}")
+print(f"  CYC_MUL_SHIFT55 = {CYC_MUL_SHIFT55}")
+print("#+end_example")
+#+end_src
+
+
+* MLP and CNN Models
+
+#+begin_src python
+from TA_discriminative import classifier_train, classifier_inference, classifier_report
+import torch
+import torch.nn as nn
+import torch.nn.functional as F
+
+SEED = 42
+
+class model_cnn(nn.Module):
+    def __init__(self, n_class):
+        super().__init__()
+        k = 5
+        p = k // 2  # "same" padding
+        n_channel = 1
+        # CNN
+        self.conv1 = nn.Conv1d(n_channel, 4, kernel_size=k, padding=p)
+        self.conv2 = nn.Conv1d(4, 4, kernel_size=k, padding=p)
+        self.bn1 = nn.BatchNorm1d(4)
+        self.bn2 = nn.BatchNorm1d(4)
+        self.act = nn.Sigmoid()
+        self.pool = nn.AvgPool1d(kernel_size=2, stride=2)
+        # MLP
+        self.fc1 = nn.LazyLinear(128)
+        self.fc2 = nn.Linear(128, 128)
+        self.fc3 = nn.Linear(128, n_class)
+        self.dropout = nn.Dropout(0.1)
+        self.relu = nn.ReLU()
+
+    def forward(self, x):
+        x = self.pool(self.act(self.bn1(self.conv1(x))))
+        x = self.pool(self.act(self.bn2(self.conv2(x))))
+        x = torch.flatten(x, 1)
+        x = self.dropout(self.relu(self.fc1(x)))
+        x = self.dropout(self.relu(self.fc2(x)))
+        x = self.fc3(x)
+        return x
+
+class model_mlp(nn.Module):
+    def __init__(self, n_class):
+        super().__init__()
+        self.flatten = nn.Flatten()
+        self.bn1 = nn.BatchNorm1d(64)
+        self.bn2 = nn.BatchNorm1d(64)
+        self.bn3 = nn.BatchNorm1d(n_class)
+        self.fc1 = nn.LazyLinear(64)
+        self.fc2 = nn.Linear(64, 64)
+        self.fc3 = nn.Linear(64, n_class)
+        self.relu = nn.ReLU()
+
+    def forward(self, x):
+        x = self.flatten(x)
+        x = F.selu(self.bn1(self.fc1(x)))
+        x = F.selu(self.bn2(self.fc2(x)))
+        x = F.selu(self.bn3(self.fc3(x)))
+        x = F.relu(x)
+        return x
+#+end_src
+
+
+* MLP
+
+#+begin_src python
+print("\n\n* MLP\n")
+#+end_src
+
+#+begin_src python
+def build_fpr_templates_ml(traces_dict, test_split, class_coeffs_map, model_name, num_epochs=50):
+    np.random.seed(SEED)
+    torch.manual_seed(SEED)
+
+    traces_train, traces_test, label_train, label_test = \
+        select_and_split(traces_dict, class_coeffs_map, test_split)
+    n_class = len(class_coeffs_map.keys())
+    model = model_mlp(n_class)
+    classifier_train(traces_train, label_train, model, model_name, num_epochs)
+    # we actually don't need y_prob to attack; in case you need it to check bug, I also export it
+    y_prob = classifier_inference(traces_test, model_name)
+    classifier_report(traces_test, label_test, model_name, verbose=True)
+#+end_src
+
+** fpr_scaled
+
+#+begin_src python
+print("\n** fpr_scaled\n")
+
+print("#+begin_example")
+build_fpr_templates_ml(trace_scaled, test_split, class_coeffs_map_scaled,
+                       f"{OPT}-falcon{FALCON_N}/mlp/mlp_scaled.pth", 150)
+print("#+end_example\n")
+#+end_src
+
+
+** fpr_mul shift55
+
+#+begin_src python
+print("\n** fpr_mul shift55\n")
+
+print("#+begin_example")
+build_fpr_templates_ml(trace_shift55, test_split, class_coeffs_map_shift55,
+                       f"{OPT}-falcon{FALCON_N}/mlp/mlp_shift55.pth", 150)
+print("#+end_example\n")
+#+end_src
+
+
+** fpr_mul mul [4, 5]
+
+#+begin_src python
+print("\n** fpr_mul mul [4, 5]\n")
+
+print("#+begin_example")
+build_fpr_templates_ml(trace_mul, test_split, class_coeffs_map_mul_4_5,
+                       f"{OPT}-falcon{FALCON_N}/mlp/mlp_mul_4_5.pth", 150)
+print("#+end_example\n")
+#+end_src
+
+
+** fpr_mul mul [6, 7]
+
+#+begin_src python
+print("\n** fpr_mul mul [6, 7]\n")
+
+print("#+begin_example")
+build_fpr_templates_ml(trace_mul, test_split, class_coeffs_map_mul_6_7,
+                       f"{OPT}-falcon{FALCON_N}/mlp/mlp_mul_6_7.pth", 150)
+print("#+end_example\n")
+#+end_src
+
+
+** fpr_mul mul [8, 11]
+
+#+begin_src python
+print("\n** fpr_mul mul [8, 11]\n")
+
+print("#+begin_example")
+build_fpr_templates_ml(trace_mul, test_split, class_coeffs_map_mul_8_11,
+                       f"{OPT}-falcon{FALCON_N}/mlp/mlp_mul_8_11.pth", 150)
+print("#+end_example\n")
+#+end_src
+
+
+** fpr_mul mul [12, 15]
+
+#+begin_src python
+print("\n** fpr_mul mul [12, 15]\n")
+
+print("#+begin_example")
+build_fpr_templates_ml(trace_mul, test_split, class_coeffs_map_mul_12_15,
+                       f"{OPT}-falcon{FALCON_N}/mlp/mlp_mul_12_15.pth", 150)
+print("#+end_example\n")
+#+end_src
+
+
+** fpr_mul mul [16, 22]
+
+#+begin_src python
+print("\n** fpr_mul mul [16, 22]\n")
+
+print("#+begin_example")
+build_fpr_templates_ml(trace_mul, test_split, class_coeffs_map_mul_16_22,
+                       f"{OPT}-falcon{FALCON_N}/mlp/mlp_mul_16_22.pth", 150)
+print("#+end_example\n")
+#+end_src
+
+
+** fpr_mul mul_shift55 [2, 3]
+
+#+begin_src python
+print("\n** fpr_mul mul_shift55 [2, 3]\n")
+
+print("#+begin_example")
+build_fpr_templates_ml(trace_mul_shift55, test_split, class_coeffs_map_mul_2_3,
+                       f"{OPT}-falcon{FALCON_N}/mlp/mlp_mul_shift55_2_3.pth", 150)
+print("#+end_example\n")
+#+end_src
+
+
+** fpr_mul mul_shift55 [4, 7]
+
+#+begin_src python
+print("\n** fpr_mul mul_shift55 [4, 7]\n")
+
+print("#+begin_example")
+build_fpr_templates_ml(trace_mul_shift55, test_split, class_coeffs_map_mul_4_7,
+                       f"{OPT}-falcon{FALCON_N}/mlp/mlp_mul_shift55_4_7.pth", 150)
+print("#+end_example\n")
+#+end_src
+
+
+* CNN
+:PROPERTIES:
+:header-args:python: :tangle no
+:END:
+
+#+begin_src python
+print("\n\n* CNN\n")
+#+end_src
+
+#+begin_src python
+def build_fpr_templates_ml(traces_dict, test_split, class_coeffs_map, model_name, num_epochs=50):
+    np.random.seed(SEED)
+    torch.manual_seed(SEED)
+
+    traces_train, traces_test, label_train, label_test = \
+        select_and_split(traces_dict, class_coeffs_map, test_split)
+    n_class = len(class_coeffs_map.keys())
+    model = model_cnn(n_class)
+    classifier_train(traces_train, label_train, model, model_name, num_epochs)
+    # we actually don't need y_prob to attack; in case you need it to check bug, I also export it
+    y_prob = classifier_inference(traces_test, model_name)
+    classifier_report(traces_test, label_test, model_name, verbose=True)
+#+end_src
+
+** fpr_scaled
+
+#+begin_src python
+print("\n** fpr_scaled\n")
+
+print("#+begin_example")
+build_fpr_templates_ml(trace_scaled, test_split, class_coeffs_map_scaled,
+                       f"{OPT}-falcon{FALCON_N}/cnn/cnn_scaled.pth", 150)
+print("#+end_example\n")
+#+end_src
+
+
+** fpr_mul shift55
+
+#+begin_src python
+print("\n** fpr_mul shift55\n")
+
+print("#+begin_example")
+build_fpr_templates_ml(trace_shift55, test_split, class_coeffs_map_shift55,
+                       f"{OPT}-falcon{FALCON_N}/cnn/cnn_shift55.pth", 150)
+print("#+end_example\n")
+#+end_src
+
+
+** fpr_mul mul [4, 5]
+
+#+begin_src python
+print("\n** fpr_mul mul [4, 5]\n")
+
+print("#+begin_example")
+build_fpr_templates_ml(trace_mul, test_split, class_coeffs_map_mul_4_5,
+                       f"{OPT}-falcon{FALCON_N}/cnn/cnn_mul_4_5.pth", 150)
+print("#+end_example\n")
+#+end_src
+
+
+** fpr_mul mul [6, 7]
+
+#+begin_src python
+print("\n** fpr_mul mul [6, 7]\n")
+
+print("#+begin_example")
+build_fpr_templates_ml(trace_mul, test_split, class_coeffs_map_mul_6_7,
+                       f"{OPT}-falcon{FALCON_N}/cnn/cnn_mul_6_7.pth", 150)
+print("#+end_example\n")
+#+end_src
+
+
+** fpr_mul mul [8, 11]
+
+#+begin_src python
+print("\n** fpr_mul mul [8, 11]\n")
+
+print("#+begin_example")
+build_fpr_templates_ml(trace_mul, test_split, class_coeffs_map_mul_8_11,
+                       f"{OPT}-falcon{FALCON_N}/cnn/cnn_mul_8_11.pth", 150)
+print("#+end_example\n")
+#+end_src
+
+
+** fpr_mul mul [12, 15]
+
+#+begin_src python
+print("\n** fpr_mul mul [12, 15]\n")
+
+print("#+begin_example")
+build_fpr_templates_ml(trace_mul, test_split, class_coeffs_map_mul_12_15,
+                       f"{OPT}-falcon{FALCON_N}/cnn/cnn_mul_12_15.pth", 150)
+print("#+end_example\n")
+#+end_src
+
+
+** fpr_mul mul [16, 22]
+
+#+begin_src python
+print("\n** fpr_mul mul [16, 22]\n")
+
+print("#+begin_example")
+build_fpr_templates_ml(trace_mul, test_split, class_coeffs_map_mul_16_22,
+                       f"{OPT}-falcon{FALCON_N}/cnn/cnn_mul_16_22.pth", 150)
+print("#+end_example\n")
+#+end_src
+
+
+* Summary
+
+Now we have all models. The dir structure:
+
+#+begin_example
+O0-falcon512/
+├── cycloc_params.json
+├── mlp/
+│   ├── mlp_scaled.pth
+│   ├── mlp_shift55.pth
+│   ├── mlp_mul_4_5.pth
+│   ├── mlp_mul_6_7.pth
+│   ├── mlp_mul_8_11.pth
+│   ├── mlp_mul_12_15.pth
+│   ├── mlp_mul_16_22.pth
+│   ├── mlp_mul_shift55_2_3.pth
+│   └── mlp_mul_shift55_4_7.pth
+├── cnn/
+│   ├── cnn_scaled.pth
+│   ├── cnn_shift55.pth
+│   ├── cnn_mul_4_5.pth
+│   ├── cnn_mul_6_7.pth
+│   ├── cnn_mul_8_11.pth
+│   ├── cnn_mul_12_15.pth
+│   └── cnn_mul_16_22.pth
+├── traces-attack/
+│   └── ...
+└── traces-profile/
+    └── ...
+#+end_example
+
+to use:
+
+#+begin_src python :tangle no
+y_prob = classifier_inference(traces_test, model_name)
+#+end_src
+
+** MLP
+
+*** Loss
+
+| stage               | fpemu O0 |
+|---------------------+----------|
+| scaled              |   0.6735 |
+| shift55             |   0.0082 |
+| mul [4,5]           |   0.0293 |
+| mul [6,7]           |   0.1252 |
+| mul [8,11]          |   0.4680 |
+| mul [12,15]         |   0.2868 |
+| mul [16,22]         |   1.0744 |
+| mul [2,3] + shift55 |   0.0048 |
+| mul [4,7] + shift55 |   0.0578 |
+
+*** Accuracy
+
+| stage               | fpemu O0 |
+|---------------------+----------|
+| scaled              |   0.7139 |
+| shift55             |   0.9970 |
+| mul [4,5]           |   0.9948 |
+| mul [6,7]           |   0.9609 |
+| mul [8,11]          |   0.7962 |
+| mul [12,15]         |   0.8874 |
+| mul [16,22]         |   0.5753 |
+| mul [2,3] + shift55 |   1.0000 |
+| mul [4,7] + shift55 |   0.9805 |
+
+*** Balanced-accuracy
+
+| stage               | fpemu O0 |
+|---------------------+----------|
+| scaled              |   0.7882 |
+| shift55             |   0.9967 |
+| mul [4,5]           |   0.9948 |
+| mul [6,7]           |   0.9609 |
+| mul [8,11]          |   0.7962 |
+| mul [12,15]         |   0.8874 |
+| mul [16,22]         |   0.5753 |
+| mul [2,3] + shift55 |   1.0000 |
+| mul [4,7] + shift55 |   0.9805 |
+
+*** Macro-f1
+
+| stage               | fpemu O0 |
+|---------------------+----------|
+| scaled              |   0.7608 |
+| shift55             |   0.9967 |
+| mul [4,5]           |   0.9948 |
+| mul [6,7]           |   0.9609 |
+| mul [8,11]          |   0.7957 |
+| mul [12,15]         |   0.8870 |
+| mul [16,22]         |   0.5711 |
+| mul [2,3] + shift55 |   1.0000 |
+| mul [4,7] + shift55 |   0.9805 |
+
+
+** CNN
+
+*** Loss
+
+| stage       | fpemu O0 |
+|-------------+----------|
+| scaled      |   0.6934 |
+| shift55     |   0.0103 |
+| mul [4,5]   |   0.0302 |
+| mul [6,7]   |   0.0860 |
+| mul [8,11]  |   0.4619 |
+| mul [12,15] |   0.2548 |
+| mul [16,22] |   1.0431 |
+
+*** Accuracy
+
+| stage       | fpemu O0 |
+|-------------+----------|
+| scaled      |   0.6986 |
+| shift55     |   0.9965 |
+| mul [4,5]   |   0.9896 |
+| mul [6,7]   |   0.9740 |
+| mul [8,11]  |   0.7962 |
+| mul [12,15] |   0.8984 |
+| mul [16,22] |   0.5818 |
+
+*** Balanced-accuracy
+
+| stage       | fpemu O0 |
+|-------------+----------|
+| scaled      |   0.7884 |
+| shift55     |   0.9966 |
+| mul [4,5]   |   0.9896 |
+| mul [6,7]   |   0.9740 |
+| mul [8,11]  |   0.7962 |
+| mul [12,15] |   0.8984 |
+| mul [16,22] |   0.5818 |
+
+*** Macro-f1
+
+| stage       | fpemu O0 |
+|-------------+----------|
+| scaled      |   0.7544 |
+| shift55     |   0.9961 |
+| mul [4,5]   |   0.9896 |
+| mul [6,7]   |   0.9740 |
+| mul [8,11]  |   0.7962 |
+| mul [12,15] |   0.8980 |
+| mul [16,22] |   0.5769 |

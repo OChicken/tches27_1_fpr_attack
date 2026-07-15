@@ -1,0 +1,7 @@
+.ipynb_checkpoints
+build-*
+archive/
+__pycache__
+*.o
+test_falcon
+ltximg/

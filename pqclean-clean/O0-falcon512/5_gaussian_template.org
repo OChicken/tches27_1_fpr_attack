@@ -1,0 +1,230 @@
+#+TITLE: 5. Gaussian Template
+
+
+* Load Traces and Crop
+
+#+begin_example
+  key_id=-22: 15.3321 dB → 21.7435 dB
+  key_id=-21: 15.3857 dB → 21.8431 dB
+  key_id=-20: 15.1681 dB → 21.1837 dB
+  key_id=-19: 15.2853 dB → 21.6730 dB
+  key_id=-18: 15.2815 dB → 21.6063 dB
+  key_id=-17: 15.2051 dB → 21.5167 dB
+  key_id=-16: 15.2785 dB → 21.6589 dB
+  key_id=-15: 15.1439 dB → 21.2061 dB
+  key_id=-14: 15.2518 dB → 21.5326 dB
+  key_id=-13: 15.1706 dB → 21.3171 dB
+  key_id=-12: 15.2557 dB → 21.5694 dB
+  key_id=-11: 15.2903 dB → 21.6002 dB
+  key_id=-10: 15.0973 dB → 21.0491 dB
+  key_id= -9: 15.2283 dB → 21.4661 dB
+  key_id= -8: 15.2261 dB → 21.5366 dB
+  key_id= -7: 15.2565 dB → 21.6699 dB
+  key_id= -6: 15.2787 dB → 21.6912 dB
+  key_id= -5: 15.1072 dB → 21.1738 dB
+  key_id= -4: 15.2753 dB → 21.6532 dB
+  key_id= -3: 15.2720 dB → 21.6900 dB
+  key_id= -2: 15.2762 dB → 21.6681 dB
+  key_id= -1: 15.3957 dB → 22.0038 dB
+  key_id=  0: 14.9643 dB → 20.8662 dB
+  key_id=  1: 15.3706 dB → 21.9089 dB
+  key_id=  2: 15.2417 dB → 21.5764 dB
+  key_id=  3: 15.2868 dB → 21.6270 dB
+  key_id=  4: 15.2420 dB → 21.5517 dB
+  key_id=  5: 15.1242 dB → 21.0932 dB
+  key_id=  6: 15.2870 dB → 21.6068 dB
+  key_id=  7: 15.2993 dB → 21.5873 dB
+  key_id=  8: 15.2194 dB → 21.4739 dB
+  key_id=  9: 15.2250 dB → 21.4035 dB
+  key_id= 10: 15.0857 dB → 20.9607 dB
+  key_id= 11: 15.2873 dB → 21.5594 dB
+  key_id= 12: 15.2416 dB → 21.5304 dB
+  key_id= 13: 14.9909 dB → 21.2554 dB
+  key_id= 14: 15.0641 dB → 21.5060 dB
+  key_id= 15: 15.0441 dB → 21.1902 dB
+  key_id= 16: 15.1946 dB → 21.6602 dB
+  key_id= 17: 15.0728 dB → 21.4595 dB
+  key_id= 18: 15.1465 dB → 21.5972 dB
+  key_id= 19: 15.1496 dB → 21.6336 dB
+  key_id= 20: 14.9860 dB → 21.1517 dB
+  key_id= 21: 15.2192 dB → 21.8131 dB
+  key_id= 22: 15.1499 dB → 21.7008 dB
+Raw: mean 15.2079 dB, min 14.9643 dB, max 15.3957 dB
+LPF: mean 21.5059 dB, min 20.8662 dB, max 22.0038 dB
+#+end_example
+
+#+begin_example
+shape summary: for FALCON_N = 512, PPC = 4,
+  trace_scaled[coeff]:      (1024, 3344)
+  trace_mul[coeff]:         (1024, 732)
+  trace_shift55[coeff]:     (1024, 424)
+recall:
+  CYC_SCALED      = 836
+  CYC_MUL         = 183
+  CYC_SHIFT55     = 106
+#+end_example
+
+
+* Gaussian Template
+
+
+** fpr_scaled
+
+#+begin_example
+traces.shape: (46080, 3344)
+label.shape: (46080,)
+traces_train.shape: (34560, 3344)
+traces_test.shape: (11520, 3344)
+#+end_example
+
+#+begin_example
+len(ics): 6
+#+end_example
+
+#+begin_example
+[profile] [    scaled] 11520/11520 = 1.0000
+#+end_example
+
+#+begin_example
+error count per class  (class = labels: count):
+error guesses  (coeff idx: true → pred):
+#+end_example
+
+
+** fpr_mul shift55
+
+#+begin_example
+traces.shape: (21504, 424)
+label.shape: (21504,)
+traces_train.shape: (16128, 424)
+traces_test.shape: (5376, 424)
+#+end_example
+
+#+begin_example
+len(ics): 5
+#+end_example
+
+#+begin_example
+[profile] [   shift55] 5376/5376 = 1.0000
+#+end_example
+
+#+begin_example
+error count per class  (class = labels: count):
+error guesses  (coeff idx: true → pred):
+#+end_example
+
+
+** fpr_mul mul [4, 5]
+
+#+begin_example
+traces.shape: (2048, 732)
+label.shape: (2048,)
+traces_train.shape: (1536, 732)
+traces_test.shape: (512, 732)
+#+end_example
+
+#+begin_example
+len(ics): 15
+#+end_example
+
+#+begin_example
+[profile] [   mul_4_5] 512/512 = 1.0000
+#+end_example
+
+#+begin_example
+error count per class  (class = labels: count):
+error guesses  (coeff idx: true → pred):
+#+end_example
+
+
+** fpr_mul mul [6, 7]
+
+#+begin_example
+traces.shape: (2048, 732)
+label.shape: (2048,)
+traces_train.shape: (1536, 732)
+traces_test.shape: (512, 732)
+#+end_example
+
+#+begin_example
+len(ics): 14
+#+end_example
+
+#+begin_example
+[profile] [   mul_6_7] 512/512 = 1.0000
+#+end_example
+
+#+begin_example
+error count per class  (class = labels: count):
+error guesses  (coeff idx: true → pred):
+#+end_example
+
+
+** fpr_mul mul [8, 11]
+
+#+begin_example
+traces.shape: (4096, 732)
+label.shape: (4096,)
+traces_train.shape: (3072, 732)
+traces_test.shape: (1024, 732)
+#+end_example
+
+#+begin_example
+len(ics): 177
+#+end_example
+
+#+begin_example
+[profile] [  mul_8_11] 1024/1024 = 1.0000
+#+end_example
+
+#+begin_example
+error count per class  (class = labels: count):
+error guesses  (coeff idx: true → pred):
+#+end_example
+
+
+** fpr_mul mul [12, 15]
+
+#+begin_example
+traces.shape: (4096, 732)
+label.shape: (4096,)
+traces_train.shape: (3072, 732)
+traces_test.shape: (1024, 732)
+#+end_example
+
+#+begin_example
+len(ics): 178
+#+end_example
+
+#+begin_example
+[profile] [ mul_12_15] 1024/1024 = 1.0000
+#+end_example
+
+#+begin_example
+error count per class  (class = labels: count):
+error guesses  (coeff idx: true → pred):
+#+end_example
+
+
+** fpr_mul mul [16, 22]
+
+#+begin_example
+traces.shape: (7168, 732)
+label.shape: (7168,)
+traces_train.shape: (5376, 732)
+traces_test.shape: (1792, 732)
+#+end_example
+
+#+begin_example
+len(ics): 181
+#+end_example
+
+#+begin_example
+[profile] [ mul_16_22] 1792/1792 = 1.0000
+#+end_example
+
+#+begin_example
+error count per class  (class = labels: count):
+error guesses  (coeff idx: true → pred):
+#+end_example
+

@@ -1,0 +1,689 @@
+#+TITLE: 5. Gaussian Template
+#+PROPERTY: header-args:python  :session Python/pqclean-clean
+#+PROPERTY: header-args:python+ :results silent
+#+PROPERTY: header-args:python+ :tangle 5_gaussian_template.py
+
+#+begin_src python
+print("#+TITLE: 5. Gaussian Template")
+#+end_src
+
+* Preliminary
+
+Guarantee that you go through =4_anova.org=. Your dir structure, that being interested in this notebook, should be:
+
+#+begin_example
+O3-falcon512/ (and O3-falcon1024, Os-falcon512, etc)
+├── cycloc_params.json
+├── traces_attack/
+│   └── ...
+├── F-statistics/
+│   ├── F_scaled.npy
+│   ├── F_shift55.npy
+│   ├── F_mul_4_5.npy
+│   ├── F_mul_6_7.npy
+│   ├── F_mul_8_11.npy
+│   ├── F_mul_12_15.npy
+│   ├── F_mul_16_22.npy
+│   ├── F_mul_shift55_2_3.npy
+│   ├── F_mul_shift55_4_7.npy
+│   ├── dof_scaled.txt
+│   ├── dof_shift55.txt
+│   ├── dof_mul_4_5.txt
+│   ├── dof_mul_6_7.txt
+│   ├── dof_mul_8_11.txt
+│   ├── dof_mul_12_15.txt
+│   ├── dof_mul_16_22.txt
+│   ├── dof_mul_shift55_2_3.txt
+│   └── dof_mul_shift55_4_7.txt
+├── ics/
+│   ├── ics_scaled.txt
+│   ├── ics_scaled_sort.txt
+│   ├── ics_shift55.txt
+│   ├── ics_shift55_sort.txt
+│   ├── ics_mul_4_5.txt
+│   ├── ics_mul_4_5_sort.txt
+│   ├── ics_mul_6_7.txt
+│   ├── ics_mul_6_7_sort.txt
+│   ├── ics_mul_8_11.txt
+│   ├── ics_mul_8_11_sort.txt
+│   ├── ics_mul_12_15.txt
+│   ├── ics_mul_12_15_sort.txt
+│   ├── ics_mul_16_22.txt
+│   ├── ics_mul_16_22_sort.txt
+│   ├── ics_mul_shift55_2_3.txt
+│   ├── ics_mul_shift55_2_3_sort.txt
+│   ├── ics_mul_shift55_4_7.txt
+│   └── ics_mul_shift55_4_7_sort.txt
+└── traces_profile/
+    ├── loc_scaled.pkl
+    ├── loc_shift55.pkl
+    ├── loc_mul.pkl
+    ├── loc_mul_shift55.pkl
+    ├── profile_-22/
+    │   ├── trace_00.npy
+    │   └── trace_01.npy
+    ├── profile_-21/
+    │   ├── trace_00.npy
+    │   └── trace_01.npy
+    ├── ...
+    └── profile_22/
+        ├── trace_00.npy
+        └── trace_01.npy
+#+end_example
+
+
+* Common
+
+#+begin_src python
+import os
+OPT = os.environ.get("OPT", "O3")   # default when run interactively
+#+end_src
+
+#+begin_src python
+FALCON_N = 512
+if FALCON_N == 512:
+    LABEL_RANGE = range(-22, 23)
+if FALCON_N == 1024:
+    LABEL_RANGE = range(-15, 16)
+KEY_TYPE = 'profile'
+PREFIX = "."
+TRACES_PATH = f"{PREFIX}/{OPT}-falcon{FALCON_N}/traces_profile"
+#+end_src
+
+#+begin_src python
+import numpy as np
+import matplotlib.pyplot as plt
+
+from utils import class_coeffs_map_scaled
+from utils import class_coeffs_map_shift55
+from utils import class_coeffs_map_mul_4_5
+from utils import class_coeffs_map_mul_6_7
+from utils import class_coeffs_map_mul_8_11
+from utils import class_coeffs_map_mul_12_15
+from utils import class_coeffs_map_mul_16_22
+from utils import class_coeffs_map_mul_2_3
+from utils import class_coeffs_map_mul_4_7
+
+if OPT == "O0":
+    MCU_FREQ = 40_000_000
+    PPC = 4
+else:
+    MCU_FREQ = 25_000_000
+    PPC = 8
+ADC_FREQ = MCU_FREQ * PPC
+CUTOFF_FREQ = MCU_FREQ / 2
+#+end_src
+
+#+begin_src python
+import json
+with open("cycloc_params.json") as f:
+    json_file = json.load(f)
+    cfg = json_file[OPT]
+CYC_SCALED      = cfg["scaled"]["cycle_usage"]
+CYC_MUL         = cfg["mul"]["cycle_usage"]
+CYC_SHIFT55     = cfg["shift55"]["cycle_usage"]
+CYC_MUL_SHIFT55 = cfg["mul_shift55"]["cycle_usage"]
+#+end_src
+
+#+begin_src python
+from utils import calc_trace_snr
+from utils import trace_butter_lpf
+from utils import select_and_split
+from utils import trace_categorize
+from utils import gaussian_profile, gaussian_inference, gaussian_guess
+
+from collections import defaultdict
+from utils import stats_init, report_sr, report_error
+#+end_src
+
+#+begin_src python
+test_split = 0.25
+#+end_src
+
+
+* Load Traces and Crop
+
+#+begin_src python
+print("\n\n* Load Traces and Crop\n")
+#+end_src
+
+#+begin_src python
+import glob
+
+trace_lpf = {}
+trace_snr = {}
+for key_id in LABEL_RANGE:
+    trace_dir = f"{TRACES_PATH}/profile_{key_id}"
+    files = sorted(glob.glob(f"{trace_dir}/trace_*.npy"))
+    trace_raw = np.array([np.load(f) for f in files])
+    trace_lpf[key_id] = trace_butter_lpf(trace_raw, ADC_FREQ, CUTOFF_FREQ)
+
+    snr_raw = calc_trace_snr(trace_raw)
+    snr_lpf = calc_trace_snr(trace_lpf[key_id])
+    trace_snr[key_id] = [snr_raw, snr_lpf]
+#+end_src
+
+#+begin_src python
+print("#+begin_example")
+for key_id in trace_snr.keys():
+    snr_raw, snr_lpf = trace_snr[key_id]
+    print(f"  key_id={key_id:3}: {snr_raw:.4f} dB → {snr_lpf:.4f} dB")
+snr_vals = np.array(list(trace_snr.values()))
+print(f"Raw: mean {np.mean(snr_vals[:,0]):7.4f} dB, min {np.min(snr_vals[:,0]):.4f} dB, max {np.max(snr_vals[:,0]):.4f} dB")
+print(f"LPF: mean {np.mean(snr_vals[:,1]):7.4f} dB, min {np.min(snr_vals[:,1]):.4f} dB, max {np.max(snr_vals[:,1]):.4f} dB")
+print("#+end_example\n")
+#+end_src
+
+So applying LPF can significantly improve the SNR. In the subsequent processing, we will implicitly apply LPF when loading the raw data.
+
+#+begin_src python
+import pickle
+
+with open(f"{TRACES_PATH}/loc_scaled.pkl", 'rb') as f:
+    loc_scaled = pickle.load(f)
+with open(f"{TRACES_PATH}/loc_mul.pkl", 'rb') as f:
+    loc_mul = pickle.load(f)
+with open(f"{TRACES_PATH}/loc_shift55.pkl", 'rb') as f:
+    loc_shift55 = pickle.load(f)
+with open(f"{TRACES_PATH}/loc_mul_shift55.pkl", 'rb') as f:
+    loc_mul_shift55 = pickle.load(f)
+#+end_src
+
+#+begin_src python
+trace_scaled = {}
+trace_mul = {}
+trace_shift55 = {}
+trace_mul_shift55 = {}
+
+for key_id in LABEL_RANGE:
+    trace_scaled[key_id] = np.array([
+        trace_lpf[key_id][:, loc_scaled[key_id][i][0]*PPC : loc_scaled[key_id][i][1]*PPC]
+        for i in range(FALCON_N)
+    ]).transpose(1, 0, 2).reshape(-1, CYC_SCALED*PPC)
+    trace_mul[key_id] = np.array([
+        trace_lpf[key_id][:, loc_mul[key_id][i][0]*PPC : loc_mul[key_id][i][1]*PPC]
+        for i in range(FALCON_N)
+    ]).transpose(1, 0, 2).reshape(-1, CYC_MUL*PPC)
+    trace_shift55[key_id] = np.array([
+        trace_lpf[key_id][:, loc_shift55[key_id][i][0]*PPC : loc_shift55[key_id][i][1]*PPC]
+        for i in range(FALCON_N)
+    ]).transpose(1, 0, 2).reshape(-1, CYC_SHIFT55*PPC)
+    trace_mul_shift55[key_id] = np.array([
+        trace_lpf[key_id][:, loc_mul_shift55[key_id][i][0]*PPC : loc_mul_shift55[key_id][i][1]*PPC]
+        for i in range(FALCON_N)
+    ]).transpose(1, 0, 2).reshape(-1, CYC_MUL_SHIFT55*PPC)
+
+print("#+begin_example")
+print(f"shape summary: for FALCON_N = {FALCON_N}, PPC = {PPC},")
+print(f"  trace_scaled[coeff]:      {trace_scaled[0].shape}")
+print(f"  trace_mul[coeff]:         {trace_mul[0].shape}")
+print(f"  trace_shift55[coeff]:     {trace_shift55[0].shape}")
+print(f"  trace_mul_shift55[coeff]: {trace_mul_shift55[0].shape}")
+print("recall:")
+print(f"  CYC_SCALED      = {CYC_SCALED}")
+print(f"  CYC_MUL         = {CYC_MUL}")
+print(f"  CYC_SHIFT55     = {CYC_SHIFT55}")
+print(f"  CYC_MUL_SHIFT55 = {CYC_MUL_SHIFT55}")
+print("#+end_example")
+#+end_src
+
+#+begin_src python
+del trace_lpf
+#+end_src
+
+
+* Gaussian Template
+
+#+begin_src python
+print("\n\n* Gaussian Template\n")
+
+stage_stats_profile = stats_init()
+#+end_src
+
+** fpr_scaled
+
+#+begin_src python
+print("\n** fpr_scaled\n")
+#+end_src
+
+#+begin_src python
+print("#+begin_example")
+traces_train, traces_test, label_train, label_test = \
+    select_and_split(trace_scaled, class_coeffs_map_scaled, test_split)
+traces_train_dict = trace_categorize(traces_train, label_train)
+print("#+end_example\n")
+#+end_src
+
+#+begin_src python
+print("#+begin_example")
+ics = np.loadtxt(f"{OPT}-falcon{FALCON_N}/ics/ics_scaled.txt", dtype=int)
+print("len(ics):", len(ics))
+poi = [i * PPC for i in ics]
+print("#+end_example\n")
+#+end_src
+
+#+begin_src python
+print("#+begin_example")
+gaussian_profile(traces_train_dict, poi, f"{OPT}-falcon{FALCON_N}/gaussian/gaussian_scaled.pkl")
+prob = gaussian_inference(traces_test, f"{OPT}-falcon{FALCON_N}/gaussian/gaussian_scaled.pkl")
+guess = gaussian_guess(prob)
+report_sr("profile", "scaled", label_test, stage_stats_profile,
+          dict(enumerate(guess)), lambda v: v)
+print("#+end_example\n")
+#+end_src
+
+#+begin_src python
+print("#+begin_example")
+report_error("scaled", stage_stats_profile, class_coeffs_map_scaled)
+print("#+end_example\n")
+#+end_src
+
+
+** fpr_mul shift55
+
+#+begin_src python
+print("\n** fpr_mul shift55\n")
+#+end_src
+
+#+begin_src python
+print("#+begin_example")
+traces_train, traces_test, label_train, label_test = \
+    select_and_split(trace_shift55, class_coeffs_map_shift55, test_split)
+traces_train_dict = trace_categorize(traces_train, label_train)
+print("#+end_example\n")
+#+end_src
+
+#+begin_src python
+print("#+begin_example")
+ics = np.loadtxt(f"{OPT}-falcon{FALCON_N}/ics/ics_shift55.txt", dtype=int)
+print("len(ics):", len(ics))
+poi = [i * PPC for i in ics]
+print("#+end_example\n")
+#+end_src
+
+#+begin_src python
+print("#+begin_example")
+gaussian_profile(traces_train_dict, poi, f"{OPT}-falcon{FALCON_N}/gaussian/gaussian_shift55.pkl")
+prob = gaussian_inference(traces_test, f"{OPT}-falcon{FALCON_N}/gaussian/gaussian_shift55.pkl")
+guess = gaussian_guess(prob)
+report_sr("profile", "shift55", label_test, stage_stats_profile,
+          dict(enumerate(guess)), lambda v: v)
+print("#+end_example\n")
+#+end_src
+
+#+begin_src python
+print("#+begin_example")
+report_error("shift55", stage_stats_profile, class_coeffs_map_shift55)
+print("#+end_example\n")
+#+end_src
+
+
+** fpr_mul mul [4, 5]
+
+#+begin_src python
+print("\n** fpr_mul mul [4, 5]\n")
+#+end_src
+
+#+begin_src python
+print("#+begin_example")
+traces_train, traces_test, label_train, label_test = \
+    select_and_split(trace_mul, class_coeffs_map_mul_4_5, test_split)
+traces_train_dict = trace_categorize(traces_train, label_train)
+print("#+end_example\n")
+#+end_src
+
+#+begin_src python
+print("#+begin_example")
+ics = np.loadtxt(f"{OPT}-falcon{FALCON_N}/ics/ics_mul_4_5.txt", dtype=int)
+print("len(ics):", len(ics))
+poi = [i * PPC for i in ics]
+print("#+end_example\n")
+#+end_src
+
+#+begin_src python
+print("#+begin_example")
+gaussian_profile(traces_train_dict, poi, f"{OPT}-falcon{FALCON_N}/gaussian/gaussian_mul_4_5.pkl")
+prob = gaussian_inference(traces_test, f"{OPT}-falcon{FALCON_N}/gaussian/gaussian_mul_4_5.pkl")
+guess = gaussian_guess(prob)
+report_sr("profile", "mul_4_5", label_test, stage_stats_profile,
+          dict(enumerate(guess)), lambda v: v)
+print("#+end_example\n")
+#+end_src
+
+#+begin_src python
+print("#+begin_example")
+report_error("mul_4_5", stage_stats_profile, class_coeffs_map_mul_4_5)
+print("#+end_example\n")
+#+end_src
+
+
+** fpr_mul mul [6, 7]
+
+#+begin_src python
+print("\n** fpr_mul mul [6, 7]\n")
+#+end_src
+
+#+begin_src python
+print("#+begin_example")
+traces_train, traces_test, label_train, label_test = \
+    select_and_split(trace_mul, class_coeffs_map_mul_6_7, test_split)
+traces_train_dict = trace_categorize(traces_train, label_train)
+print("#+end_example\n")
+#+end_src
+
+#+begin_src python
+print("#+begin_example")
+ics = np.loadtxt(f"{OPT}-falcon{FALCON_N}/ics/ics_mul_6_7.txt", dtype=int)
+print("len(ics):", len(ics))
+poi = [i * PPC for i in ics]
+print("#+end_example\n")
+#+end_src
+
+#+begin_src python
+print("#+begin_example")
+gaussian_profile(traces_train_dict, poi, f"{OPT}-falcon{FALCON_N}/gaussian/gaussian_mul_6_7.pkl")
+prob = gaussian_inference(traces_test, f"{OPT}-falcon{FALCON_N}/gaussian/gaussian_mul_6_7.pkl")
+guess = gaussian_guess(prob)
+report_sr("profile", "mul_6_7", label_test, stage_stats_profile,
+          dict(enumerate(guess)), lambda v: v)
+print("#+end_example\n")
+#+end_src
+
+#+begin_src python
+print("#+begin_example")
+report_error("mul_6_7", stage_stats_profile, class_coeffs_map_mul_6_7)
+print("#+end_example\n")
+#+end_src
+
+
+** fpr_mul mul [8, 11]
+
+#+begin_src python
+print("\n** fpr_mul mul [8, 11]\n")
+#+end_src
+
+#+begin_src python
+print("#+begin_example")
+traces_train, traces_test, label_train, label_test = \
+    select_and_split(trace_mul, class_coeffs_map_mul_8_11, test_split)
+traces_train_dict = trace_categorize(traces_train, label_train)
+print("#+end_example\n")
+#+end_src
+
+#+begin_src python
+print("#+begin_example")
+ics = np.loadtxt(f"{OPT}-falcon{FALCON_N}/ics/ics_mul_8_11.txt", dtype=int)
+print("len(ics):", len(ics))
+poi = [i * PPC for i in ics]
+print("#+end_example\n")
+#+end_src
+
+#+begin_src python
+print("#+begin_example")
+gaussian_profile(traces_train_dict, poi, f"{OPT}-falcon{FALCON_N}/gaussian/gaussian_mul_8_11.pkl")
+prob = gaussian_inference(traces_test, f"{OPT}-falcon{FALCON_N}/gaussian/gaussian_mul_8_11.pkl")
+guess = gaussian_guess(prob)
+report_sr("profile", "mul_8_11", label_test, stage_stats_profile,
+          dict(enumerate(guess)), lambda v: v)
+print("#+end_example\n")
+#+end_src
+
+#+begin_src python
+print("#+begin_example")
+report_error("mul_8_11", stage_stats_profile, class_coeffs_map_mul_8_11)
+print("#+end_example\n")
+#+end_src
+
+
+** fpr_mul mul [12, 15]
+
+#+begin_src python
+print("\n** fpr_mul mul [12, 15]\n")
+#+end_src
+
+#+begin_src python
+print("#+begin_example")
+traces_train, traces_test, label_train, label_test = \
+    select_and_split(trace_mul, class_coeffs_map_mul_12_15, test_split)
+traces_train_dict = trace_categorize(traces_train, label_train)
+print("#+end_example\n")
+#+end_src
+
+#+begin_src python
+print("#+begin_example")
+ics = np.loadtxt(f"{OPT}-falcon{FALCON_N}/ics/ics_mul_12_15.txt", dtype=int)
+print("len(ics):", len(ics))
+poi = [i * PPC for i in ics]
+print("#+end_example\n")
+#+end_src
+
+#+begin_src python
+print("#+begin_example")
+gaussian_profile(traces_train_dict, poi, f"{OPT}-falcon{FALCON_N}/gaussian/gaussian_mul_12_15.pkl")
+prob = gaussian_inference(traces_test, f"{OPT}-falcon{FALCON_N}/gaussian/gaussian_mul_12_15.pkl")
+guess = gaussian_guess(prob)
+report_sr("profile", "mul_12_15", label_test, stage_stats_profile,
+          dict(enumerate(guess)), lambda v: v)
+print("#+end_example\n")
+#+end_src
+
+#+begin_src python
+print("#+begin_example")
+report_error("mul_12_15", stage_stats_profile, class_coeffs_map_mul_12_15)
+print("#+end_example\n")
+#+end_src
+
+
+** fpr_mul mul [16, 22]
+
+#+begin_src python
+print("\n** fpr_mul mul [16, 22]\n")
+#+end_src
+
+#+begin_src python
+print("#+begin_example")
+traces_train, traces_test, label_train, label_test = \
+    select_and_split(trace_mul, class_coeffs_map_mul_16_22, test_split)
+traces_train_dict = trace_categorize(traces_train, label_train)
+print("#+end_example\n")
+#+end_src
+
+#+begin_src python
+print("#+begin_example")
+ics = np.loadtxt(f"{OPT}-falcon{FALCON_N}/ics/ics_mul_16_22.txt", dtype=int)
+print("len(ics):", len(ics))
+poi = [i * PPC for i in ics]
+print("#+end_example\n")
+#+end_src
+
+#+begin_src python
+print("#+begin_example")
+gaussian_profile(traces_train_dict, poi, f"{OPT}-falcon{FALCON_N}/gaussian/gaussian_mul_16_22.pkl")
+prob = gaussian_inference(traces_test, f"{OPT}-falcon{FALCON_N}/gaussian/gaussian_mul_16_22.pkl")
+guess = gaussian_guess(prob)
+report_sr("profile", "mul_16_22", label_test, stage_stats_profile,
+          dict(enumerate(guess)), lambda v: v)
+print("#+end_example\n")
+#+end_src
+
+#+begin_src python
+print("#+begin_example")
+report_error("mul_16_22", stage_stats_profile, class_coeffs_map_mul_16_22)
+print("#+end_example\n")
+#+end_src
+
+
+** fpr_mul mul_shift55 [2, 3]
+
+#+begin_src python
+print("\n** fpr_mul mul_shift55 [2, 3]\n")
+#+end_src
+
+#+begin_src python
+print("#+begin_example")
+traces_train, traces_test, label_train, label_test = \
+    select_and_split(trace_mul_shift55, class_coeffs_map_mul_2_3, test_split)
+traces_train_dict = trace_categorize(traces_train, label_train)
+print("#+end_example\n")
+#+end_src
+
+#+begin_src python
+print("#+begin_example")
+ics = np.loadtxt(f"{OPT}-falcon{FALCON_N}/ics/ics_mul_shift55_2_3.txt", dtype=int)
+print("len(ics):", len(ics))
+poi = [i * PPC for i in ics]
+print("#+end_example\n")
+#+end_src
+
+#+begin_src python
+print("#+begin_example")
+gaussian_profile(traces_train_dict, poi, f"{OPT}-falcon{FALCON_N}/gaussian/gaussian_mul_shift55_2_3.pkl")
+prob = gaussian_inference(traces_test, f"{OPT}-falcon{FALCON_N}/gaussian/gaussian_mul_shift55_2_3.pkl")
+guess = gaussian_guess(prob)
+report_sr("profile", "mul_2_3", label_test, stage_stats_profile,
+          dict(enumerate(guess)), lambda v: v)
+print("#+end_example\n")
+#+end_src
+
+#+begin_src python
+print("#+begin_example")
+report_error("mul_2_3", stage_stats_profile, class_coeffs_map_mul_2_3)
+print("#+end_example\n")
+#+end_src
+
+
+** fpr_mul mul_shift55 [4, 7]
+
+#+begin_src python
+print("\n** fpr_mul mul_shift55 [4, 7]\n")
+#+end_src
+
+#+begin_src python
+print("#+begin_example")
+traces_train, traces_test, label_train, label_test = \
+    select_and_split(trace_mul_shift55, class_coeffs_map_mul_4_7, test_split)
+traces_train_dict = trace_categorize(traces_train, label_train)
+print("#+end_example\n")
+#+end_src
+
+#+begin_src python
+print("#+begin_example")
+ics = np.loadtxt(f"{OPT}-falcon{FALCON_N}/ics/ics_mul_shift55_4_7.txt", dtype=int)
+print("len(ics):", len(ics))
+poi = [i * PPC for i in ics]
+print("#+end_example\n")
+#+end_src
+
+#+begin_src python
+print("#+begin_example")
+gaussian_profile(traces_train_dict, poi, f"{OPT}-falcon{FALCON_N}/gaussian/gaussian_mul_shift55_4_7.pkl")
+prob = gaussian_inference(traces_test, f"{OPT}-falcon{FALCON_N}/gaussian/gaussian_mul_shift55_4_7.pkl")
+guess = gaussian_guess(prob)
+report_sr("profile", "mul_4_7", label_test, stage_stats_profile,
+          dict(enumerate(guess)), lambda v: v)
+print("#+end_example\n")
+#+end_src
+
+#+begin_src python
+print("#+begin_example")
+report_error("mul_4_7", stage_stats_profile, class_coeffs_map_mul_4_7)
+print("#+end_example\n")
+#+end_src
+
+
+* Summary
+
+Now we have Gaussian templates. The dir structure:
+
+#+begin_example
+O3-falcon512/ (and O3-falcon1024, Os-falcon512, etc)
+├── cycloc_params.json
+├── traces_attack/
+│   └── ...
+├── F-statistics/
+│   └── ...
+├── ics/
+│   └── ...
+├── gaussian/
+│   ├── gaussian_scaled.pkl
+│   ├── gaussian_shift55.pkl
+│   ├── gaussian_mul_4_5.pkl
+│   ├── gaussian_mul_6_7.pkl
+│   ├── gaussian_mul_8_11.pkl
+│   ├── gaussian_mul_12_15.pkl
+│   ├── gaussian_mul_16_22.pkl
+│   ├── gaussian_mul_shift55_2_3.pkl
+│   └── gaussian_mul_shift55_4_7.pkl
+└── traces_profile/
+    └── ...
+#+end_example
+
+To use (gaussian_inference → per-class posterior, gaussian_guess → argmax label):
+
+#+begin_src python :tangle no
+prob  = gaussian_inference(traces_test, model_name)   # (#trace, #class) posterior
+guess = gaussian_guess(prob)                      # (#trace,) argmax label
+#+end_src
+
+** Success rate of Gaussian template
+
+|                     |      O0 |     O3 |     Os |
+|---------------------+---------+--------+--------|
+| scaled              | 100.00† | 100.00 | 100.00 |
+| shift55             |  100.00 |  90.38 |  73.49 |
+| mul [4,5]           |  100.00 | 100.00 | 100.00 |
+| mul [6,7]           |  100.00 |  93.95 |  91.21 |
+| mul [8,11]          |  100.00 |  84.08 |  88.28 |
+| mul [12,15]         |  100.00 |  93.75 |  93.16 |
+| mul [16,22]         |  100.00 |  68.25 |  81.03 |
+| mul [2,3] + shift55 |       - |  99.80 |  99.22 |
+| mul [4,7] + shift55 |       - |  98.44 |  99.61 |
+
+† O0 scaled uses manually selected PoI, cuz its F (or SNR) diagram has visible, distinct 6 peaks. In contrast, if use 0.1% threshold, it has too many POI for the Gaussian template to train (the cropped window is 3344 un-downsampled samples), so it yields no automatic %Success. O0 is simple, though: its leakage is very strong (ANOVA Max R2 0.9995) and the POI are manually selectable, so scaled is exploitable in practice --- the 100.00* is "manual", not from the automatic template. All other O0 tasks succeed at 100.00 outright.
+
+
+** Affect of #profiling traces (N_k_trans)
+
+=N_k_trans= is a legacy variable name. It means, in
+
+#+begin_src python
+for key_id in LABEL_RANGE:
+    trace_dir = f"{TRACES_PATH}/profile_{key_id}"
+    files = sorted(glob.glob(f"{trace_dir}/trace_*.npy"))
+#+end_src
+
+there are =trace_00.npy= and =trace_01.npy=, altogether 512x2 (or 1024x2) segments to profile a label (-22, ..., -1, 0, 1, ..., 22, resp). But now we only use =trace_00.npy=, due to these purposes:
+
+- save storage
+- it does not hurt much to the SR in Gaussian template
+- to avoid overfitting issue in MLP/CNN stage.
+- to demonstrate that MLE has huge improvement in the attack stage.
+
+Here summarize the Gaussian template %Success for both settings:
+
+=N_k_trans=2=:
+
+|                     |     O3 |     Os |
+|---------------------+--------+--------|
+| scaled              | 100.00 | 100.00 |
+| shift55             |  90.38 |  73.49 |
+| mul [4,5]           | 100.00 | 100.00 |
+| mul [6,7]           |  93.95 |  91.21 |
+| mul [8,11]          |  84.08 |  88.28 |
+| mul [12,15]         |  93.75 |  93.16 |
+| mul [16,22]         |  68.25 |  81.03 |
+| mul [2,3] + shift55 |  99.80 |  99.22 |
+| mul [4,7] + shift55 |  98.44 |  99.61 |
+
+
+=N_k_trans=1=:
+
+|             |     O3 |     Os |
+|-------------+--------+--------|
+| scaled      | 100.00 | 100.00 |
+| shift55     |  89.29 |  72.92 |
+| mul [4,5]   | 100.00 | 100.00 |
+| mul [6,7]   |  91.02 |  92.19 |
+| mul [8,11]  |  78.52 |  87.30 |
+| mul [12,15] |  94.34 |  92.58 |
+| mul [16,22] |  63.62 |  77.46 |

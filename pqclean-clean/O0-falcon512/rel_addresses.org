@@ -1,0 +1,844 @@
+#+TITLE: rel_addresses
+
+* Common
+
+#+begin_src python :session :results silent
+import os
+import time
+import math
+import pickle
+import json
+import numpy as np
+import chipwhisperer as cw
+import subprocess
+from tqdm import trange, tnrange
+from setup_generic import hardware_setup, clkgen_freq_setup, scope_reset, \
+    tracewhisperer_husky_setup
+from setup_generic import input2hex, cw_core_routine
+
+MCU_FREQ = 30_000_000
+PPC = 4
+HUSKY_MAX_SAMPLES = 131070
+PROGRAM = True
+#+end_src
+
+#+begin_src python :session :results silent
+scope, target = hardware_setup(f"build-stm32f4/pqclean-clean.hex",
+                               "stm32f4", 'SS_VER_1_0', PROGRAM)
+#+end_src
+
+#+begin_src python :session :results silent
+scope_reset(scope)
+tracewhisperer = tracewhisperer_husky_setup(scope, target)
+clkgen_freq_setup(scope, target, MCU_FREQ)
+scope.clock.adc_mul = PPC
+scope.adc.samples = HUSKY_MAX_SAMPLES
+scope.gain.db = 12
+
+target.flush()
+scope_reset(scope)
+#+end_src
+
+#+begin_src python :session :results silent
+def set_key(cmd, key, target):
+    target.write(cmd + input2hex(key) + '\n')
+    buf = ''
+    while 'z00\n' not in buf:
+        buf += target.read(num_char=0xffff)
+    print(buf[:-5])
+    target.flush()
+#+end_src
+
+#+begin_src python :session :results output :exports both
+key_f = np.load(f"../keys/Falcon{FALCON_N}_f_1000.npy", allow_pickle=True)
+key_id = 0  # or any other indices less then len(key_f)
+set_key('k', key_f[key_id].tolist(), target)
+#+end_src
+
+#+RESULTS:
+: [-2, 10, ..., -2,  3]
+
+
+* fpr_scaled
+
+#+begin_src python :session :results silent
+with open("../cycloc_params.json") as f:
+    cfg = json.load(f)[OPT]["scaled"]
+addr_global    = int(cfg["addr_global"], 0)
+rel_start      = int(cfg["rel_start"], 0)
+rel_end        = int(cfg["rel_end"], 0)
+rel_addresses  =     cfg["rel_addresses"]
+#+end_src
+
+#+begin_src python :session :results output :exports both
+_, loc0 = cw_core_routine('p', '', scope, target, tracewhisperer,
+                          addr_global, int(rel_addresses[0], 0), int(rel_addresses[1], 0), 0)
+data = ''
+while 'z00\n' not in data:
+    data += target.read(num_char=0xffff)
+
+_, loc1 = cw_core_routine('p', '', scope, target, tracewhisperer,
+                          addr_global, int(rel_addresses[0], 0), int(rel_addresses[1], 0), 1)
+data = ''
+while 'z00\n' not in data:
+    data += target.read(num_char=0xffff)
+
+coeff = 0  # 0 to FALCON_N - 1
+print(loc1[coeff][0] - loc0[coeff][0])
+#+end_src
+
+#+RESULTS:
+: 10
+
+#+begin_src python :session :results output :exports both
+_, loc0 = cw_core_routine('p', '', scope, target, tracewhisperer,
+                          addr_global, int(rel_addresses[1], 0), rel_end, 0)
+data = ''
+while 'z00\n' not in data:
+    data += target.read(num_char=0xffff)
+
+_, loc1 = cw_core_routine('p', '', scope, target, tracewhisperer,
+                          addr_global, int(rel_addresses[1], 0), rel_end, 1)
+data = ''
+while 'z00\n' not in data:
+    data += target.read(num_char=0xffff)
+
+coeff = 0  # 0 to FALCON_N - 1
+print(loc1[coeff][0] - loc0[coeff][0])
+#+end_src
+
+#+RESULTS:
+: 826
+
+#+begin_src python :session :results silent
+_, loc0 = cw_core_routine('p', '', scope, target, tracewhisperer,
+                          addr_global, rel_start, rel_end, 0)
+data = ''
+while 'z00\n' not in data:
+    data += target.read(num_char=0xffff)
+target.flush()
+#+end_src
+
+#+begin_src python :session :results output :exports both
+for addr in rel_addresses:
+    rel_end = int(addr, 0)
+    _, loc1 = cw_core_routine('p', '', scope, target, tracewhisperer,
+                              addr_global, rel_start, rel_end, 1)
+    data = ''
+    while 'z00\n' not in data:
+        data += target.read(num_char=0xffff)
+    target.flush()
+    print(addr, loc1[coeff][0] - loc0[coeff][0])
+#+end_src
+
+#+RESULTS:
+#+begin_example
+0x0 0
+0x4 10
+0x6 11
+0x8 13
+0xc 17
+0x10 18
+0x14 23
+0x18 24
+0x1c 25
+0x1e 26
+0x20 27
+0x22 28
+0x26 29
+0x2a 33
+0x2c 34
+0x2e 35
+0x30 36
+0x32 37
+0x36 38
+0x3a 39
+0x3e 43
+0x42 44
+0x46 46
+0x4a 50
+0x4e 53
+0x50 54
+0x54 55
+0x58 57
+0x5c 61
+0x60 65
+0x62 66
+0x64 67
+0x66 68
+0x68 69
+0x6c 70
+0x6e 71
+0x72 76
+0x76 80
+0x7a 84
+0x7e 88
+0x82 91
+0x84 92
+0x88 93
+0x8c 97
+0x8e 98
+0x92 99
+0x96 104
+0x9a 105
+0x9e 106
+0xa0 107
+0xa2 108
+0xa4 109
+0xa8 110
+0xac 114
+0xae 115
+0xb2 118
+0xb4 119
+0xb6 120
+0xba 121
+0xbe 126
+0xc2 127
+0xc6 128
+0xc8 129
+0xca 130
+0xce 134
+0xd2 135
+0xd6 136
+0xd8 137
+0xdc 138
+0xe0 141
+0xe2 142
+0xe6 143
+0xea 145
+0xee 149
+0xf0 150
+0xf2 151
+0xf6 152
+0xf8 153
+0xfc 154
+0x100 155
+0x104 160
+0x106 161
+0x10a 165
+0x10c 166
+0x10e 167
+0x112 168
+0x114 169
+0x116 170
+0x11a 171
+0x11e 176
+0x122 180
+0x124 181
+0x126 182
+0x128 183
+0x12a 184
+0x12c 185
+0x130 189
+0x134 193
+0x138 196
+0x13a 197
+0x13e 200
+0x140 201
+0x144 202
+0x148 207
+0x14c 208
+0x150 209
+0x152 210
+0x154 211
+0x156 212
+0x15a 213
+0x15e 217
+0x160 218
+0x164 221
+0x166 222
+0x168 223
+0x16c 224
+0x170 229
+0x174 230
+0x178 231
+0x17a 232
+0x17e 233
+0x180 234
+0x184 238
+0x188 239
+0x18c 240
+0x18e 241
+0x192 242
+0x196 245
+0x198 246
+0x19c 247
+0x1a0 249
+0x1a4 253
+0x1a6 254
+0x1a8 255
+0x1ac 256
+0x1ae 257
+0x1b2 258
+0x1b6 259
+0x1ba 264
+0x1bc 265
+0x1c0 269
+0x1c2 270
+0x1c4 271
+0x1c8 272
+0x1ca 273
+0x1cc 274
+0x1d0 275
+0x1d4 280
+0x1d8 284
+0x1da 285
+0x1dc 286
+0x1de 287
+0x1e0 288
+0x1e2 289
+0x1e6 293
+0x1ea 297
+0x1ee 300
+0x1f0 301
+0x1f4 304
+0x1f6 305
+0x1fa 306
+0x1fe 311
+0x202 312
+0x206 313
+0x208 314
+0x20a 315
+0x20c 316
+0x210 317
+0x214 321
+0x216 322
+0x21a 325
+0x21c 326
+0x21e 327
+0x222 328
+0x226 333
+0x22a 334
+0x22e 335
+0x230 336
+0x234 337
+0x236 338
+0x23a 342
+0x23e 343
+0x242 344
+0x244 345
+0x248 346
+0x24c 349
+0x24e 350
+0x252 351
+0x256 353
+0x25a 357
+0x25c 358
+0x25e 359
+0x262 360
+0x264 361
+0x268 362
+0x26c 363
+0x270 368
+0x272 369
+0x276 373
+0x278 374
+0x27a 375
+0x27e 376
+0x280 377
+0x282 378
+0x286 379
+0x28a 384
+0x28e 388
+0x290 389
+0x292 390
+0x294 391
+0x296 392
+0x298 393
+0x29c 397
+0x2a0 401
+0x2a4 404
+0x2a6 405
+0x2aa 408
+0x2ac 409
+0x2b0 410
+0x2b4 415
+0x2b8 416
+0x2bc 417
+0x2be 418
+0x2c0 419
+0x2c2 420
+0x2c6 421
+0x2ca 425
+0x2cc 426
+0x2d0 429
+0x2d2 430
+0x2d4 431
+0x2d8 432
+0x2dc 437
+0x2e0 438
+0x2e4 439
+0x2e6 440
+0x2ea 441
+0x2ec 442
+0x2f0 446
+0x2f4 447
+0x2f8 448
+0x2fa 449
+0x2fe 450
+0x302 453
+0x304 454
+0x308 455
+0x30c 457
+0x310 461
+0x312 462
+0x314 463
+0x318 464
+0x31a 465
+0x31e 466
+0x322 467
+0x326 472
+0x328 473
+0x32c 477
+0x32e 478
+0x330 479
+0x334 480
+0x336 481
+0x338 482
+0x33c 483
+0x340 488
+0x344 492
+0x346 493
+0x348 494
+0x34a 495
+0x34c 496
+0x34e 497
+0x352 501
+0x356 505
+0x35a 508
+0x35c 509
+0x360 512
+0x362 513
+0x366 514
+0x36a 519
+0x36e 520
+0x372 521
+0x374 522
+0x376 523
+0x378 524
+0x37c 525
+0x380 529
+0x382 530
+0x386 533
+0x388 534
+0x38a 535
+0x38e 536
+0x392 541
+0x396 542
+0x39a 543
+0x39c 544
+0x3a0 545
+0x3a2 546
+0x3a6 550
+0x3aa 551
+0x3ae 552
+0x3b0 553
+0x3b4 554
+0x3b8 557
+0x3ba 558
+0x3be 559
+0x3c2 561
+0x3c6 565
+0x3c8 566
+0x3ca 567
+0x3ce 568
+0x3d0 569
+0x3d4 570
+0x3d8 571
+0x3dc 576
+0x3de 577
+0x3e2 581
+0x3e4 582
+0x3e6 583
+0x3ea 584
+0x3ec 585
+0x3ee 586
+0x3f2 587
+0x3f6 592
+0x3fa 596
+0x3fc 597
+0x3fe 598
+0x400 599
+0x402 600
+0x404 601
+0x408 605
+0x40c 609
+0x410 612
+0x412 613
+0x416 616
+0x418 617
+0x41c 618
+0x420 623
+0x424 624
+0x428 625
+0x42a 626
+0x42c 627
+0x42e 628
+0x432 629
+0x436 634
+0x438 635
+0x43a 636
+0x43c 637
+0x43e 638
+0x442 642
+0x446 646
+0x44a 647
+0x44e 648
+0x450 649
+0x454 650
+0x458 653
+0x45a 654
+0x45e 655
+0x462 657
+0x466 661
+0x468 662
+0x46a 663
+0x46e 664
+0x470 665
+0x474 666
+0x478 667
+0x47c 672
+0x47e 673
+0x482 677
+0x484 678
+0x486 679
+0x488 680
+0x48a 681
+0x48c 682
+0x48e 683
+0x492 688
+0x496 692
+0x498 693
+0x49a 694
+0x49c 695
+0x49e 696
+0x4a0 697
+0x4a4 701
+0x4a8 705
+0x4ac 707
+0x4b0 709
+0x4b2 710
+0x4b6 711
+0x4ba 715
+0x4be 716
+0x4c2 717
+0x4c4 718
+0x4c6 719
+0x4c8 721
+0x4cc 725
+0x4d0 729
+0x4d2 730
+0x4d4 731
+0x4d6 732
+0x4d8 733
+0x4da 734
+0x4de 738
+0x4e2 742
+0x4e6 746
+0x4ea 747
+0x4ee 748
+0x4f0 749
+0x4f4 750
+0x4f6 751
+0x4fa 755
+0x4fe 759
+0x500 760
+0x502 761
+0x504 762
+0x508 763
+0x50a 764
+0x50e 768
+0x512 772
+0x514 773
+0x516 774
+0x518 775
+0x51a 776
+0x51c 777
+0x520 781
+0x524 782
+0x528 783
+0x52a 784
+0x52c 785
+0x52e 786
+0x532 787
+0x536 791
+0x538 792
+0x53a 793
+0x53c 795
+0x53e 796
+0x542 800
+0x544 801
+0x546 802
+0x548 803
+0x54a 804
+0x54e 805
+0x550 806
+0x554 811
+0x558 815
+0x55a 816
+0x55c 817
+0x55e 818
+0x560 819
+0x562 820
+0x566 824
+0x56a 828
+0x56e 831
+0x570 832
+0x574 835
+0x576 836
+#+end_example
+
+
+* fpr_mul shift55
+
+#+begin_src python :session :results silent
+with open("../cycloc_params.json") as f:
+    cfg = json.load(f)[OPT]["shift55"]
+addr_global    = int(cfg["addr_global"], 0)
+rel_start      = int(cfg["rel_start"], 0)
+rel_end        = int(cfg["rel_end"], 0)
+rel_addresses  =     cfg["rel_addresses"]
+#+end_src
+
+#+begin_src python :session :results silent
+_, loc0 = cw_core_routine('p', '', scope, target, tracewhisperer,
+                          addr_global, rel_start, rel_end, 0)
+data = ''
+while 'z00\n' not in data:
+    data += target.read(num_char=0xffff)
+target.flush()
+#+end_src
+
+#+begin_src python :session :results output :exports both
+for addr in rel_addresses:
+    rel_end = int(addr, 0)
+    while True:
+        _, loc1 = cw_core_routine('p', '', scope, target, tracewhisperer,
+                                  addr_global, rel_start, rel_end, 1)
+        data = ''
+        while 'z00\n' not in data:
+            data += target.read(num_char=0xffff)
+        target.flush()
+        if len(loc1) == 0:
+            print("Detect len(loc1) = 0, retry.")
+            continue
+        break
+    print(addr, loc1[coeff][0] - loc0[coeff][0])
+#+end_src
+
+#+RESULTS:
+#+begin_example
+0x302 0
+0x306 4
+0x30a 5
+0x30e 6
+0x310 7
+0x314 8
+0x316 9
+0x31a 13
+0x31e 14
+0x320 15
+0x322 16
+0x324 17
+Detect len(loc1) = 0, retry.
+0x328 21
+0x32a 22
+0x32c 23
+0x32e 24
+0x330 25
+0x332 26
+Detect len(loc1) = 0, retry.
+0x334 27
+0x338 32
+0x33c 36
+0x340 40
+0x344 41
+0x348 42
+0x34a 43
+0x34c 44
+0x350 48
+0x354 52
+0x358 56
+0x35c 57
+0x35e 58
+0x360 59
+0x362 60
+Detect len(loc1) = 0, retry.
+0x366 64
+0x368 65
+0x36a 66
+0x36c 67
+0x370 68
+0x372 69
+Detect len(loc1) = 0, retry.
+0x376 73
+Detect len(loc1) = 0, retry.
+0x378 74
+0x37c 78
+0x37e 79
+0x380 80
+0x382 81
+0x384 82
+Detect len(loc1) = 0, retry.
+0x386 83
+0x388 84
+0x38c 89
+0x390 93
+0x392 94
+0x394 95
+0x396 96
+0x398 97
+0x39a 98
+0x39e 102
+0x3a2 106
+#+end_example
+
+
+* fpr_mul mul
+
+#+begin_src python :session :results silent
+with open("../cycloc_params.json") as f:
+    cfg = json.load(f)[OPT]["mul"]
+addr_global    = int(cfg["addr_global"], 0)
+rel_start      = int(cfg["rel_start"], 0)
+rel_end        = int(cfg["rel_end"], 0)
+rel_addresses  =     cfg["rel_addresses"]
+#+end_src
+
+#+begin_src python :session :results silent
+_, loc0 = cw_core_routine('p', '', scope, target, tracewhisperer,
+                          addr_global, rel_start, rel_end, 0)
+data = ''
+while 'z00\n' not in data:
+    data += target.read(num_char=0xffff)
+target.flush()
+#+end_src
+
+#+begin_src python :session :results output :exports both
+for addr in rel_addresses:
+    rel_end = int(addr, 0)
+    while True:
+        _, loc1 = cw_core_routine('p', '', scope, target, tracewhisperer,
+                                  addr_global, rel_start, rel_end, 1)
+        data = ''
+        while 'z00\n' not in data:
+            data += target.read(num_char=0xffff)
+        target.flush()
+        if len(loc1) == 0:
+            print("Detect len(loc1) = 0, retry.")
+            continue
+        break
+    print(addr, loc1[coeff][0] - loc0[coeff][0])
+#+end_src
+
+#+RESULTS:
+#+begin_example
+0x19e 0
+0x1a2 4
+0x1a4 5
+0x1a8 6
+0x1ac 8
+0x1b0 11
+0x1b2 12
+0x1b6 13
+0x1ba 15
+0x1be 19
+Detect len(loc1) = 0, retry.
+0x1c0 20
+0x1c4 24
+0x1c6 25
+0x1ca 26
+0x1cc 27
+0x1ce 28
+0x1d0 29
+0x1d2 30
+0x1d6 31
+0x1d8 32
+0x1da 33
+0x1dc 34
+Detect len(loc1) = 0, retry.
+0x1e0 35
+0x1e4 36
+0x1e8 38
+0x1ec 41
+0x1ee 42
+Detect len(loc1) = 0, retry.
+0x1f2 43
+0x1f6 48
+0x1fa 52
+0x1fe 56
+0x202 59
+0x206 60
+0x20a 63
+0x20c 64
+0x210 65
+0x214 70
+0x218 71
+0x21c 72
+0x21e 73
+0x222 74
+0x224 75
+0x226 76
+Detect len(loc1) = 0, retry.
+0x22a 79
+0x22c 80
+0x230 81
+0x234 85
+0x236 86
+0x23a 87
+0x23e 89
+0x242 92
+0x244 93
+0x246 94
+0x248 96
+Detect len(loc1) = 0, retry.
+0x24c 100
+0x24e 101
+0x252 105
+0x254 106
+0x258 107
+0x25a 108
+Detect len(loc1) = 0, retry.
+0x25c 109
+0x25e 110
+0x260 111
+0x264 112
+0x266 113
+0x268 114
+0x26a 115
+0x26e 116
+0x272 117
+0x276 119
+0x27a 122
+0x27c 123
+Detect len(loc1) = 0, retry.
+0x280 124
+0x284 129
+0x288 133
+0x28c 137
+Detect len(loc1) = 0, retry.
+0x290 140
+0x292 141
+0x296 144
+Detect len(loc1) = 0, retry.
+0x298 145
+0x29c 146
+0x2a0 150
+0x2a4 151
+0x2a8 152
+0x2ac 156
+0x2ae 157
+0x2b0 158
+0x2b2 160
+0x2b6 164
+0x2ba 168
+0x2bc 169
+0x2be 170
+0x2c0 171
+0x2c2 172
+0x2c6 173
+0x2c8 174
+0x2cc 179
+Detect len(loc1) = 0, retry.
+0x2d0 183
+#+end_example

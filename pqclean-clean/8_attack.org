@@ -1,0 +1,366 @@
+#+TITLE: 8. Attack
+#+PROPERTY: header-args:python  :session Python/pqclean-clean
+#+PROPERTY: header-args:python+ :results silent
+#+PROPERTY: header-args:python+ :tangle 8_attack.py
+
+#+begin_src python
+print("#+TITLE: 8. Attack\n")
+#+end_src
+
+* Preliminary
+
+Run the following scripts before this document.
+
+#+begin_src shell
+OPT=O3
+FALCON_N=512
+echo Run $OPT
+
+python cycloc.py $OPT scaled      $FALCON_N f 0 100
+python cycloc.py $OPT mul         $FALCON_N f 0 100
+python cycloc.py $OPT shift55     $FALCON_N f 0 100
+python cycloc.py $OPT mul_shift55 $FALCON_N f 0 100
+
+python cycloc.py $OPT scaled      $FALCON_N g 0 100
+python cycloc.py $OPT mul         $FALCON_N g 0 100
+python cycloc.py $OPT shift55     $FALCON_N g 0 100
+python cycloc.py $OPT mul_shift55 $FALCON_N g 0 100
+
+python traces.py $OPT $FALCON_N f 0 100
+python traces.py $OPT $FALCON_N g 0 100
+#+end_src
+
+#+begin_example
+O3-falcon512/
+├── cycloc_params.json
+├── gaussian/
+│   ├── gaussian_scaled.pkl
+│   ├── gaussian_shift55.pkl
+│   ├── gaussian_mul_4_5.pkl
+│   ├── gaussian_mul_6_7.pkl
+│   ├── gaussian_mul_8_11.pkl
+│   ├── gaussian_mul_12_15.pkl
+│   ├── gaussian_mul_16_22.pkl
+│   ├── gaussian_mul_shift55_2_3.pkl
+│   └── gaussian_mul_shift55_4_7.pkl
+├── mlp/
+│   ├── mlp_scaled.pth
+│   ├── mlp_shift55.pth
+│   ├── mlp_mul_4_5.pth
+│   ├── mlp_mul_6_7.pth
+│   ├── mlp_mul_8_11.pth
+│   ├── mlp_mul_12_15.pth
+│   ├── mlp_mul_16_22.pth
+│   ├── mlp_mul_shift55_2_3.pth
+│   └── mlp_mul_shift55_4_7.pth
+└── traces_attack/
+    ├── loc_scaled_f.pkl
+    ├── loc_scaled_g.pkl
+    ├── loc_shift55_f.pkl
+    ├── loc_shift55_g.pkl
+    ├── loc_mul_f.pkl
+    ├── loc_mul_g.pkl
+    ├── loc_mul_shift55_f.pkl
+    ├── loc_mul_shift55_g.pkl
+    ├── f_000/
+    │   ├── trace_00.npy
+    │   ├── ...
+    │   └── trace_02.npy
+    ├── ...
+    ├── f_099/
+    │   ├── trace_00.npy
+    │   ├── ...
+    │   └── trace_02.npy
+    ├── g_000/
+    │   ├── trace_00.npy
+    │   ├── ...
+    │   └── trace_02.npy
+    ├── ...
+    └── g_099/
+        ├── trace_00.npy
+        ├── ...
+        └── trace_02.npy
+#+end_example
+
+
+* Common
+
+#+begin_src python
+import os
+OPT = os.environ.get("OPT", "O0")   # default when run interactively
+FALCON_N = os.environ.get("FALCON_N", 512)
+MODEL = os.environ.get("MODEL", "Gaussian")
+# os.environ.get always returns a STRING when the var is actually set (e.g.
+# SKIP_SHIFT55=False -> "False", which is truthy!), so compare against known
+# false-ish strings rather than relying on plain truthiness.
+SKIP_SHIFT55 = os.environ.get("SKIP_SHIFT55", "True").strip().lower() not in ("0", "false", "")
+MLE_N = int(os.environ.get("MLE_N", 1))
+#+end_src
+
+#+begin_src python
+import numpy as np
+from datetime import datetime
+import torch
+import random
+#+end_src
+
+#+begin_src python
+import attack
+from attack import attack_key_repeat, check_key_right, stats_init, report_sr_total
+#+end_src
+
+** Multi-thread
+
+#+begin_src python
+# Parallelism is at the outer (per-key) level via ThreadPoolExecutor below, so
+# pin torch/BLAS to 1 thread per worker here -- must be set before numpy/torch
+# are imported (in Main), otherwise each MLP inference call would ALSO try to
+# fan out across all cores and N_WORKERS threads would oversubscribe them.
+for _v in ("OMP_NUM_THREADS", "MKL_NUM_THREADS", "OPENBLAS_NUM_THREADS",
+           "NUMEXPR_NUM_THREADS", "VECLIB_MAXIMUM_THREADS"):
+    os.environ.setdefault(_v, "1")
+
+import sys, io, traceback
+from concurrent.futures import ThreadPoolExecutor, as_completed
+from utils import _ThreadRouter
+
+# threads; torch/numpy release the GIL during heavy compute.
+# Each worker is pinned to 1 BLAS/torch thread (see Common),
+# so this is the actual degree of parallelism -- tune down
+# if other processes are competing for the same cores.
+N_WORKERS = int(os.environ.get("N_WORKERS", os.cpu_count()))
+#+end_src
+
+
+** Print  configurations
+
+#+begin_src python
+print(f"Configurations:")
+print(f"- OPT = {OPT}")
+print(f"- FALCON_N = {FALCON_N}")
+print(f"- MODEL = {MODEL}")
+print(f"- SKIP_SHIFT55 = {SKIP_SHIFT55}")
+print(f"- MLE_N = {MLE_N}")
+print(f"- N_WORKERS = {N_WORKERS}")
+#+end_src
+
+
+* Main
+
+#+begin_src python
+torch.set_num_threads(1)   # redundant with the env vars above, belt-and-suspenders
+# Push config into the attack module's namespace -- the imported functions read
+# OPT/PATH/MODEL/... from THERE, not from this session, so setting them here
+# directly would have no effect.
+attack.configure(opt=OPT, falcon_n=FALCON_N, model=MODEL, skip_shift55=SKIP_SHIFT55)
+
+KEY_ID_LB = 0
+KEY_ID_UB = 100
+
+Falcon512_f_1000 = np.load("keys/Falcon512_f_1000.npy", allow_pickle=True)
+Falcon512_g_1000 = np.load("keys/Falcon512_g_1000.npy", allow_pickle=True)
+random.seed(2025)
+ONLY_4_5 = False
+try_random_num = 1000000
+scaled_threshold = 0.99
+
+
+def attack_one_key(key_id):
+    # Own stage_stats (attack_key_repeat mutates in place) + own stdout buffer,
+    # so workers never touch shared state.  The buffered text is returned and
+    # printed later, strictly in key order.
+    buf = io.StringIO()
+    _router.set_buffer(buf)
+    try:
+        local_f = stats_init()
+        local_g = stats_init()
+        key_f = Falcon512_f_1000[key_id]
+        key_g = Falcon512_g_1000[key_id]
+        print(f"key {key_id:2}")
+        print("\n#+begin_example")
+        f_guess_dict, drop_re_f = attack_key_repeat(
+            'f', key_f, key_id, local_f,
+            MLE_N, scaled_threshold, only_4_5=ONLY_4_5)
+        g_guess_dict, drop_re_g = attack_key_repeat(
+            'g', key_g, key_id, local_g,
+            MLE_N, scaled_threshold, only_4_5=ONLY_4_5)
+        re, check_num = check_key_right(f_guess_dict, g_guess_dict, key_f, key_g,
+                                        drop_re_f, drop_re_g, try_random_num)
+        print(f"the {key_id}th key guess's state is {re}, #attempt = {check_num}")  # <
+        print("#+end_example\n")
+    except Exception:                # keep a crashed key's output for debugging
+        traceback.print_exc(file=sys.stdout)
+        re, check_num = -99, 0
+        local_f, local_g = stats_init(), stats_init()
+    finally:
+        _router.clear_buffer()
+    return key_id, re, check_num, local_f, local_g, buf.getvalue()
+
+
+records = {}          # key_id -> (re, check_num, local_f, local_g)
+pending = {}          # key_id -> captured text, waiting for its turn to print
+next_print = KEY_ID_LB
+
+_real_stdout = sys.stdout
+sys.stdout = _router = _ThreadRouter(_real_stdout)   # install for the run
+try:
+    print(f"\n{datetime.now()}\n")
+    with ThreadPoolExecutor(max_workers=N_WORKERS) as pool:
+        futs = [pool.submit(attack_one_key, k)
+                for k in range(KEY_ID_LB, KEY_ID_UB)]
+        for fut in as_completed(futs):
+            key_id, re, check_num, local_f, local_g, out = fut.result()
+            records[key_id] = (re, check_num, local_f, local_g)
+            pending[key_id] = out
+            # flush the longest ready prefix so output is strictly by key_id;
+            # a key that finished early waits in `pending` for its predecessors
+            while next_print in pending:
+                _real_stdout.write(pending.pop(next_print))
+                _real_stdout.flush()
+                next_print += 1
+    print(f"\n{datetime.now()}\n")
+finally:
+    sys.stdout = _real_stdout        # always restore, even on error
+
+# ---- merge single-threaded -> no locks needed ----
+key_key_idx_list = []
+error_list = []
+check_num_list = []
+succ_num_count = 0
+total_stats = stats_init()
+LKS = ("scaled", "mul_2_3", "mul_4_7") if SKIP_SHIFT55 else \
+      ("scaled", "shift55", "mul_4_5", "mul_6_7")
+for key_id in sorted(records):
+    re, check_num, local_f, local_g = records[key_id]
+    if re > 0:
+        succ_num_count += 1
+        key_key_idx_list.append(key_id)
+        check_num_list.append(check_num)
+    else:
+        error_list.append(key_id)
+    for lk in LKS:                                # fold this key into the totals
+        for m in ("ok", "total", "misroute"):
+            total_stats[lk][m] += local_f[lk][m] + local_g[lk][m]
+
+print(f"the succ count is {succ_num_count}")
+# cross-key per-stage correctness summary
+report_sr_total('f + g', total_stats, skip_shift55=SKIP_SHIFT55)
+#+end_src
+
+
+* Summary
+
+Cell = #attempts on success (state > 0; state 3 succeeds at the priority check → 1
+attempt, state 2 needs ISD random sampling → its attempt count), else the failure state
+code (state < 0).  From =8_attack_gaussian_MLEN1.org= in O3-falcon512 / Os-falcon512.
+
+| key   | O3 attempts | Os attempts |
+|-------+-------------+-------------|
+| 0     |           1 |           1 |
+| 1     |           1 |           1 |
+| 2     |           1 |           1 |
+| 3     |           1 |           1 |
+| 4     |           1 |           4 |
+| 5     |           3 |           2 |
+| 6     |           1 |           1 |
+| 7     |           4 |           1 |
+| 8     |           1 |           1 |
+| 9     |           4 |           1 |
+| 10    |           1 |           1 |
+| 11    |           1 |           1 |
+| 12    |           1 |           1 |
+| 13    |           1 |           1 |
+| 14    |           1 |           1 |
+| 15    |           1 |           1 |
+| 16    |           1 |          -4 |
+| 17    |           1 |           1 |
+| 18    |          27 |           1 |
+| 19    |           1 |           1 |
+| 20    |           1 |           1 |
+| 21    |           1 |           1 |
+| 22    |           1 |           1 |
+| 23    |           1 |           1 |
+| 24    |           1 |           1 |
+| 25    |           1 |           1 |
+| 26    |           1 |           1 |
+| 27    |           1 |           1 |
+| 28    |           1 |           1 |
+| 29    |           1 |           1 |
+| 30    |           3 |           3 |
+| 31    |           1 |           1 |
+| 32    |           1 |           3 |
+| 33    |           3 |           1 |
+| 34    |           1 |           1 |
+| 35    |           1 |           1 |
+| 36    |           1 |           4 |
+| 37    |           1 |           1 |
+| 38    |           1 |           1 |
+| 39    |           1 |           1 |
+| 40    |           1 |           1 |
+| 41    |           1 |           1 |
+| 42    |           1 |           1 |
+| 43    |          -4 |           1 |
+| 44    |           3 |           1 |
+| 45    |           1 |           1 |
+| 46    |           4 |           1 |
+| 47    |           1 |           1 |
+| 48    |           1 |           1 |
+| 49    |           1 |           1 |
+| 50    |           1 |           1 |
+| 51    |          16 |           1 |
+| 52    |           1 |           1 |
+| 53    |           1 |           1 |
+| 54    |          11 |           1 |
+| 55    |           1 |           1 |
+| 56    |           1 |           1 |
+| 57    |           1 |           1 |
+| 58    |           1 |           1 |
+| 59    |          13 |           1 |
+| 60    |           1 |           1 |
+| 61    |           1 |           1 |
+| 62    |           1 |           1 |
+| 63    |           1 |           1 |
+| 64    |           6 |           1 |
+| 65    |           2 |           3 |
+| 66    |           1 |           1 |
+| 67    |           5 |           1 |
+| 68    |           1 |           1 |
+| 69    |           6 |           1 |
+| 70    |           1 |           1 |
+| 71    |           1 |           1 |
+| 72    |           1 |           1 |
+| 73    |           1 |           1 |
+| 74    |           1 |           1 |
+| 75    |           1 |           1 |
+| 76    |          10 |           1 |
+| 77    |           1 |           1 |
+| 78    |           1 |           1 |
+| 79    |           1 |           6 |
+| 80    |           1 |           1 |
+| 81    |           1 |           1 |
+| 82    |           1 |           1 |
+| 83    |           1 |           1 |
+| 84    |           1 |           1 |
+| 85    |           1 |           1 |
+| 86    |           1 |           1 |
+| 87    |           5 |           1 |
+| 88    |           1 |           1 |
+| 89    |           1 |           1 |
+| 90    |           1 |           1 |
+| 91    |           1 |           1 |
+| 92    |           1 |           1 |
+| 93    |           1 |           5 |
+| 94    |           1 |           1 |
+| 95    |          -4 |           1 |
+| 96    |           2 |           1 |
+| 97    |          25 |           1 |
+| 98    |          43 |           1 |
+| 99    |           1 |           1 |
+|-------+-------------+-------------|
+| #(-4) |           2 |           1 |
+| #(-3) |           0 |           0 |
+| #(-2) |           0 |           0 |
+| #(-1) |           0 |           0 |
+| #(1)  |           0 |           0 |
+| #(2)  |          25 |          14 |
+| #(3)  |          73 |          85 |

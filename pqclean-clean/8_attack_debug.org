@@ -1,0 +1,1392 @@
+#+TITLE: 8. Attack
+#+PROPERTY: header-args:python  :session Python/pqclean-clean
+#+PROPERTY: header-args:python+ :results silent
+#+PROPERTY: header-args:python+ :tangle 8_attack.py
+
+#+begin_src python
+print("#+TITLE: 8. Attack")
+#+end_src
+
+* Preliminary
+
+Run the following scripts before this document.
+
+#+begin_src shell
+OPT=O3
+FALCON_N=512
+echo Run $OPT
+
+python cycloc.py $OPT scaled      $FALCON_N f 0 100
+python cycloc.py $OPT mul         $FALCON_N f 0 100
+python cycloc.py $OPT shift55     $FALCON_N f 0 100
+python cycloc.py $OPT mul_shift55 $FALCON_N f 0 100
+
+python cycloc.py $OPT scaled      $FALCON_N g 0 100
+python cycloc.py $OPT mul         $FALCON_N g 0 100
+python cycloc.py $OPT shift55     $FALCON_N g 0 100
+python cycloc.py $OPT mul_shift55 $FALCON_N g 0 100
+
+python traces.py $OPT $FALCON_N f 0 100
+python traces.py $OPT $FALCON_N g 0 100
+#+end_src
+
+#+begin_example
+O3-falcon512/
+├── cycloc_params.json
+├── gaussian/
+│   ├── gaussian_scaled.pkl
+│   ├── gaussian_shift55.pkl
+│   ├── gaussian_mul_4_5.pkl
+│   ├── gaussian_mul_6_7.pkl
+│   ├── gaussian_mul_8_11.pkl
+│   ├── gaussian_mul_12_15.pkl
+│   ├── gaussian_mul_16_22.pkl
+│   ├── gaussian_mul_shift55_2_3.pkl
+│   └── gaussian_mul_shift55_4_7.pkl
+├── mlp/
+│   ├── mlp_scaled.pth
+│   ├── mlp_shift55.pth
+│   ├── mlp_mul_4_5.pth
+│   ├── mlp_mul_6_7.pth
+│   ├── mlp_mul_8_11.pth
+│   ├── mlp_mul_12_15.pth
+│   ├── mlp_mul_16_22.pth
+│   ├── mlp_mul_shift55_2_3.pth
+│   └── mlp_mul_shift55_4_7.pth
+└── traces_attack/
+    ├── loc_scaled_f.pkl
+    ├── loc_scaled_g.pkl
+    ├── loc_shift55_f.pkl
+    ├── loc_shift55_g.pkl
+    ├── loc_mul_f.pkl
+    ├── loc_mul_g.pkl
+    ├── loc_mul_shift55_f.pkl
+    ├── loc_mul_shift55_g.pkl
+    ├── f_000/
+    │   ├── trace_00.npy
+    │   ├── ...
+    │   └── trace_04.npy
+    ├── ...
+    ├── f_099/
+    │   ├── trace_00.npy
+    │   ├── ...
+    │   └── trace_04.npy
+    ├── g_000/
+    │   ├── trace_00.npy
+    │   ├── ...
+    │   └── trace_03.npy
+    ├── ...
+    └── g_099/
+        ├── trace_00.npy
+        ├── ...
+        └── trace_03.npy
+#+end_example
+
+
+* Common
+
+#+begin_src python
+import os
+OPT = os.environ.get("OPT", "O3")   # default when run interactively
+SKIP_SHIFT55 = os.environ.get("SKIP_SHIFT55", True)
+#+end_src
+
+#+begin_src python
+FALCON_N = 512
+if FALCON_N == 512:
+    LABEL_RANGE = range(-22, 23)
+if FALCON_N == 1024:
+    LABEL_RANGE = range(-15, 16)
+KEY_TYPE = 'attack'
+PREFIX = "."
+DATA_PATH = f"{PREFIX}/{OPT}-falcon{FALCON_N}"
+#+end_src
+
+#+begin_src python
+import numpy as np
+import matplotlib.pyplot as plt
+
+from utils import class_coeffs_map_scaled
+from utils import class_coeffs_map_shift55
+from utils import class_coeffs_map_mul_4_5
+from utils import class_coeffs_map_mul_6_7
+from utils import class_coeffs_map_mul_8_11
+from utils import class_coeffs_map_mul_12_15
+from utils import class_coeffs_map_mul_16_22
+
+if OPT == "O0":
+    MCU_FREQ = 40_000_000
+    PPC = 4
+else:
+    MCU_FREQ = 25_000_000
+    PPC = 8
+ADC_FREQ = MCU_FREQ * PPC
+CUTOFF_FREQ = MCU_FREQ / 2
+#+end_src
+
+#+begin_src python
+import json
+with open("cycloc_params.json") as f:
+    json_file = json.load(f)
+    cfg = json_file[OPT]
+CYC_SCALED      = cfg["scaled"]["cycle_usage"]
+CYC_MUL         = cfg["mul"]["cycle_usage"]
+CYC_SHIFT55     = cfg["shift55"]["cycle_usage"]
+CYC_MUL_SHIFT55 = cfg["mul_shift55"]["cycle_usage"]
+#+end_src
+
+#+begin_src python
+from utils import calc_trace_snr
+from utils import trace_butter_lpf
+from collections import defaultdict
+from utils import _true_scaled_label, _true_shift55_label
+from utils import stats_init, report_sr, report_error
+#+end_src
+
+#+begin_src python
+N_ATTACK_KEYS = 100
+Falcon512_f_1000 = np.load("keys/Falcon512_f_1000.npy", allow_pickle=True)
+Falcon512_g_1000 = np.load("keys/Falcon512_g_1000.npy", allow_pickle=True)
+#+end_src
+
+** MLE
+
+#+begin_src python
+from utils import mle_choose_value
+from utils import mle_distribution
+from utils import record_sign_origin
+from utils import record_abs_table_index_origin
+from utils import reorder_traces
+from utils import select_rows_by_labels
+from utils import dict_process
+from utils import fill_dict
+
+new_class_abs_map = {
+    0: [0],
+    1: [1],
+    2: [2, 3],
+    3: [4, 5, 6, 7],
+    4: list(range(8, 16)),
+    5: list(range(16, 32)),
+}
+#+end_src
+
+
+** Gaussian template
+
+#+begin_src python
+from utils import gaussian_inference
+
+def classifier_scaled(traces_test):
+    return gaussian_inference(traces_test,
+                      f"{OPT}-falcon{FALCON_N}/gaussian/gaussian_scaled.pkl")
+
+def classifier_shift55(traces_test):
+    return gaussian_inference(traces_test,
+                      f"{OPT}-falcon{FALCON_N}/gaussian/gaussian_shift55.pkl")
+
+def classifier_mul(traces_test, model_p):
+    return gaussian_inference(traces_test,
+                      f"{OPT}-falcon{FALCON_N}/gaussian/gaussian_mul_{model_p}.pkl")
+
+def classifier_mul_skip(traces_test, model_p):
+    return gaussian_inference(traces_test,
+                      f"{OPT}-falcon{FALCON_N}/gaussian/gaussian_mul_shift55_{model_p}.pkl")
+#+end_src
+
+
+** MLP
+
+#+begin_src python
+from TA_discriminative import classifier_inference
+import torch.nn as nn
+import torch.nn.functional as F
+
+class model_mlp(nn.Module):
+    def __init__(self, n_class):
+        super().__init__()
+        self.flatten = nn.Flatten()
+        self.bn1 = nn.BatchNorm1d(64)
+        self.bn2 = nn.BatchNorm1d(64)
+        self.bn3 = nn.BatchNorm1d(n_class)
+        self.fc1 = nn.LazyLinear(64)
+        self.fc2 = nn.Linear(64, 64)
+        self.fc3 = nn.Linear(64, n_class)
+        self.relu = nn.ReLU()
+
+    def forward(self, x):
+        x = self.flatten(x)
+        x = F.selu(self.bn1(self.fc1(x)))
+        x = F.selu(self.bn2(self.fc2(x)))
+        x = F.selu(self.bn3(self.fc3(x)))
+        x = F.relu(x)
+        return x
+#+end_src
+
+#+begin_src python :eval no :tangle no
+def classifier_scaled(traces_test):
+    return classifier_inference(traces_test,
+                                f"{OPT}-falcon{FALCON_N}/mlp/mlp_scaled.pth")
+
+def classifier_shift55(traces_test):
+    return classifier_inference(traces_test,
+                                f"{OPT}-falcon{FALCON_N}/mlp/mlp_shift55.pth")
+
+def classifier_mul(traces_test, model_p):
+    return classifier_inference(traces_test,
+                                f"{OPT}-falcon{FALCON_N}/mlp/mlp_mul_{model_p}.pth")
+
+def classifier_mul_skip(traces_test, model_p):
+    return classifier_inference(traces_test,
+                                f"{OPT}-falcon{FALCON_N}/mlp/mlp_mul_shift55_{model_p}.pth")
+#+end_src
+
+
+* Load Traces and Crop
+
+#+begin_src python
+print("\n\n* Load Traces and Crop\n")
+#+end_src
+
+#+begin_src python
+import glob
+
+def load_traces(key_type, key_id):
+    files = sorted(glob.glob(f"{DATA_PATH}/traces_attack/{key_type}_{key_id:03}/trace_*.npy"))
+    trace_raw = np.array([np.load(f, mmap_mode='r') for f in files])
+    trace_lpf = trace_butter_lpf(trace_raw, ADC_FREQ, CUTOFF_FREQ)
+
+    snr_raw = calc_trace_snr(trace_raw)
+    snr_lpf = calc_trace_snr(trace_lpf)
+    print(f"{key_type} key_id={key_id:2}: {snr_raw:.2f} dB → {snr_lpf:.2f} dB")
+
+    return trace_lpf
+#+end_src
+
+#+begin_src python
+import pickle
+
+def crop_traces(trace_lpf, fg, key_id):
+    """
+    Notes
+    -----
+    Attack-phase cycle locations are PER attack-key AND per key-half (f, g).
+    fpr_scaled timing is data-independent, but fpr_mul (shift55 + multiply) is
+    data-dependent, so its segment locations drift with the (unknown) key and MUST
+    come from these attack-side loc files, not the constant-key profile ones.
+    """
+    with open(f"{DATA_PATH}/traces_attack/loc_scaled_{fg}.pkl", 'rb') as f:
+        loc_scaled  = pickle.load(f)
+    with open(f"{DATA_PATH}/traces_attack/loc_shift55_{fg}.pkl", 'rb') as f:
+        loc_shift55 = pickle.load(f)
+    with open(f"{DATA_PATH}/traces_attack/loc_mul_{fg}.pkl", 'rb') as f:
+        loc_mul     = pickle.load(f)
+    with open(f"{DATA_PATH}/traces_attack/loc_mul_shift55_{fg}.pkl", 'rb') as f:
+        loc_mul_shift55 = pickle.load(f)
+    trace_scaled = np.array([
+        trace_lpf[:, loc_scaled[key_id][i][0]*PPC : loc_scaled[key_id][i][0]*PPC + CYC_SCALED*PPC]
+        for i in range(FALCON_N)
+    ]).transpose(1, 0, 2)
+    trace_shift55 = np.array([
+        trace_lpf[:, loc_shift55[key_id][i][0]*PPC : loc_shift55[key_id][i][0]*PPC + CYC_SHIFT55*PPC]
+        for i in range(FALCON_N)
+    ]).transpose(1, 0, 2)
+    trace_mul = np.array([
+        trace_lpf[:, loc_mul[key_id][i][0]*PPC : loc_mul[key_id][i][0]*PPC + CYC_MUL*PPC]
+        for i in range(FALCON_N)
+    ]).transpose(1, 0, 2)
+    trace_mul_shift55 = np.array([
+        trace_lpf[:, loc_mul_shift55[key_id][i][0]*PPC : loc_mul_shift55[key_id][i][0]*PPC + CYC_MUL_SHIFT55*PPC]
+        for i in range(FALCON_N)
+    ]).transpose(1, 0, 2)
+    return trace_scaled, trace_shift55, trace_mul, trace_mul_shift55
+#+end_src
+
+
+* Attack Functions
+
+#+begin_src python
+print("\n\n* Atttack Functions\n")
+#+end_src
+
+** scaled
+
+#+begin_src python
+def attack_scaled(trace_scaled, mle_N):
+    #########First, process the data from fpr_scaled.
+    fpr_scaled_mle_prob_list = defaultdict(list)
+    for i in range(mle_N):
+        prob_fpr_scaled = classifier_scaled(trace_scaled[i,:,:])
+        #The dimensions of prob_fpr_scaled are (512, 11). Each coefficient's index is used as a key, and the corresponding prob values
+        #for N_attack_trace times are stored in the list corresponding to that key.
+        for j in range(FALCON_N):
+            fpr_scaled_mle_prob_list[j].append(prob_fpr_scaled[j])
+    #A dictionary where key-value pairs correspond to coefficient indices, and each key-value pair contains mle_N probabilities of 11 categories.
+    # the distribution of "scaled" classifier's classification results
+    fpr_scaled_mle_prob_list = dict(fpr_scaled_mle_prob_list)
+    fpr_scaled_mle_prob_list = {key_coeff: np.array(val_list) for key_coeff, val_list in fpr_scaled_mle_prob_list.items()}
+    scaled_table = mle_distribution(fpr_scaled_mle_prob_list)
+    scaled_dict  = mle_choose_value(fpr_scaled_mle_prob_list)
+
+    return scaled_dict, scaled_table
+#+end_src
+
+#+begin_src python
+def drop_fail_idx(scaled_table, scaled_threshold):
+    #store the select the coefficients that are most likely right
+    maintain_scaled_coff = {}
+    drop_idx = []
+    for id_k, vv in scaled_table.items():
+        if np.max(vv) >= scaled_threshold:
+            maintain_scaled_coff[id_k] = np.argmax(vv)
+        else:
+            drop_idx.append(id_k)
+    print(f"the remaining coff after scaled classifier is {len(maintain_scaled_coff)}")
+    return drop_idx
+#+end_src
+
+
+** shift55
+
+#+begin_src python
+def attack_shift55(trace_shift55, scaled_dict, mle_N):
+    #f_128~f_255; f_384~f_511 will involve multiplication operations. We need to analyze these coefficients,
+    #identifying which are already 0, -1, or 1, and which require further differentiation.
+    check_keys = list(range(128, 256)) + list(range(384, 512))
+    # check_keys = [k for k in check_keys if k not in drop_idx] #exclude drop_idx
+    keys_012 = [k for k in check_keys if scaled_dict[k] in (0, 1, 2)]
+    # keys_other = [k for k in check_keys if scaled_dict[k] not in (0, 1, 2)]
+
+    """
+    The coefficient indices of traces in `trace_shift55` are:
+      Re(f[128]), Re(f[384]), Im(f[128]), Im(f[384]),
+      Re(f[129]), Re(f[385]), Im(f[129]), Im(f[385]),
+      ...
+      Re(f[255]), Re(f[511]), Im(f[255]), Im(f[511]).
+
+    After processing, the coefficient indices of traces in `trace_shift55` are
+      Re(f[128]), Im(f[128]), Re(f[129]), Im(f[129]),
+      ...
+      Re(f[254]), Im(f[254]), Re(f[255]), Im(f[255]),
+      Re(f[384]), Im(f[384]), Re(f[385]), Im(f[385]),
+      ...
+      Re(f[510]), Im(f[510]), Re(f[511]), Im(f[511]),
+
+    At this point, the `mle_N` observations should be utilized.
+    """
+    target_order = list(range(128, 256)) + list(range(384, 512))
+    # target_filtered = [c for c in target_order if c not in keys_012 + drop_idx] # "+ drop_idx": exclude drop_idx
+    # keep_rows = [i for i, c in enumerate(target_order) if c not in keys_012 + drop_idx]
+    target_filtered = [c for c in target_order if c not in keys_012] # "+ drop_idx": exclude drop_idx
+    keep_rows = [i for i, c in enumerate(target_order) if c not in keys_012]
+
+    fpr_shift_mle_prob_list = defaultdict(list)
+
+    for i in range(mle_N):
+        attack_traces_shift_lpf = reorder_traces(trace_shift55[i,:,:])
+        attack_traces_shift_lpf_1 = attack_traces_shift_lpf[0::2]
+        attack_traces_shift_lpf_2 = attack_traces_shift_lpf[1::2]
+
+        # Continuing with the processing of attack_traces_shift_lpf, since the coefficient indices in keys_012 are already determined,
+        # no further processing is needed; therefore, this part of the data is filtered out.
+        attack_traces_shift_filtered_1 = attack_traces_shift_lpf_1[keep_rows, :]
+        attack_traces_shift_filtered_2 = attack_traces_shift_lpf_2[keep_rows, :]
+
+        prob_fpr_shift_1 = classifier_shift55(attack_traces_shift_filtered_1)
+        # print(prob_fpr_shift_1)
+        prob_fpr_shift_2 = classifier_shift55(attack_traces_shift_filtered_2)
+        # print(prob_fpr_shift_2)
+
+        for j in range(len(target_filtered)):
+            fpr_shift_mle_prob_list[target_filtered[j]].append(prob_fpr_shift_1[j])
+            fpr_shift_mle_prob_list[target_filtered[j]].append(prob_fpr_shift_2[j])
+
+    # A dictionary where key-value pairs correspond to coefficient indices, and
+    # each key-value pair contains 2*N_attack_trace values representing binary classification probabilities.
+    fpr_shift_mle_prob_list = dict(fpr_shift_mle_prob_list)
+    fpr_shift_mle_prob_list = {key_coeff: np.array(val_list) for key_coeff, val_list in fpr_shift_mle_prob_list.items()}
+    shift_dict = mle_choose_value(fpr_shift_mle_prob_list)  # mle get label val
+    shift55_table = mle_distribution(fpr_shift_mle_prob_list)  # used for debug
+    # print(shift_dict)
+
+    return shift_dict, target_filtered, shift55_table
+#+end_src
+
+
+** mul
+
+#+begin_src python
+def cal_per_mul_prob(sets_dict, model_p):
+    """
+    Concatenates, computes, and splits the dictionary `{key: (2, n) array}` back into a dictionary.
+    Parameters:
+    `data_dict`: dict[int, np.ndarray]
+    Each value is a NumPy array of (2, n) values.
+    `func`: callable
+    A function that takes (2*m, n) as input and outputs (2*m, k) values.
+
+    Returns:
+    `new_dict`: dict[int, np.ndarray]
+     Each value is a NumPy array of (2, k) values.
+    """
+    # 1. Concatenate the keys in order to form a large matrix.
+    keys = list(sets_dict.keys())
+    big_array = np.vstack([sets_dict[k] for k in keys])
+
+    # 2. calculate
+    # tmp_labels = np.repeat(labels,2)
+    result = classifier_mul(big_array, model_p)
+
+    # 3. Split back into dictionary
+    new_dict = {}
+    for idx, key in enumerate(keys):
+        start = idx * 2
+        end = start + 2
+        new_dict[key] = result[start:end, :]
+
+    return new_dict
+#+end_src
+
+#+begin_src python
+def attack_mul(trace_mul, target_filtered, abs_dict, shift_dict, mle_N):
+    set0 = set(class_coeffs_map_shift55[0])
+    set1 = set(class_coeffs_map_shift55[1])
+    # the initial range of values for the partitioning coefficients is determined.
+    final_set = {}
+    sure_set=[]
+    insure_set=[]
+
+    for key, value in abs_dict.items():
+        if value == 0 or value == 1:
+            sure_set.append(key)
+            final_set[key]=set(new_class_abs_map[value])
+        else:
+            insure_set.append(key)
+    # Taking the intersection of the sets determined by the fpr_scaled and the normalization procedure in fpr_mul
+    # can determine the absolute values of 2 and 3, but only for coefficients multiplied by the rotation factor.
+    for insure_idx in insure_set:
+        if insure_idx in target_filtered:
+            # label_choose = guess_attack_diffset[target_filtered_f.index(insure_idx)]
+            label_choose = shift_dict[insure_idx]
+            if label_choose == 0:
+                tmp_set = set0 & set(new_class_abs_map[abs_dict[insure_idx]])
+                final_set[insure_idx]=tmp_set
+            else:
+                tmp_set = set1 & set(new_class_abs_map[abs_dict[insure_idx]])
+                final_set[insure_idx]=tmp_set
+    # Add the range of coefficients that are not multiplied by the twiddle factor and are not in the range of 0, 1, -1 to f_final_set.
+    no_mul_w = list(range(0, 128)) + list(range(256, 384))
+    # no_mul_w = [k for k in no_mul_w if k not in drop_idx]
+    no_mul_w_insure = [d for d in no_mul_w if d not in sure_set]
+    for d in no_mul_w_insure:
+        final_set[d] = set(new_class_abs_map[abs_dict[d]])
+
+    #for the drop_idx,just assign {99,98,97} to mark them
+    # for d in drop_idx:
+    #     final_set[d]=set([99,98,97])
+
+    #########Begin dividing {4, 5} and {6,7}
+    fpr_mul_mle_prob_list_45 = defaultdict(list)
+    fpr_mul_mle_prob_list_67 = defaultdict(list)
+    mul_idx_list=[]
+    #Retrieve the indices of coefficients multiplied by w that still do not have a definite value after using fpr_scaled and diffset.
+    mul_w = list(range(128, 256)) + list(range(384, 512))
+    # mul_w = [k for k in mul_w if k not in drop_idx] #exclude drop_idx
+    for d in mul_w:
+        if len(final_set[d]) != 1:
+            mul_idx_list.append(d)
+
+    for i in range(mle_N):
+
+        attack_traces_mul = reorder_traces(trace_mul[i,:,:])
+        attack_traces_mul_1 = attack_traces_mul[0::2]
+        attack_traces_mul_2 = attack_traces_mul[1::2]
+
+        attack_traces_mul_1 = select_rows_by_labels(attack_traces_mul_1, mul_w, mul_idx_list)
+        attack_traces_mul_2 = select_rows_by_labels(attack_traces_mul_2, mul_w, mul_idx_list)
+
+        sets_4_5 = defaultdict(list)
+        sets_6_7 = defaultdict(list)
+
+        # labels_4_5=[]
+        # print(f_final_set)
+        #Divide into different sets
+        for j in range(len(mul_idx_list)):
+            if final_set[mul_idx_list[j]] == {4,5}:
+                sets_4_5[mul_idx_list[j]].append(attack_traces_mul_1[j])
+                sets_4_5[mul_idx_list[j]].append(attack_traces_mul_2[j])
+                # labels_4_5.append(abs(mul_labels[mul_idx_list[j]])-4)
+            elif final_set[mul_idx_list[j]] == {6,7}:
+                sets_6_7[mul_idx_list[j]].append(attack_traces_mul_1[j])
+                sets_6_7[mul_idx_list[j]].append(attack_traces_mul_2[j])
+
+        sets_4_5 = dict_process(sets_4_5)
+        sets_6_7 = dict_process(sets_6_7)
+        # labels_4_5 = np.array(labels_4_5)
+
+        prob_fpr_mul_4_5 = cal_per_mul_prob(sets_4_5, "4_5")
+        prob_fpr_mul_6_7 = cal_per_mul_prob(sets_6_7, "6_7")
+        # print(prob_fpr_mul_4_5)
+
+        fill_dict(fpr_mul_mle_prob_list_45, prob_fpr_mul_4_5)
+        fill_dict(fpr_mul_mle_prob_list_67, prob_fpr_mul_6_7)
+
+    fpr_mul_mle_prob_list_45 = dict_process(fpr_mul_mle_prob_list_45)
+    fpr_mul_mle_prob_list_67 = dict_process(fpr_mul_mle_prob_list_67)
+    # print(fpr_mul_mle_prob_list_45)
+
+    guess_45 = mle_choose_value(fpr_mul_mle_prob_list_45)
+    guess_67 = mle_choose_value(fpr_mul_mle_prob_list_67)
+    # print(guess_45)
+
+    part_guess_list = [guess_45, guess_67]
+    # part_guess_list = [guess_45]
+    return final_set, part_guess_list
+#+end_src
+
+
+** mul_shift55
+
+#+begin_src python
+def cal_per_mul_prob_skip_shift55(sets_dict, model_p):
+    """
+    model_p is the name of the model, which can be "2_3" or "4_7"
+
+    Concatenates, computes, and splits the dictionary `{key: (2, n) array}` back into a dictionary.
+    Parameters:
+    `data_dict`: dict[int, np.ndarray]
+    Each value is a NumPy array of (2, n) values.
+    `func`: callable
+    A function that takes (2*m, n) as input and outputs (2*m, k) values.
+
+    Returns:
+    `new_dict`: dict[int, np.ndarray]
+     Each value is a NumPy array of (2, k) values.
+    """
+    # 1. Concatenate the keys in order to form a large matrix.
+    keys = list(sets_dict.keys())
+    big_array = np.vstack([sets_dict[k] for k in keys])
+
+    # 2. calculate
+    # tmp_labels = np.repeat(labels,2)
+    result = classifier_mul_skip(big_array, model_p)
+
+    # 3. Split back into dictionary
+    new_dict = {}
+    for idx, key in enumerate(keys):
+        start = idx * 2
+        end = start + 2
+        new_dict[key] = result[start:end, :]
+
+    return new_dict
+#+end_src
+
+#+begin_src python
+def attack_mul_skip_shift55(trace_mul, abs_dict, mle_N):
+    final_set = {}
+    sure_set=[]
+    insure_set=[]
+
+    for key, value in abs_dict.items():
+        if value == 0 or value == 1:
+            # determined by fpr_scaled
+            sure_set.append(key)
+            final_set[key]=set(new_class_abs_map[value])
+        else:
+            insure_set.append(key)
+            final_set[key] = set(new_class_abs_map[value])
+
+    #########Begin dividing {2, 3} and {4,5,6,7}
+    fpr_mul_mle_prob_list_2_3 = defaultdict(list)
+    fpr_mul_mle_prob_list_4_7 = defaultdict(list)
+    mul_idx_list=[]
+    mul_w = list(range(128, 256)) + list(range(384, 512))
+    for d in mul_w:
+        if len(final_set[d]) != 1:
+            mul_idx_list.append(d)
+
+    for i in range(mle_N):
+
+        attack_traces_mul = reorder_traces(trace_mul[i,:,:])
+        attack_traces_mul_1 = attack_traces_mul[0::2]
+        attack_traces_mul_2 = attack_traces_mul[1::2]
+
+        attack_traces_mul_1 = select_rows_by_labels(attack_traces_mul_1, mul_w, mul_idx_list)
+        attack_traces_mul_2 = select_rows_by_labels(attack_traces_mul_2, mul_w, mul_idx_list)
+
+        sets_2_3 = defaultdict(list)
+        sets_4_7 = defaultdict(list)
+
+        for j in range(len(mul_idx_list)):
+            if final_set[mul_idx_list[j]] == {2,3}:
+                sets_2_3[mul_idx_list[j]].append(attack_traces_mul_1[j])
+                sets_2_3[mul_idx_list[j]].append(attack_traces_mul_2[j])
+                # labels_2_3.append(abs(mul_labels[mul_idx_list[j]])-2)
+            elif final_set[mul_idx_list[j]] == {4,5,6,7}:
+                sets_4_7[mul_idx_list[j]].append(attack_traces_mul_1[j])
+                sets_4_7[mul_idx_list[j]].append(attack_traces_mul_2[j])
+
+        sets_2_3 = dict_process(sets_2_3)
+        sets_4_7 = dict_process(sets_4_7)
+        # labels_2_3 = np.array(labels_2_3)
+
+        prob_fpr_mul_2_3 = cal_per_mul_prob_skip_shift55(sets_2_3, "2_3")
+        prob_fpr_mul_4_7 = cal_per_mul_prob_skip_shift55(sets_4_7, "4_7")
+        # print(prob_fpr_mul_4_5)
+
+        fill_dict(fpr_mul_mle_prob_list_2_3, prob_fpr_mul_2_3)
+        fill_dict(fpr_mul_mle_prob_list_4_7, prob_fpr_mul_4_7)
+
+    fpr_mul_mle_prob_list_2_3 = dict_process(fpr_mul_mle_prob_list_2_3)
+    fpr_mul_mle_prob_list_4_7 = dict_process(fpr_mul_mle_prob_list_4_7)
+    # print(fpr_mul_mle_prob_list_4_5)
+
+    guess_2_3 = mle_choose_value(fpr_mul_mle_prob_list_2_3)
+    guess_4_7 = mle_choose_value(fpr_mul_mle_prob_list_4_7)
+    # print(guess_2_3)
+
+    part_guess_list = [guess_2_3, guess_4_7]
+    # part_guess_list = [guess_2_3]
+    return final_set, part_guess_list
+#+end_src
+
+
+** Gesamt
+
+#+begin_src python
+#The passed-in `guess_part_list` consists of dictionaries for guessing categories {4,5} and {6,7}, respectively.
+def fill_guess_dict(guess_part_list,f_final_set_p,f_sign_dict_p):
+    for idx_guess, guess_p in enumerate(guess_part_list):
+        for key_, guess_v in guess_p.items():
+            if idx_guess == 0:
+                f_final_set_p[key_]={guess_v+4}
+            if idx_guess == 1:
+                f_final_set_p[key_]={guess_v+6}
+    sorted_f_final_set_p = dict(sorted(f_final_set_p.items()))
+    f_guess_dict_p={}
+    for key, val in f_sign_dict_p.items():
+        if val>=0:
+            f_guess_dict_p[key] = sorted_f_final_set_p[key]
+        else:
+            f_guess_dict_p[key] = {-x for x in sorted_f_final_set_p[key]}
+    return f_guess_dict_p
+#+end_src
+
+#+begin_src python
+def fill_guess_dict_skip(guess_part_list,f_final_set_p,f_sign_dict_p):
+    for idx_guess, guess_p in enumerate(guess_part_list):
+        for key_, guess_v in guess_p.items():
+            if idx_guess == 0:
+                f_final_set_p[key_]={guess_v+2}
+            if idx_guess == 1:
+                f_final_set_p[key_]={guess_v+4}
+    sorted_f_final_set_p = dict(sorted(f_final_set_p.items()))
+    f_guess_dict_p={}
+    for key, val in f_sign_dict_p.items():
+        if val>=0:
+            f_guess_dict_p[key] = sorted_f_final_set_p[key]
+        else:
+            f_guess_dict_p[key] = {-x for x in sorted_f_final_set_p[key]}
+    return f_guess_dict_p
+#+end_src
+
+#+begin_src python
+## distinguish 4 and 5, and distinguish 6 and 7
+def attack_key_repeat(fg, key_id, stage_stats, mle_N, scaled_threshold, only_4_5=False):
+    from utils import _true_scaled_label, _true_shift55_label
+    key = Falcon512_f_1000[key_id] if fg == 'f' else Falcon512_g_1000[key_id]
+    trace_lpf = load_traces(fg, key_id)
+    # the attack trace segments corresponding to the fpr_scaled, normalization procedure and mantissa multiplication in fpr_mul for the f (or g) key
+    trace_scaled, trace_shift55, trace_mul, trace_mul_shift55 = crop_traces(trace_lpf, fg, key_id)
+    trace_scaled  = trace_scaled[:mle_N, :, :]
+    trace_shift55 = trace_shift55[:mle_N, :, :]
+    trace_mul     = trace_mul[:mle_N, :, :]
+    trace_mul_shift55 = trace_mul_shift55[:mle_N, :, :]
+
+    #########First, process the data from fpr_scaled.
+    scaled_dict, scaled_table = attack_scaled(trace_scaled, mle_N)
+    drop_idx = drop_fail_idx(scaled_table, scaled_threshold)
+    report_sr(fg, "scaled",  key, stage_stats, scaled_dict,
+              _true_scaled_label)
+
+    #Record information after attacking fpr_scaled
+    # sign_dict = record_sign(maintain_scaled_coff, drop_idx, FALCON_N)
+    # abs_dict = record_abs_table_index(maintain_scaled_coff,drop_idx, FALCON_N)
+    sign_dict = record_sign_origin(scaled_dict, FALCON_N)
+    abs_dict = record_abs_table_index_origin(scaled_dict, FALCON_N)
+
+    if SKIP_SHIFT55:
+        final_set, part_guess_list = attack_mul_skip_shift55(trace_mul_shift55, abs_dict, mle_N)
+        guess_23, guess_47 = part_guess_list
+        report_sr(fg, "mul_2_3", key, stage_stats, guess_23,
+                  lambda v: 0 if abs(v) == 2 else 1 if abs(v) == 3 else None)
+        report_sr(fg, "mul_4_7", key, stage_stats, guess_47,
+                  lambda v: {4: 0, 5: 1, 6: 2, 7: 3}.get(abs(v)))
+        final_guess_dict = fill_guess_dict_skip(part_guess_list,final_set,sign_dict)
+    else:
+        ######### Process the trace data corresponding to the normalization procedure in fpr_mul
+        shift_dict, target_filtered, shift55_table = \
+            attack_shift55(trace_shift55, scaled_dict, mle_N)
+        report_sr(fg, "shift55", key, stage_stats, shift_dict,
+                  _true_shift55_label)
+
+        ######Based on the attack results of fpr_scaled and the normalization procedure in fpr_mul,
+        final_set, part_guess_list = attack_mul(trace_mul, target_filtered, abs_dict, shift_dict, mle_N)
+
+        guess_45, guess_67 = part_guess_list
+        report_sr(fg, "mul_4_5", key, stage_stats, guess_45,
+                  lambda v: 0 if abs(v) == 4 else 1 if abs(v) == 5 else None)
+        report_sr(fg, "mul_6_7", key, stage_stats, guess_67,
+                  lambda v: 0 if abs(v) == 6 else 1 if abs(v) == 7 else None)
+
+        if only_4_5:
+            # {4,5} and {6,7}
+            final_guess_dict = fill_guess_dict(part_guess_list[:1], final_set, sign_dict)
+        else:
+            # {4,5}-only: keep just the {4,5} guesses; {6,7} coefficients stay as a 2-candidate set
+            final_guess_dict = fill_guess_dict(part_guess_list,final_set,sign_dict)
+
+    return final_guess_dict, drop_idx
+#+end_src
+
+
+* Check Correctness
+
+#+begin_src python
+print("\n\n* Check Correctness\n")
+#+end_src
+
+#+begin_src python
+def check_key_correctness_step1(f_guess_dict_p, g_guess_dict_p, drop_idx_f_p, drop_idx_g_p):
+    f_determined = {k: list(v)[0] for k, v in f_guess_dict_p.items() if (len(v) == 1) and (k not in drop_idx_f_p)}
+    g_determined = {k: list(v)[0] for k, v in g_guess_dict_p.items() if (len(v) == 1) and (k not in drop_idx_g_p)}
+    return f_determined, g_determined
+#+end_src
+
+#+begin_src python
+def check_key_right(f_guess_dict_p, g_guess_dict_p, kk_idx, attempts, drop_idx_f_p, drop_idx_g_p):
+    """
+    To merge f and g into f||g, first check if the number of currently "determined" coefficients (with only one candidate value) is ⪭ FALCON_N.
+      If < FALCON_N, fail directly.
+      If = FALCON_N, check if these FALCON_N coefficients are correct.
+      If > FALCON_N, set it as num_guess, and randomly select FALCON_N from num_guess each time, continuously checking if they are correct. If none of these attempts succeed, then it's a failure.
+
+    The extraction principle is to prioritize keeping values that are definitely 0 or ±1, followed by ±2 or ±3, then ±4 or ±5, and finally ±6 or ±7.
+
+    Error return code:
+      -1: The number of confirmed values is less than 512;
+      -2: Exactly 512 values are confirmed, but there are errors;
+      -3: len(candidate) < 512 - need;
+      -4: Multiple attempts failed.
+    Success return code:
+      1: Exactly 512 values succeeded;
+      2: Success after random sampling;
+      3: Success when getting to {4, 5}.
+    """
+    import random
+    total_num = 0
+
+    # --- Step1---
+    f_determined, g_determined = check_key_correctness_step1(f_guess_dict_p, g_guess_dict_p,
+                                                             drop_idx_f_p, drop_idx_g_p)
+    total_determined = len(f_determined) + len(g_determined)
+    print(f"total-determined (remove some after scaled classifier) is {total_determined}")
+
+    if total_determined < 512:
+        return -1,1
+
+    key_f = Falcon512_f_1000[kk_idx]
+    key_g = Falcon512_g_1000[kk_idx]
+
+    # --- Step2: If there are exactly 512 definite positions ---
+    if total_determined == 512:
+        for k, v in f_determined.items():
+            if key_f[k] != v:
+                return -2
+        for k, v in g_determined.items():
+            if key_g[k] != v:
+                return -2
+        return 1, 1
+
+
+    # --- Step2.5: Prioritize checking the position of values in the range {0, ±1, ±2, ±3, ±4, ±5} (all are correct). ---
+    # This step is equivalent to the procedure used in the -O0 level experiment.
+    f_dict_p = {}
+    g_dict_p = {}
+
+    special_values = {0, 1, -1, 2, -2, 3, -3, 4, -4, 5, -5}
+    priority_positions = []
+    for k, v in f_determined.items():
+        if v in special_values:
+            priority_positions.append(("f", k, v))
+    for k, v in g_determined.items():
+        if v in special_values:
+            priority_positions.append(("g", k, v))
+
+    if len(priority_positions) >= 512:
+        print("jinru")
+        ok = True
+        for src, k, v in priority_positions:
+            if src == "f":
+                if key_f[k] != v:
+                    ok = False
+                    break
+            else:  # "g"
+                if key_g[k] != v:
+                    ok = False
+                    break
+        if ok:
+            for source, k, v in priority_positions:
+                if source == "f":
+                    f_dict_p[k] = v
+                elif source == "g":
+                    g_dict_p[k] = v
+            # with open(f"./data/data_k_guess_isd/Falcon512/f_{kk_idx}_guess_try.pkl", "wb") as f:
+            #     pickle.dump(f_dict_p, f)
+            # with open(f"./data/data_k_guess_isd/Falcon512/g_{kk_idx}_guess_try.pkl", "wb") as g:
+            #     pickle.dump(g_dict_p, g)
+            return (3, 1)
+
+    # If step2.5 fails, continue with random attempts (ISD-style recovery)
+    # --- Step3: total_determined > 512 ---
+    special_positions = []
+    for k, v in f_determined.items():
+        if v in (0, 1, -1):
+            special_positions.append(("f", k, v))
+    for k, v in g_determined.items():
+        if v in (0, 1, -1):
+            special_positions.append(("g", k, v))
+
+    m = len(special_positions)
+
+    candidates = []
+    for k, v in f_determined.items():
+        if v not in (0, 1, -1):
+            candidates.append(("f", k, v))
+    for k, v in g_determined.items():
+        if v not in (0, 1, -1):
+            candidates.append(("g", k, v))
+
+    need = 512 - m
+    print(f"need is {need}")
+    print(f"len of candidates is {len(candidates)}")
+    if need < 0 or len(candidates) < need:
+        return -3, 1
+
+    # attempts = 1e6  # can adjust
+    for _ in range(attempts):
+        total_num = total_num + 1
+        sample = random.sample(candidates, need)
+        positions = special_positions + sample
+
+        ok = True
+        for src, k, v in positions:
+            if src == "f":
+                if key_f[k] != v:
+                    ok = False
+                    break
+            else:  # src == "g"
+                if key_g[k] != v:
+                    ok = False
+                    break
+        if ok:
+            for source, k, v in positions:
+                if source == "f":
+                    f_dict_p[k] = v
+                elif source == "g":
+                    g_dict_p[k] = v
+            # with open(f"./data/data_k_guess_isd/Falcon512/f_{kk_idx}_guess_try.pkl", "wb") as f:
+            #     pickle.dump(f_dict_p, f)
+            # with open(f"./data/data_k_guess_isd/Falcon512/g_{kk_idx}_guess_try.pkl", "wb") as g:
+            #     pickle.dump(g_dict_p, g)
+            return 2, total_num
+
+    return -4, 1e6
+#+end_src
+
+#+begin_src python
+def report_sr_total(key_type, stage_stats, skip_shift55=False):
+    """Print per-stage correctness accumulated (cross-key) in stage_stats.
+
+    Parameters
+    ----------
+    key_type : str
+        Label for the header and every row, e.g. "f", "g", or "f + g".
+    stage_stats : dict
+        Cross-key accumulated totals; stage_stats[leakage] → {"ok", "total",
+        "misroute", ...}, as folded in the Main loop.
+    skip_shift55 : bool, optional
+        Selects which stages to print: the skip-shift55 path ("scaled", "mul23",
+        "mul47") when True, else the full path ("scaled", "shift55", "mul45",
+        "mul67"). Must match the branch that filled stage_stats.
+
+    Returns
+    -------
+    None
+        Prints a boxed per-stage table; a stage with total == 0 prints "n/a".
+    """
+    def report_stage_leakage(leakage):
+        s = stage_stats[leakage]
+        if s["total"]:
+            line = f"[{key_type}] [{leakage:>10}] {s['ok']}/{s['total']} = {s['ok']/s['total']:.4f}"
+        else:
+            line = f"[{key_type}] [{leakage:>10}] n/a"
+        if s["misroute"]:
+            line += f"   (mis-routed: {s['misroute']})"
+        print(line)
+    print("=" * 60)
+    print(f"cross-key stage correctness (all attacked keys, {key_type})")
+    if skip_shift55 is True:
+        for leakage in ("scaled", "mul_2_3", "mul_4_7"):
+            report_stage_leakage(leakage)
+    else:
+        for leakage in ("scaled", "shift55", "mul_4_5", "mul_6_7"):
+            report_stage_leakage(leakage)
+    print("=" * 60)
+#+end_src
+
+
+* Main
+
+#+begin_src python
+import pickle
+import random
+random.seed(2025)
+mle_N = 1
+ONLY_4_5 = False
+try_random_num = 1000000
+# succ_num_count=0
+key_key_idx_list=[]
+error_list=[]
+# succ_num_list=[]
+succ_num_count=0
+scaled_threshold = 0.9999
+check_num_list=[]
+stage_stats_f = stats_init()
+stage_stats_g = stats_init()
+total_stats   = stats_init()
+# reset cross-key per-stage accumulator
+stage_stats_f.clear()
+stage_stats_g.clear()
+
+# for key_id in range(5):
+print("#+begin_example")
+for key_id in range(N_ATTACK_KEYS):
+    print("#" * 80)
+
+    f_guess_dict, drop_re_f = attack_key_repeat('f', key_id, stage_stats_f,
+                                                mle_N, scaled_threshold, only_4_5=ONLY_4_5)
+    g_guess_dict, drop_re_g = attack_key_repeat('g', key_id, stage_stats_g,
+                                                mle_N, scaled_threshold, only_4_5=ONLY_4_5)
+
+    re, check_num = check_key_right(f_guess_dict, g_guess_dict, key_id, try_random_num, drop_re_f , drop_re_g)
+    print(f"the {key_id}th key guess's state is {re}")  # <
+    if re>0:
+        succ_num_count = succ_num_count + 1
+        key_key_idx_list.append(key_id)
+        check_num_list.append(check_num)
+    else:
+        error_list.append(key_id)
+    if SKIP_SHIFT55 is True:
+        for lk in ("scaled", "mul_2_3", "mul_4_7"):     # fold this key into the totals
+            for m in ("ok", "total", "misroute"):
+                total_stats[lk][m] += stage_stats_f[lk][m] + stage_stats_g[lk][m]
+    else:
+        for lk in ("scaled", "shift55", "mul_4_5", "mul_6_7"):     # fold this key into the totals
+            for m in ("ok", "total", "misroute"):
+                total_stats[lk][m] += stage_stats_f[lk][m] + stage_stats_g[lk][m]
+print("#" * 80)
+print(f"the succ count is {succ_num_count}")
+# cross-key per-stage correctness summary
+report_sr_total('f + g', total_stats, skip_shift55=SKIP_SHIFT55)
+print("#+end_example")
+#+end_src
+
+#+begin_example
+################################################################################
+f key_id= 0: 2.72 dB → 19.05 dB
+the remaining coff after scaled classifier is 498
+[f] [    scaled] 512/512 = 1.0000
+[f] [   shift55] 164/194 = 0.8454
+[f] [   mul_4_5] 55/55 = 1.0000   (mis-routed here: 3)
+[f] [   mul_6_7] 32/32 = 1.0000   (mis-routed here: 11)
+g key_id= 0: 2.68 dB → 18.88 dB
+the remaining coff after scaled classifier is 504
+[g] [    scaled] 512/512 = 1.0000
+[g] [   shift55] 146/176 = 0.8295
+[g] [   mul_4_5] 42/42 = 1.0000   (mis-routed here: 3)
+[g] [   mul_6_7] 18/19 = 0.9474   (mis-routed here: 11)
+total-determined (remove some after scaled classifier) is 609
+jinru
+need is 228
+len of candidates is 325
+the 0th key guess's state is -4
+################################################################################
+f key_id= 1: 2.72 dB → 19.08 dB
+the remaining coff after scaled classifier is 501
+[f] [    scaled] 512/512 = 1.0000
+[f] [   shift55] 140/176 = 0.7955
+[f] [   mul_4_5] 35/35 = 1.0000   (mis-routed here: 5)
+[f] [   mul_6_7] 16/16 = 1.0000   (mis-routed here: 8)
+g key_id= 1: 2.68 dB → 18.89 dB
+the remaining coff after scaled classifier is 498
+[g] [    scaled] 512/512 = 1.0000
+[g] [   shift55] 141/178 = 0.7921
+[g] [   mul_4_5] 32/32 = 1.0000   (mis-routed here: 6)
+[g] [   mul_6_7] 19/19 = 1.0000   (mis-routed here: 13)
+total-determined (remove some after scaled classifier) is 615
+jinru
+need is 204
+len of candidates is 307
+the 1th key guess's state is -4
+################################################################################
+f key_id= 2: 2.72 dB → 19.07 dB
+the remaining coff after scaled classifier is 509
+[f] [    scaled] 512/512 = 1.0000
+[f] [   shift55] 143/182 = 0.7857
+[f] [   mul_4_5] 50/50 = 1.0000   (mis-routed here: 3)
+[f] [   mul_6_7] 18/18 = 1.0000   (mis-routed here: 10)
+g key_id= 2: 2.67 dB → 18.91 dB
+the remaining coff after scaled classifier is 501
+[g] [    scaled] 512/512 = 1.0000
+[g] [   shift55] 174/205 = 0.8488
+[g] [   mul_4_5] 55/55 = 1.0000   (mis-routed here: 3)
+[g] [   mul_6_7] 29/29 = 1.0000   (mis-routed here: 9)
+total-determined (remove some after scaled classifier) is 624
+jinru
+need is 236
+len of candidates is 348
+the 2th key guess's state is -4
+################################################################################
+f key_id= 3: 2.71 dB → 19.12 dB
+the remaining coff after scaled classifier is 501
+[f] [    scaled] 512/512 = 1.0000
+[f] [   shift55] 148/177 = 0.8362
+[f] [   mul_4_5] 54/54 = 1.0000   (mis-routed here: 7)
+[f] [   mul_6_7] 19/19 = 1.0000   (mis-routed here: 8)
+g key_id= 3: 2.69 dB → 18.92 dB
+the remaining coff after scaled classifier is 502
+[g] [    scaled] 512/512 = 1.0000
+[g] [   shift55] 144/178 = 0.8090
+[g] [   mul_4_5] 34/34 = 1.0000   (mis-routed here: 3)
+[g] [   mul_6_7] 18/18 = 1.0000   (mis-routed here: 12)
+total-determined (remove some after scaled classifier) is 618
+jinru
+need is 213
+len of candidates is 319
+the 3th key guess's state is -4
+################################################################################
+f key_id= 4: 2.72 dB → 19.11 dB
+the remaining coff after scaled classifier is 500
+[f] [    scaled] 512/512 = 1.0000
+[f] [   shift55] 139/172 = 0.8081
+[f] [   mul_4_5] 33/33 = 1.0000   (mis-routed here: 5)
+[f] [   mul_6_7] 26/26 = 1.0000   (mis-routed here: 11)
+g key_id= 4: 2.67 dB → 18.83 dB
+the remaining coff after scaled classifier is 501
+[g] [    scaled] 512/512 = 1.0000
+[g] [   shift55] 135/169 = 0.7988
+[g] [   mul_4_5] 39/39 = 1.0000   (mis-routed here: 4)
+[g] [   mul_6_7] 23/23 = 1.0000   (mis-routed here: 6)
+total-determined (remove some after scaled classifier) is 620
+jinru
+need is 189
+len of candidates is 297
+the 4th key guess's state is -4
+################################################################################
+the succ count is 0
+============================================================
+cross-key stage correctness (all attacked keys, f + g)
+[f + g] [    scaled] 5120/5120 = 1.0000
+[f + g] [   shift55] 1474/1807 = 0.8157
+[f + g] [   mul_4_5] 429/429 = 1.0000   (mis-routed: 42)
+[f + g] [   mul_6_7] 218/219 = 0.9954   (mis-routed: 99)
+============================================================
+#+end_example
+
+#+begin_src python :tangle no
+print(len(f_guess_dict))
+for i, v in f_guess_dict.items():
+    print(f"{i}: {v}")
+#+end_src
+
+#+begin_src python
+print(check_num_list)
+#+end_src
+
+
+* Key-wise Debug
+:PROPERTIES:
+:header-args:python: :tangle no
+:END:
+
+Use =OPT=Os= and don't skip shift55 to reveal the issue.
+
+#+begin_src python :results output replace :exports both
+from utils import _true_scaled_label, _true_shift55_label
+random.seed(2025)
+mle_N = 1
+key_id_test = 3
+scaled_threshold = 0.9999
+
+keys = np.load(f"keys/Falcon512_f_1000.npy", allow_pickle=True)
+key = keys[key_id_test]
+stage_stats_f = stats_init()
+
+trace_lpf_f = load_traces('f', key_id_test)
+trace_scaled, trace_shift55, trace_mul, _ = crop_traces(trace_lpf_f, "f", key_id_test)
+trace_scaled  = trace_scaled[:mle_N, :, :]
+trace_shift55 = trace_shift55[:mle_N, :, :]
+trace_mul     = trace_mul[:mle_N, :, :]
+scaled_state, scaled_table = attack_scaled(trace_scaled, mle_N)
+drop_idx = drop_fail_idx(scaled_table, scaled_threshold)
+report_sr("profile", "scaled", key, stage_stats_f, scaled_state, _true_scaled_label)
+#+end_src
+
+#+RESULTS:
+: f key_id= 3: 2.71 dB → 19.12 dB
+: the remaining coff after scaled classifier is 501
+: [profile] [    scaled] 512/512 = 1.0000
+
+#+begin_src python :results output replace :exports both
+report_error("scaled", stage_stats_f, class_coeffs_map_scaled)
+#+end_src
+
+#+RESULTS:
+: error count per class  (class = labels: count):
+: error guesses  (coeff idx: true → pred):
+
+#+begin_src python :results output replace :exports both
+shift55_state,_, shift55_table = attack_shift55(trace_shift55, scaled_state, mle_N)
+report_sr("profile", "shift55", key, stage_stats_f, shift55_state, _true_shift55_label)
+#+end_src
+
+#+RESULTS:
+: [profile] [   shift55] 148/177 = 0.8362
+
+#+begin_src python :results output replace :exports both
+report_error("shift55", stage_stats_f, class_coeffs_map_shift55)
+#+end_src
+
+#+RESULTS:
+#+begin_example
+error count per class  (class = labels: count):
+  class 0 = [2, 4, 5, 8, 9, 10, 11, 16, 17, 18, 19, 20, 21, 22]: 16
+  class 1 = [3, 6, 7, 12, 13, 14, 15]: 13
+error guesses  (coeff idx: true → pred):
+  key[ 155]: class 0 [2, 4, 5, 8, 9, 10, 11, 16, 17, 18, 19, 20, 21, 22] → class 1 [3, 6, 7, 12, 13, 14, 15]
+  key[ 184]: class 0 [2, 4, 5, 8, 9, 10, 11, 16, 17, 18, 19, 20, 21, 22] → class 1 [3, 6, 7, 12, 13, 14, 15]
+  key[ 195]: class 0 [2, 4, 5, 8, 9, 10, 11, 16, 17, 18, 19, 20, 21, 22] → class 1 [3, 6, 7, 12, 13, 14, 15]
+  key[ 201]: class 0 [2, 4, 5, 8, 9, 10, 11, 16, 17, 18, 19, 20, 21, 22] → class 1 [3, 6, 7, 12, 13, 14, 15]
+  key[ 219]: class 0 [2, 4, 5, 8, 9, 10, 11, 16, 17, 18, 19, 20, 21, 22] → class 1 [3, 6, 7, 12, 13, 14, 15]
+  key[ 398]: class 1 [3, 6, 7, 12, 13, 14, 15] → class 0 [2, 4, 5, 8, 9, 10, 11, 16, 17, 18, 19, 20, 21, 22]
+  key[ 399]: class 1 [3, 6, 7, 12, 13, 14, 15] → class 0 [2, 4, 5, 8, 9, 10, 11, 16, 17, 18, 19, 20, 21, 22]
+  key[ 402]: class 1 [3, 6, 7, 12, 13, 14, 15] → class 0 [2, 4, 5, 8, 9, 10, 11, 16, 17, 18, 19, 20, 21, 22]
+  key[ 407]: class 0 [2, 4, 5, 8, 9, 10, 11, 16, 17, 18, 19, 20, 21, 22] → class 1 [3, 6, 7, 12, 13, 14, 15]
+  key[ 418]: class 0 [2, 4, 5, 8, 9, 10, 11, 16, 17, 18, 19, 20, 21, 22] → class 1 [3, 6, 7, 12, 13, 14, 15]
+  key[ 422]: class 0 [2, 4, 5, 8, 9, 10, 11, 16, 17, 18, 19, 20, 21, 22] → class 1 [3, 6, 7, 12, 13, 14, 15]
+  key[ 425]: class 0 [2, 4, 5, 8, 9, 10, 11, 16, 17, 18, 19, 20, 21, 22] → class 1 [3, 6, 7, 12, 13, 14, 15]
+  key[ 430]: class 0 [2, 4, 5, 8, 9, 10, 11, 16, 17, 18, 19, 20, 21, 22] → class 1 [3, 6, 7, 12, 13, 14, 15]
+  key[ 438]: class 1 [3, 6, 7, 12, 13, 14, 15] → class 0 [2, 4, 5, 8, 9, 10, 11, 16, 17, 18, 19, 20, 21, 22]
+  key[ 442]: class 1 [3, 6, 7, 12, 13, 14, 15] → class 0 [2, 4, 5, 8, 9, 10, 11, 16, 17, 18, 19, 20, 21, 22]
+  key[ 445]: class 0 [2, 4, 5, 8, 9, 10, 11, 16, 17, 18, 19, 20, 21, 22] → class 1 [3, 6, 7, 12, 13, 14, 15]
+  key[ 454]: class 1 [3, 6, 7, 12, 13, 14, 15] → class 0 [2, 4, 5, 8, 9, 10, 11, 16, 17, 18, 19, 20, 21, 22]
+  key[ 455]: class 1 [3, 6, 7, 12, 13, 14, 15] → class 0 [2, 4, 5, 8, 9, 10, 11, 16, 17, 18, 19, 20, 21, 22]
+  key[ 462]: class 1 [3, 6, 7, 12, 13, 14, 15] → class 0 [2, 4, 5, 8, 9, 10, 11, 16, 17, 18, 19, 20, 21, 22]
+  key[ 467]: class 0 [2, 4, 5, 8, 9, 10, 11, 16, 17, 18, 19, 20, 21, 22] → class 1 [3, 6, 7, 12, 13, 14, 15]
+  key[ 468]: class 0 [2, 4, 5, 8, 9, 10, 11, 16, 17, 18, 19, 20, 21, 22] → class 1 [3, 6, 7, 12, 13, 14, 15]
+  key[ 485]: class 1 [3, 6, 7, 12, 13, 14, 15] → class 0 [2, 4, 5, 8, 9, 10, 11, 16, 17, 18, 19, 20, 21, 22]
+  key[ 489]: class 0 [2, 4, 5, 8, 9, 10, 11, 16, 17, 18, 19, 20, 21, 22] → class 1 [3, 6, 7, 12, 13, 14, 15]
+  key[ 496]: class 1 [3, 6, 7, 12, 13, 14, 15] → class 0 [2, 4, 5, 8, 9, 10, 11, 16, 17, 18, 19, 20, 21, 22]
+  key[ 499]: class 1 [3, 6, 7, 12, 13, 14, 15] → class 0 [2, 4, 5, 8, 9, 10, 11, 16, 17, 18, 19, 20, 21, 22]
+  key[ 500]: class 1 [3, 6, 7, 12, 13, 14, 15] → class 0 [2, 4, 5, 8, 9, 10, 11, 16, 17, 18, 19, 20, 21, 22]
+  key[ 501]: class 0 [2, 4, 5, 8, 9, 10, 11, 16, 17, 18, 19, 20, 21, 22] → class 1 [3, 6, 7, 12, 13, 14, 15]
+  key[ 507]: class 0 [2, 4, 5, 8, 9, 10, 11, 16, 17, 18, 19, 20, 21, 22] → class 1 [3, 6, 7, 12, 13, 14, 15]
+  key[ 510]: class 1 [3, 6, 7, 12, 13, 14, 15] → class 0 [2, 4, 5, 8, 9, 10, 11, 16, 17, 18, 19, 20, 21, 22]
+#+end_example
+
+#+begin_src python :results output replace :exports both
+for ii, jj in shift55_table.items():
+    print(f"coefficient index: {ii}, predicted label: {jj}")
+#+end_src
+
+#+RESULTS:
+#+begin_example
+coefficient index: 128, predicted label: [0.99573696 0.00426305]
+coefficient index: 129, predicted label: [9.998216e-01 1.783881e-04]
+coefficient index: 130, predicted label: [9.9913400e-01 8.6603337e-04]
+coefficient index: 131, predicted label: [0.978288   0.02171202]
+coefficient index: 132, predicted label: [9.9951077e-01 4.8925984e-04]
+coefficient index: 134, predicted label: [0.00473986 0.9952602 ]
+coefficient index: 135, predicted label: [0.939851   0.06014903]
+coefficient index: 137, predicted label: [0.98268384 0.01731609]
+coefficient index: 140, predicted label: [0.00175641 0.9982436 ]
+coefficient index: 142, predicted label: [9.9998796e-01 1.2051122e-05]
+coefficient index: 145, predicted label: [9.9926823e-01 7.3175394e-04]
+coefficient index: 147, predicted label: [9.9994135e-01 5.8674075e-05]
+coefficient index: 149, predicted label: [0.9720724  0.02792753]
+coefficient index: 151, predicted label: [0.0047119  0.99528813]
+coefficient index: 152, predicted label: [0.99789006 0.00210993]
+coefficient index: 153, predicted label: [1.1739984e-04 9.9988258e-01]
+coefficient index: 155, predicted label: [0.28580728 0.7141927 ]
+coefficient index: 156, predicted label: [9.9987793e-01 1.2202638e-04]
+coefficient index: 157, predicted label: [0.17261647 0.8273835 ]
+coefficient index: 158, predicted label: [0.9868089  0.01319103]
+coefficient index: 160, predicted label: [0.9897143  0.01028565]
+coefficient index: 161, predicted label: [0.76322407 0.23677598]
+coefficient index: 162, predicted label: [1.18628595e-04 9.99881387e-01]
+coefficient index: 163, predicted label: [0.9957705  0.00422947]
+coefficient index: 164, predicted label: [9.9954981e-01 4.5020058e-04]
+coefficient index: 165, predicted label: [0.02283817 0.9771618 ]
+coefficient index: 166, predicted label: [0.00144336 0.9985567 ]
+coefficient index: 167, predicted label: [0.01949228 0.9805077 ]
+coefficient index: 169, predicted label: [0.01088057 0.9891194 ]
+coefficient index: 173, predicted label: [0.00110996 0.9988901 ]
+coefficient index: 174, predicted label: [1.5397718e-05 9.9998462e-01]
+coefficient index: 178, predicted label: [0.92311704 0.076883  ]
+coefficient index: 179, predicted label: [3.4465299e-06 9.9999654e-01]
+coefficient index: 183, predicted label: [5.0620180e-05 9.9994934e-01]
+coefficient index: 184, predicted label: [0.01322712 0.98677295]
+coefficient index: 185, predicted label: [9.9994624e-01 5.3737560e-05]
+coefficient index: 187, predicted label: [0.99797195 0.00202803]
+coefficient index: 188, predicted label: [9.9965620e-01 3.4383882e-04]
+coefficient index: 189, predicted label: [0.6050783  0.39492172]
+coefficient index: 190, predicted label: [0.9194463  0.08055368]
+coefficient index: 191, predicted label: [0.99862885 0.00137116]
+coefficient index: 192, predicted label: [0.00348141 0.9965186 ]
+coefficient index: 193, predicted label: [0.01892322 0.98107684]
+coefficient index: 195, predicted label: [0.2650602 0.7349398]
+coefficient index: 197, predicted label: [0.99754936 0.00245065]
+coefficient index: 198, predicted label: [0.9972024  0.00279761]
+coefficient index: 201, predicted label: [0.26051822 0.73948175]
+coefficient index: 202, predicted label: [9.9974269e-01 2.5733502e-04]
+coefficient index: 203, predicted label: [7.6507116e-05 9.9992347e-01]
+coefficient index: 204, predicted label: [0.00488714 0.99511284]
+coefficient index: 205, predicted label: [9.9955040e-01 4.4956326e-04]
+coefficient index: 208, predicted label: [0.05742221 0.94257784]
+coefficient index: 209, predicted label: [0.00106864 0.99893135]
+coefficient index: 210, predicted label: [0.98099595 0.01900406]
+coefficient index: 211, predicted label: [6.7033147e-06 9.9999332e-01]
+coefficient index: 212, predicted label: [0.00653609 0.99346393]
+coefficient index: 213, predicted label: [0.99059135 0.00940869]
+coefficient index: 214, predicted label: [0.997068   0.00293206]
+coefficient index: 216, predicted label: [0.21774194 0.7822581 ]
+coefficient index: 218, predicted label: [0.9942683  0.00573174]
+coefficient index: 219, predicted label: [0.10985609 0.89014393]
+coefficient index: 221, predicted label: [9.9980932e-01 1.9068985e-04]
+coefficient index: 222, predicted label: [7.953387e-05 9.999205e-01]
+coefficient index: 223, predicted label: [1.8052355e-04 9.9981946e-01]
+coefficient index: 225, predicted label: [0.9609534  0.03904663]
+coefficient index: 226, predicted label: [5.2126718e-04 9.9947876e-01]
+coefficient index: 227, predicted label: [0.99867463 0.00132541]
+coefficient index: 229, predicted label: [0.98647434 0.01352569]
+coefficient index: 230, predicted label: [9.99893546e-01 1.06485924e-04]
+coefficient index: 233, predicted label: [0.04241537 0.9575846 ]
+coefficient index: 234, predicted label: [0.95103943 0.04896061]
+coefficient index: 235, predicted label: [0.0028311  0.99716896]
+coefficient index: 237, predicted label: [9.9930501e-01 6.9499324e-04]
+coefficient index: 239, predicted label: [0.99785703 0.00214292]
+coefficient index: 240, predicted label: [0.997698   0.00230199]
+coefficient index: 241, predicted label: [0.6774841  0.32251593]
+coefficient index: 242, predicted label: [9.9979085e-01 2.0912300e-04]
+coefficient index: 243, predicted label: [0.89796984 0.1020302 ]
+coefficient index: 244, predicted label: [9.993236e-01 6.764144e-04]
+coefficient index: 245, predicted label: [4.9181533e-04 9.9950814e-01]
+coefficient index: 246, predicted label: [0.99866354 0.00133648]
+coefficient index: 247, predicted label: [9.999429e-01 5.708690e-05]
+coefficient index: 251, predicted label: [0.40069792 0.59930205]
+coefficient index: 252, predicted label: [0.9957831  0.00421688]
+coefficient index: 255, predicted label: [0.8792001  0.12079988]
+coefficient index: 384, predicted label: [9.990049e-01 9.950886e-04]
+coefficient index: 386, predicted label: [0.93355244 0.06644754]
+coefficient index: 387, predicted label: [0.04103186 0.9589681 ]
+coefficient index: 388, predicted label: [9.9999940e-01 5.8962155e-07]
+coefficient index: 389, predicted label: [9.9998605e-01 1.3951605e-05]
+coefficient index: 390, predicted label: [0.02733004 0.97266996]
+coefficient index: 391, predicted label: [9.999516e-01 4.845591e-05]
+coefficient index: 392, predicted label: [0.99446785 0.00553208]
+coefficient index: 393, predicted label: [0.84690493 0.15309504]
+coefficient index: 394, predicted label: [9.999969e-01 3.044713e-06]
+coefficient index: 396, predicted label: [1.4233901e-04 9.9985766e-01]
+coefficient index: 397, predicted label: [0.9757321  0.02426784]
+coefficient index: 398, predicted label: [9.9988794e-01 1.1198843e-04]
+coefficient index: 399, predicted label: [9.9915957e-01 8.4048003e-04]
+coefficient index: 400, predicted label: [0.99546957 0.0045304 ]
+coefficient index: 401, predicted label: [9.9999332e-01 6.6972184e-06]
+coefficient index: 402, predicted label: [0.9983431  0.00165686]
+coefficient index: 403, predicted label: [9.9999464e-01 5.3498011e-06]
+coefficient index: 405, predicted label: [0.08342794 0.9165721 ]
+coefficient index: 406, predicted label: [9.999666e-01 3.335115e-05]
+coefficient index: 407, predicted label: [0.01659378 0.9834062 ]
+coefficient index: 408, predicted label: [0.9951572  0.00484276]
+coefficient index: 409, predicted label: [1.116054e-04 9.998884e-01]
+coefficient index: 411, predicted label: [0.99089724 0.00910278]
+coefficient index: 412, predicted label: [5.638323e-04 9.994362e-01]
+coefficient index: 414, predicted label: [0.00148277 0.9985172 ]
+coefficient index: 416, predicted label: [9.995389e-01 4.611208e-04]
+coefficient index: 417, predicted label: [0.00343127 0.9965687 ]
+coefficient index: 418, predicted label: [0.07873096 0.92126906]
+coefficient index: 419, predicted label: [0.8944135  0.10558652]
+coefficient index: 420, predicted label: [9.9999356e-01 6.4390438e-06]
+coefficient index: 421, predicted label: [0.85231924 0.14768071]
+coefficient index: 422, predicted label: [0.00201724 0.99798274]
+coefficient index: 423, predicted label: [0.73375356 0.26624644]
+coefficient index: 424, predicted label: [0.85399306 0.14600697]
+coefficient index: 425, predicted label: [0.14384481 0.85615516]
+coefficient index: 427, predicted label: [9.999672e-01 3.276542e-05]
+coefficient index: 429, predicted label: [0.01213306 0.9878669 ]
+coefficient index: 430, predicted label: [0.01377756 0.98622245]
+coefficient index: 431, predicted label: [0.01740965 0.9825904 ]
+coefficient index: 432, predicted label: [0.99355423 0.00644577]
+coefficient index: 434, predicted label: [9.993197e-01 6.803812e-04]
+coefficient index: 435, predicted label: [0.57030076 0.42969924]
+coefficient index: 436, predicted label: [0.995443   0.00455701]
+coefficient index: 437, predicted label: [9.9918467e-01 8.1529806e-04]
+coefficient index: 438, predicted label: [0.9922706  0.00772941]
+coefficient index: 440, predicted label: [9.9953783e-01 4.6219607e-04]
+coefficient index: 441, predicted label: [9.9916136e-01 8.3859119e-04]
+coefficient index: 442, predicted label: [0.9986051 0.0013949]
+coefficient index: 443, predicted label: [0.99135005 0.00864993]
+coefficient index: 445, predicted label: [0.00121639 0.99878365]
+coefficient index: 450, predicted label: [9.990773e-01 9.226861e-04]
+coefficient index: 452, predicted label: [0.9680886  0.03191132]
+coefficient index: 453, predicted label: [0.99012977 0.00987025]
+coefficient index: 454, predicted label: [9.999950e-01 4.952975e-06]
+coefficient index: 455, predicted label: [0.57060814 0.4293919 ]
+coefficient index: 456, predicted label: [0.3258382 0.6741618]
+coefficient index: 457, predicted label: [0.7111051  0.28889495]
+coefficient index: 459, predicted label: [1.5151665e-04 9.9984848e-01]
+coefficient index: 461, predicted label: [9.9984002e-01 1.5992243e-04]
+coefficient index: 462, predicted label: [9.9923193e-01 7.6802023e-04]
+coefficient index: 463, predicted label: [0.98618233 0.01381772]
+coefficient index: 465, predicted label: [5.9705682e-05 9.9994028e-01]
+coefficient index: 466, predicted label: [0.9951416  0.00485835]
+coefficient index: 467, predicted label: [0.05184478 0.9481552 ]
+coefficient index: 468, predicted label: [1.2881351e-04 9.9987113e-01]
+coefficient index: 469, predicted label: [0.9500785  0.04992152]
+coefficient index: 470, predicted label: [0.9436148  0.05638521]
+coefficient index: 472, predicted label: [0.98485583 0.01514421]
+coefficient index: 473, predicted label: [9.9999034e-01 9.6161557e-06]
+coefficient index: 475, predicted label: [0.08920789 0.9107922 ]
+coefficient index: 477, predicted label: [9.9998438e-01 1.5563952e-05]
+coefficient index: 483, predicted label: [0.99657226 0.00342771]
+coefficient index: 484, predicted label: [9.9965787e-01 3.4210502e-04]
+coefficient index: 485, predicted label: [0.83972245 0.16027759]
+coefficient index: 489, predicted label: [0.00146604 0.99853396]
+coefficient index: 492, predicted label: [0.9689473  0.03105268]
+coefficient index: 494, predicted label: [9.9985278e-01 1.4722373e-04]
+coefficient index: 495, predicted label: [9.9997985e-01 2.0174106e-05]
+coefficient index: 496, predicted label: [0.6226936  0.37730637]
+coefficient index: 497, predicted label: [9.99907e-01 9.29900e-05]
+coefficient index: 499, predicted label: [0.9924388  0.00756121]
+coefficient index: 500, predicted label: [0.9799484  0.02005165]
+coefficient index: 501, predicted label: [0.35388592 0.6461141 ]
+coefficient index: 503, predicted label: [9.9968445e-01 3.1551989e-04]
+coefficient index: 504, predicted label: [0.96865135 0.03134865]
+coefficient index: 506, predicted label: [0.9695007  0.03049932]
+coefficient index: 507, predicted label: [0.2364587 0.7635413]
+coefficient index: 508, predicted label: [9.9993289e-01 6.7090645e-05]
+coefficient index: 509, predicted label: [9.9998891e-01 1.1124897e-05]
+coefficient index: 510, predicted label: [0.9988863  0.00111367]
+coefficient index: 511, predicted label: [0.08352541 0.9164746 ]
+#+end_example

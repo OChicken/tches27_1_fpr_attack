@@ -1,0 +1,457 @@
+
+
+* Load Traces
+
+################################################################################
+  key_id= 0: (f,g) = (3.25,3.14) dB → (19.82,19.61) dB
+the remaining coff after scaled classifier is 494
+the remaining coff after scaled classifier is 484
+total-determined (remove some after scaled classifier) is 443
+the 0th key guess's state is -1
+################################################################################
+  key_id= 1: (f,g) = (3.28,3.14) dB → (19.87,19.63) dB
+the remaining coff after scaled classifier is 491
+the remaining coff after scaled classifier is 471
+total-determined (remove some after scaled classifier) is 480
+the 1th key guess's state is -1
+################################################################################
+  key_id= 2: (f,g) = (3.26,3.13) dB → (19.86,19.60) dB
+the remaining coff after scaled classifier is 496
+the remaining coff after scaled classifier is 476
+total-determined (remove some after scaled classifier) is 458
+the 2th key guess's state is -1
+################################################################################
+  key_id= 3: (f,g) = (3.23,3.11) dB → (19.84,19.59) dB
+the remaining coff after scaled classifier is 489
+the remaining coff after scaled classifier is 473
+total-determined (remove some after scaled classifier) is 474
+the 3th key guess's state is -1
+################################################################################
+  key_id= 4: (f,g) = (3.24,3.13) dB → (19.82,19.62) dB
+the remaining coff after scaled classifier is 502
+the remaining coff after scaled classifier is 466
+total-determined (remove some after scaled classifier) is 488
+the 4th key guess's state is -1
+################################################################################
+  key_id= 5: (f,g) = (3.19,3.12) dB → (19.79,19.58) dB
+the remaining coff after scaled classifier is 490
+the remaining coff after scaled classifier is 482
+total-determined (remove some after scaled classifier) is 474
+the 5th key guess's state is -1
+################################################################################
+  key_id= 6: (f,g) = (3.26,3.11) dB → (19.85,19.60) dB
+the remaining coff after scaled classifier is 494
+the remaining coff after scaled classifier is 478
+total-determined (remove some after scaled classifier) is 464
+the 6th key guess's state is -1
+################################################################################
+  key_id= 7: (f,g) = (3.26,3.11) dB → (19.83,19.58) dB
+the remaining coff after scaled classifier is 497
+the remaining coff after scaled classifier is 469
+total-determined (remove some after scaled classifier) is 477
+the 7th key guess's state is -1
+################################################################################
+  key_id= 8: (f,g) = (3.29,3.09) dB → (19.87,19.57) dB
+the remaining coff after scaled classifier is 488
+the remaining coff after scaled classifier is 468
+total-determined (remove some after scaled classifier) is 459
+the 8th key guess's state is -1
+################################################################################
+  key_id= 9: (f,g) = (3.27,3.14) dB → (19.85,19.63) dB
+the remaining coff after scaled classifier is 490
+the remaining coff after scaled classifier is 481
+total-determined (remove some after scaled classifier) is 482
+the 9th key guess's state is -1
+################################################################################
+  key_id=10: (f,g) = (3.29,3.12) dB → (19.86,19.60) dB
+the remaining coff after scaled classifier is 488
+the remaining coff after scaled classifier is 473
+total-determined (remove some after scaled classifier) is 482
+the 10th key guess's state is -1
+################################################################################
+  key_id=11: (f,g) = (3.27,3.09) dB → (19.83,19.56) dB
+the remaining coff after scaled classifier is 490
+the remaining coff after scaled classifier is 476
+total-determined (remove some after scaled classifier) is 471
+the 11th key guess's state is -1
+################################################################################
+  key_id=12: (f,g) = (3.27,3.09) dB → (19.84,19.60) dB
+the remaining coff after scaled classifier is 485
+the remaining coff after scaled classifier is 472
+total-determined (remove some after scaled classifier) is 483
+the 12th key guess's state is -1
+################################################################################
+  key_id=13: (f,g) = (3.25,3.11) dB → (19.85,19.64) dB
+the remaining coff after scaled classifier is 497
+the remaining coff after scaled classifier is 474
+total-determined (remove some after scaled classifier) is 478
+the 13th key guess's state is -1
+################################################################################
+  key_id=14: (f,g) = (3.25,3.11) dB → (19.84,19.61) dB
+the remaining coff after scaled classifier is 501
+the remaining coff after scaled classifier is 474
+total-determined (remove some after scaled classifier) is 443
+the 14th key guess's state is -1
+################################################################################
+  key_id=15: (f,g) = (3.25,3.08) dB → (19.87,19.57) dB
+the remaining coff after scaled classifier is 491
+the remaining coff after scaled classifier is 472
+total-determined (remove some after scaled classifier) is 493
+the 15th key guess's state is -1
+################################################################################
+  key_id=16: (f,g) = (3.22,3.12) dB → (19.83,19.62) dB
+the remaining coff after scaled classifier is 482
+the remaining coff after scaled classifier is 489
+total-determined (remove some after scaled classifier) is 469
+the 16th key guess's state is -1
+################################################################################
+  key_id=17: (f,g) = (3.23,3.12) dB → (19.79,19.60) dB
+the remaining coff after scaled classifier is 491
+the remaining coff after scaled classifier is 472
+total-determined (remove some after scaled classifier) is 482
+the 17th key guess's state is -1
+################################################################################
+  key_id=18: (f,g) = (3.19,3.10) dB → (19.78,19.61) dB
+the remaining coff after scaled classifier is 489
+the remaining coff after scaled classifier is 474
+total-determined (remove some after scaled classifier) is 466
+the 18th key guess's state is -1
+################################################################################
+  key_id=19: (f,g) = (3.24,3.10) dB → (19.83,19.60) dB
+the remaining coff after scaled classifier is 501
+the remaining coff after scaled classifier is 487
+total-determined (remove some after scaled classifier) is 485
+the 19th key guess's state is -1
+################################################################################
+  key_id=20: (f,g) = (3.24,3.10) dB → (19.82,19.60) dB
+the remaining coff after scaled classifier is 488
+the remaining coff after scaled classifier is 478
+total-determined (remove some after scaled classifier) is 498
+the 20th key guess's state is -1
+################################################################################
+  key_id=21: (f,g) = (3.28,3.11) dB → (19.86,19.60) dB
+the remaining coff after scaled classifier is 499
+the remaining coff after scaled classifier is 469
+total-determined (remove some after scaled classifier) is 476
+the 21th key guess's state is -1
+################################################################################
+  key_id=22: (f,g) = (3.27,3.10) dB → (19.85,19.58) dB
+the remaining coff after scaled classifier is 494
+the remaining coff after scaled classifier is 482
+total-determined (remove some after scaled classifier) is 501
+the 22th key guess's state is -1
+################################################################################
+  key_id=23: (f,g) = (3.27,3.12) dB → (19.83,19.61) dB
+the remaining coff after scaled classifier is 487
+the remaining coff after scaled classifier is 480
+total-determined (remove some after scaled classifier) is 480
+the 23th key guess's state is -1
+################################################################################
+  key_id=24: (f,g) = (3.25,3.09) dB → (19.81,19.56) dB
+the remaining coff after scaled classifier is 483
+the remaining coff after scaled classifier is 459
+total-determined (remove some after scaled classifier) is 457
+the 24th key guess's state is -1
+################################################################################
+  key_id=25: (f,g) = (3.29,3.10) dB → (19.87,19.56) dB
+the remaining coff after scaled classifier is 486
+the remaining coff after scaled classifier is 475
+total-determined (remove some after scaled classifier) is 461
+the 25th key guess's state is -1
+################################################################################
+  key_id=26: (f,g) = (3.24,3.10) dB → (19.85,19.56) dB
+the remaining coff after scaled classifier is 495
+the remaining coff after scaled classifier is 481
+total-determined (remove some after scaled classifier) is 492
+the 26th key guess's state is -1
+################################################################################
+  key_id=27: (f,g) = (3.23,3.10) dB → (19.83,19.58) dB
+the remaining coff after scaled classifier is 493
+the remaining coff after scaled classifier is 476
+total-determined (remove some after scaled classifier) is 509
+the 27th key guess's state is -1
+################################################################################
+  key_id=28: (f,g) = (3.22,3.12) dB → (19.79,19.62) dB
+the remaining coff after scaled classifier is 486
+the remaining coff after scaled classifier is 470
+total-determined (remove some after scaled classifier) is 487
+the 28th key guess's state is -1
+################################################################################
+  key_id=29: (f,g) = (3.24,3.09) dB → (19.86,19.57) dB
+the remaining coff after scaled classifier is 488
+the remaining coff after scaled classifier is 471
+total-determined (remove some after scaled classifier) is 460
+the 29th key guess's state is -1
+################################################################################
+  key_id=30: (f,g) = (3.28,3.10) dB → (19.85,19.60) dB
+the remaining coff after scaled classifier is 491
+the remaining coff after scaled classifier is 478
+total-determined (remove some after scaled classifier) is 482
+the 30th key guess's state is -1
+################################################################################
+  key_id=31: (f,g) = (3.28,3.12) dB → (19.88,19.59) dB
+the remaining coff after scaled classifier is 498
+the remaining coff after scaled classifier is 469
+total-determined (remove some after scaled classifier) is 482
+the 31th key guess's state is -1
+################################################################################
+  key_id=32: (f,g) = (3.25,3.12) dB → (19.81,19.60) dB
+the remaining coff after scaled classifier is 489
+the remaining coff after scaled classifier is 471
+total-determined (remove some after scaled classifier) is 467
+the 32th key guess's state is -1
+################################################################################
+  key_id=33: (f,g) = (3.28,3.14) dB → (19.86,19.67) dB
+the remaining coff after scaled classifier is 487
+the remaining coff after scaled classifier is 473
+total-determined (remove some after scaled classifier) is 503
+the 33th key guess's state is -1
+################################################################################
+  key_id=34: (f,g) = (3.27,3.07) dB → (19.85,19.52) dB
+the remaining coff after scaled classifier is 493
+the remaining coff after scaled classifier is 476
+total-determined (remove some after scaled classifier) is 474
+the 34th key guess's state is -1
+################################################################################
+  key_id=35: (f,g) = (3.27,3.10) dB → (19.84,19.62) dB
+the remaining coff after scaled classifier is 486
+the remaining coff after scaled classifier is 480
+total-determined (remove some after scaled classifier) is 483
+the 35th key guess's state is -1
+################################################################################
+  key_id=36: (f,g) = (3.24,3.12) dB → (19.81,19.63) dB
+the remaining coff after scaled classifier is 481
+the remaining coff after scaled classifier is 472
+total-determined (remove some after scaled classifier) is 480
+the 36th key guess's state is -1
+################################################################################
+  key_id=37: (f,g) = (3.22,3.07) dB → (19.80,19.55) dB
+the remaining coff after scaled classifier is 493
+the remaining coff after scaled classifier is 470
+total-determined (remove some after scaled classifier) is 477
+the 37th key guess's state is -1
+################################################################################
+  key_id=38: (f,g) = (3.25,3.12) dB → (19.84,19.67) dB
+the remaining coff after scaled classifier is 490
+the remaining coff after scaled classifier is 488
+total-determined (remove some after scaled classifier) is 495
+the 38th key guess's state is -1
+################################################################################
+  key_id=39: (f,g) = (3.24,3.09) dB → (19.84,19.57) dB
+the remaining coff after scaled classifier is 488
+the remaining coff after scaled classifier is 484
+total-determined (remove some after scaled classifier) is 503
+the 39th key guess's state is -1
+################################################################################
+  key_id=40: (f,g) = (3.22,3.08) dB → (19.81,19.55) dB
+the remaining coff after scaled classifier is 490
+the remaining coff after scaled classifier is 472
+total-determined (remove some after scaled classifier) is 487
+the 40th key guess's state is -1
+################################################################################
+  key_id=41: (f,g) = (3.25,3.09) dB → (19.84,19.58) dB
+the remaining coff after scaled classifier is 490
+the remaining coff after scaled classifier is 480
+total-determined (remove some after scaled classifier) is 490
+the 41th key guess's state is -1
+################################################################################
+  key_id=42: (f,g) = (3.21,3.08) dB → (19.82,19.55) dB
+the remaining coff after scaled classifier is 492
+the remaining coff after scaled classifier is 474
+total-determined (remove some after scaled classifier) is 464
+the 42th key guess's state is -1
+################################################################################
+  key_id=43: (f,g) = (3.25,3.12) dB → (19.82,19.59) dB
+the remaining coff after scaled classifier is 484
+the remaining coff after scaled classifier is 467
+total-determined (remove some after scaled classifier) is 471
+the 43th key guess's state is -1
+################################################################################
+  key_id=44: (f,g) = (3.26,3.11) dB → (19.85,19.58) dB
+the remaining coff after scaled classifier is 493
+the remaining coff after scaled classifier is 469
+total-determined (remove some after scaled classifier) is 496
+the 44th key guess's state is -1
+################################################################################
+  key_id=45: (f,g) = (3.24,3.08) dB → (19.83,19.57) dB
+the remaining coff after scaled classifier is 493
+the remaining coff after scaled classifier is 469
+total-determined (remove some after scaled classifier) is 494
+the 45th key guess's state is -1
+################################################################################
+  key_id=46: (f,g) = (3.27,3.12) dB → (19.82,19.61) dB
+the remaining coff after scaled classifier is 492
+the remaining coff after scaled classifier is 469
+total-determined (remove some after scaled classifier) is 467
+the 46th key guess's state is -1
+################################################################################
+  key_id=47: (f,g) = (3.25,3.09) dB → (19.83,19.54) dB
+the remaining coff after scaled classifier is 494
+the remaining coff after scaled classifier is 480
+total-determined (remove some after scaled classifier) is 487
+the 47th key guess's state is -1
+################################################################################
+  key_id=48: (f,g) = (3.23,3.13) dB → (19.83,19.65) dB
+the remaining coff after scaled classifier is 492
+the remaining coff after scaled classifier is 479
+total-determined (remove some after scaled classifier) is 480
+the 48th key guess's state is -1
+################################################################################
+  key_id=49: (f,g) = (3.23,3.10) dB → (19.84,19.58) dB
+the remaining coff after scaled classifier is 492
+the remaining coff after scaled classifier is 476
+total-determined (remove some after scaled classifier) is 495
+the 49th key guess's state is -1
+################################################################################
+  key_id=50: (f,g) = (3.28,3.09) dB → (19.86,19.57) dB
+the remaining coff after scaled classifier is 497
+the remaining coff after scaled classifier is 470
+total-determined (remove some after scaled classifier) is 467
+the 50th key guess's state is -1
+################################################################################
+  key_id=51: (f,g) = (3.25,3.11) dB → (19.83,19.59) dB
+the remaining coff after scaled classifier is 482
+the remaining coff after scaled classifier is 469
+total-determined (remove some after scaled classifier) is 496
+the 51th key guess's state is -1
+################################################################################
+  key_id=52: (f,g) = (3.23,3.10) dB → (19.83,19.59) dB
+the remaining coff after scaled classifier is 491
+the remaining coff after scaled classifier is 471
+total-determined (remove some after scaled classifier) is 485
+the 52th key guess's state is -1
+################################################################################
+  key_id=53: (f,g) = (3.23,3.09) dB → (19.77,19.58) dB
+the remaining coff after scaled classifier is 488
+the remaining coff after scaled classifier is 477
+total-determined (remove some after scaled classifier) is 515
+need is 180
+len of candidates is 183
+the 53th key guess's state is 2
+################################################################################
+  key_id=54: (f,g) = (3.26,3.11) dB → (19.81,19.59) dB
+the remaining coff after scaled classifier is 488
+the remaining coff after scaled classifier is 479
+total-determined (remove some after scaled classifier) is 488
+the 54th key guess's state is -1
+################################################################################
+  key_id=55: (f,g) = (3.26,3.08) dB → (19.83,19.54) dB
+the remaining coff after scaled classifier is 487
+the remaining coff after scaled classifier is 465
+total-determined (remove some after scaled classifier) is 492
+the 55th key guess's state is -1
+################################################################################
+  key_id=56: (f,g) = (3.22,3.10) dB → (19.81,19.58) dB
+the remaining coff after scaled classifier is 492
+the remaining coff after scaled classifier is 488
+total-determined (remove some after scaled classifier) is 493
+the 56th key guess's state is -1
+################################################################################
+  key_id=57: (f,g) = (3.26,3.10) dB → (19.85,19.59) dB
+the remaining coff after scaled classifier is 494
+the remaining coff after scaled classifier is 472
+total-determined (remove some after scaled classifier) is 499
+the 57th key guess's state is -1
+################################################################################
+  key_id=58: (f,g) = (3.28,3.13) dB → (19.85,19.61) dB
+the remaining coff after scaled classifier is 484
+the remaining coff after scaled classifier is 478
+total-determined (remove some after scaled classifier) is 483
+the 58th key guess's state is -1
+################################################################################
+  key_id=59: (f,g) = (3.28,3.10) dB → (19.84,19.57) dB
+the remaining coff after scaled classifier is 499
+the remaining coff after scaled classifier is 468
+total-determined (remove some after scaled classifier) is 456
+the 59th key guess's state is -1
+################################################################################
+  key_id=60: (f,g) = (3.26,3.10) dB → (19.83,19.58) dB
+the remaining coff after scaled classifier is 487
+the remaining coff after scaled classifier is 481
+total-determined (remove some after scaled classifier) is 500
+the 60th key guess's state is -1
+################################################################################
+  key_id=61: (f,g) = (3.26,3.11) dB → (19.82,19.60) dB
+the remaining coff after scaled classifier is 481
+the remaining coff after scaled classifier is 479
+total-determined (remove some after scaled classifier) is 465
+the 61th key guess's state is -1
+################################################################################
+  key_id=62: (f,g) = (3.25,3.11) dB → (19.81,19.62) dB
+the remaining coff after scaled classifier is 492
+the remaining coff after scaled classifier is 473
+total-determined (remove some after scaled classifier) is 476
+the 62th key guess's state is -1
+################################################################################
+  key_id=63: (f,g) = (3.25,3.10) dB → (19.81,19.55) dB
+the remaining coff after scaled classifier is 488
+the remaining coff after scaled classifier is 483
+total-determined (remove some after scaled classifier) is 480
+the 63th key guess's state is -1
+################################################################################
+  key_id=64: (f,g) = (3.24,3.11) dB → (19.80,19.60) dB
+the remaining coff after scaled classifier is 499
+the remaining coff after scaled classifier is 482
+total-determined (remove some after scaled classifier) is 470
+the 64th key guess's state is -1
+################################################################################
+  key_id=65: (f,g) = (3.23,3.10) dB → (19.80,19.55) dB
+the remaining coff after scaled classifier is 493
+the remaining coff after scaled classifier is 466
+total-determined (remove some after scaled classifier) is 478
+the 65th key guess's state is -1
+################################################################################
+  key_id=66: (f,g) = (3.26,3.09) dB → (19.81,19.57) dB
+the remaining coff after scaled classifier is 486
+the remaining coff after scaled classifier is 482
+total-determined (remove some after scaled classifier) is 483
+the 66th key guess's state is -1
+################################################################################
+  key_id=67: (f,g) = (3.22,3.11) dB → (19.79,19.60) dB
+the remaining coff after scaled classifier is 493
+the remaining coff after scaled classifier is 480
+total-determined (remove some after scaled classifier) is 507
+the 67th key guess's state is -1
+################################################################################
+  key_id=68: (f,g) = (3.27,3.11) dB → (19.84,19.61) dB
+the remaining coff after scaled classifier is 482
+the remaining coff after scaled classifier is 482
+total-determined (remove some after scaled classifier) is 473
+the 68th key guess's state is -1
+################################################################################
+  key_id=69: (f,g) = (3.27,3.14) dB → (19.84,19.63) dB
+the remaining coff after scaled classifier is 502
+the remaining coff after scaled classifier is 484
+total-determined (remove some after scaled classifier) is 490
+the 69th key guess's state is -1
+################################################################################
+  key_id=70: (f,g) = (3.31,3.13) dB → (19.87,19.61) dB
+the remaining coff after scaled classifier is 492
+the remaining coff after scaled classifier is 468
+total-determined (remove some after scaled classifier) is 462
+the 70th key guess's state is -1
+################################################################################
+  key_id=71: (f,g) = (3.28,3.11) dB → (19.85,19.59) dB
+the remaining coff after scaled classifier is 491
+the remaining coff after scaled classifier is 473
+total-determined (remove some after scaled classifier) is 473
+the 71th key guess's state is -1
+################################################################################
+  key_id=72: (f,g) = (3.31,3.14) dB → (19.90,19.61) dB
+the remaining coff after scaled classifier is 484
+the remaining coff after scaled classifier is 476
+total-determined (remove some after scaled classifier) is 499
+the 72th key guess's state is -1
+################################################################################
+  key_id=73: (f,g) = (3.29,3.10) dB → (19.85,19.58) dB
+the remaining coff after scaled classifier is 493
+the remaining coff after scaled classifier is 481
+total-determined (remove some after scaled classifier) is 462
+the 73th key guess's state is -1
+################################################################################
+  key_id=74: (f,g) = (3.25,3.12) dB → (19.78,19.57) dB
+the remaining coff after scaled classifier is 491
+the remaining coff after scaled classifier is 471
+total-determined (remove some after scaled classifier) is 485
+the 74th key guess's state is -1
+################################################################################

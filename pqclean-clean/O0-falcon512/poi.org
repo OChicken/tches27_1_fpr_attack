@@ -1,0 +1,248 @@
+#+TITLE: O0 PoI
+#+PROPERTY: header-args:python  :session Python/O0
+#+PROPERTY: header-args:python+ :results silent
+
+* Common
+
+#+begin_src python
+import os
+
+FALCON_N = 512
+#+end_src
+
+#+begin_src python
+import numpy as np
+import matplotlib.pyplot as plt
+from scipy.signal import find_peaks
+#+end_src
+
+#+begin_src python
+import json
+
+with open("../cycloc_params.json") as f:
+    cfg_pqclean = json.load(f)
+#+end_src
+
+#+begin_src python
+from utils import calc_Fcrit, calc_R2, calc_snr
+from utils import leakage_markers_fp, print_peaks
+#+end_src
+
+
+* Load
+
+#+begin_src python :results output replace :exports both
+print(cfg_pqclean["O0"]["scaled"]["cycle_usage"])
+addr_O0_scaled = cfg_pqclean["O0"]["scaled"]["addr_cycloc"]
+name = "F-statistics/F_scaled.npy"
+F_O0_scaled = np.load("F-statistics/F_scaled.npy")
+name = "F-statistics/dof_scaled.txt"
+dof_O0_scaled = np.loadtxt("F-statistics/dof_scaled.txt", dtype=int)
+SNR_O0_scaled  = calc_snr (F_O0_scaled, dof_O0_scaled)
+ics_O0_scaled_sort = np.loadtxt("ics/ics_scaled_sort.txt", dtype=int)
+print(ics_O0_scaled_sort)
+#+end_src
+
+#+RESULTS:
+#+begin_example
+836
+Max SNR: 2088.3907
+[652 452 653 453 651 451 654 454 557 558 650 643 556 446 644   3   4 445
+ 559 555 661 455 574 575 655 662   5 791 573   2 450 792 663 572 549 548
+ 645 576 554 831 830 664 672  11 790 462 444 793 649 660 472 550 642 463
+ 461 571 818   1 671 584 447  12  22 551 547 583 832 785 473 464 673 665
+ 817 471 757 835 667 566 564 577 748 756 784 567  23 465  10 565 749 647
+ 585  13   6 648  38 467  39 415 479 794 747 478 553 646 681 416 560 552
+ 443 750 563 744 670 414 834 819 582   0 668 816 514 470 480  19 680 477
+  31 808 687 765 789 772 513 474 460 468 822 456 682 686 809 676 764 771
+  16 674 586 798 600 568 487 659 417 599 755 783 488 695 807 743 476 449
+ 569 773 806  40  37 486 799 688 758 821 696 833 546  15 515 562  21 489
+ 760 761 457 518 519 669 766 469 601 763  20 424 656  18 746 805 797 679
+ 425 786 685 829 810 520 590 770 677 694 408 591 490 598 578 561 448 498
+ 497 751 458 616   9  17 413  14  24 774 666  44 778 617  43 531 499 615
+ 459 423 485  30 618 683 581 517 745 635 777 512 762 530 823 636 602  41
+ 496 795 675 827 754 705 779 619 532 800 589 481 587 678 704 658 500 634
+ 614  33 529 506 742 826  36 782 815 706  32 524 475 491   7 769 626 657
+ 508 608 597 505  54 405 528  53 703 418 409 521 697 627 693 620 592  34
+ 442  55 437 689 741  29 466 828 507  52  64 802 776 804 438 430 523 570
+ 825 801  28 607 426 540 374 373  63  65 228 431 436 221 787 439 625 227
+ 166 824 714 715 365  66 402 364 156 165 157 330  45 177  48 739 788 261
+ 176 155 734 539 707 178 796 158 262 684 268  35 716 613 335 366 803 637
+ 375  62 713 378 594 609 811 595 482 279 736 522 735 167 260  49 164 780
+ 504 263 264 186 226 641 429 516 501 336 360  42 495 229 717 718 154  47
+ 280 432 580 700 334 363 175 187 759 179 278 410 372 593 525 702 329 277
+ 367 222 377 411 767 740 419 733 185 254 361 265 394 236 395 404 403 691
+ 289  25  70 606 327 274 737 701 527 690  69 237 440 248 269 331 126 159
+ 290 621 152 692 247 125 353 147 420 775 538 698 719 545  27 368 407 352
+ 346 421 603 699 339 728  51 387 188 541 386 385   8 120 326  67 612 344
+ 628 288 422 230 267 151 533 610 207 435 127 752  46 220 314 484 396 249
+ 208 727 397 343 256 708 820 611 104 640 255 384  61 483 180  50 174 246
+ 814 333 124 393 534 768 121 624  83 345 315 143 428 359 354 632 313  68
+ 153 347  84 427 398 388 712 231 721 631 629 259 163 588 287 542 406 150
+ 144 535  78 118 536  82  74 401 142 232 235  75 239 494 379 303 726 537
+ 115 145 630 351 103 543 123 291  56  71 275 225 338 312 638 302 173 720
+ 304 281 270 168 240 122  26  85 276 579 332 271 266 134 639 114 738 376
+ 105 544 223 328 337 441 253 197 622 242 117 605  86 206 184 433 729 340
+ 356 325 273 169 305 257 196 284 358 753 383  73 243 596 502 511 218 238
+ 434 141 241 245 193  96 357  60 135 301  79  77 509 400 812 492 129 149
+  87 286  81 133  72 170  91 322 283 296 130 604 119 148 128 219 633 503
+ 311 233 381 212 399 623 324  97 725 205 711 139 380 189  58 813 369 342
+  59 731  90 732 194 250 282  95 412 306 224 392 272 195 209 146  57 140
+ 371 234  92 160 116 106 198  76 382 350 321 252 389 730 341 211 192 510
+ 112 709 285 217  88 132 162 320 316  89 201 292  80 204 102 210  94 181
+ 724  98 110 722 200 101 171 493 323 131 199 362 355 136 137 297 202 710
+ 300  93 349 310 244 138 526 295 781 183 307 390 251 293 111 203 348 294
+ 190 191 391 107 299 298 308 370 161 258 108 113 319 100 318 214 216 182
+ 109 723 309 213  99 215 317 172]
+#+end_example
+
+#+begin_src python :results output replace :exports both
+print(cfg_pqclean["O0"]["shift55"]["cycle_usage"])
+addr_O0_shift55 = cfg_pqclean["O0"]["shift55"]["addr_cycloc"]
+F_O0_shift55 = np.load("F-statistics/F_shift55.npy")
+dof_O0_shift55 = np.loadtxt("F-statistics/dof_shift55.txt", dtype=int)
+SNR_O0_shift55 = calc_snr (F_O0_shift55, dof_O0_shift55)
+ics_O0_shift55_sort = np.loadtxt("ics/ics_shift55_sort.txt", dtype=int)
+print(ics_O0_shift55_sort)
+#+end_src
+
+#+RESULTS:
+: 106
+: Max SNR: 80.7783
+: [ 56  55  62  49  54  69  61  63  68  48  47  70  71  64  57  53  46  60
+:   72  79  67  65  52  78  50  80  73  77  85  58  86  81  76  51  87  84
+:   59  96  88  45  95  74  97  44  37  82  89  33  26  32  38  94  27  43
+:   75  39  90  40  34  93 105 100 104  83  31  99  98  92  35 103  66  42
+:  101  25  36  30  13   8  24  12  15  22  91  21  41   9   7  29   1  28
+:   20   0  10  14   2  16   6  19   4  17  11  23   5   3  18 102]
+
+#+begin_src python :results output replace :exports both
+print(cfg_pqclean["O0"]["mul"]["cycle_usage"])
+addr_O0_mul = cfg_pqclean["O0"]["mul"]["addr_cycloc"]
+
+F_O0_mul_4_5   = np.load("F-statistics/F_mul_4_5.npy")
+dof_O0_mul_4_5   = np.loadtxt("F-statistics/dof_mul_4_5.txt", dtype=int)
+SNR_O0_mul_4_5   = calc_snr (F_O0_mul_4_5, dof_O0_mul_4_5)
+ics_O0_mul_4_5_sort = np.loadtxt("ics/ics_mul_4_5_sort.txt", dtype=int)
+print(ics_O0_mul_4_5_sort)
+#+end_src
+
+#+RESULTS:
+#+begin_example
+183
+Max SNR: 57.3181
+[133 132 166  17  41 134 177 165 131  18  42 122 167 176 157  40  67 145
+ 158 123 144 113  68 111 153 121  66 124  50 178 125 164 135 146 175  31
+ 156 112  49 147  76  43 152  16 110 140 139  51  75  30  77 130  27  39
+  32 148  34 174 154  26  19 120 109  99  28 114  74  48  78 102 143  33
+ 141  58  25  65 151 173 138 168  98 115 100  69 103  15  35  79  86  85
+  57 126 155 119 163  84 106  87  38 150  60  21  52 137  47  73 107 129
+  62 105 161  29 179 162  24  59 182  23 104 169 170 171 127  56  20  44
+  88 117  83  64 118  70  61  97  22 101  11  53 136 128  93  10  14  37
+  63  95 159  54  89  71  80 180   9 116  94   6 181  46  82   3 108  91
+   2  90   5  45  36 172   4  96  92  13   0   7 160   8   1  81 149  55
+  12  72 142]
+#+end_example
+
+#+begin_src python :results output replace :exports both
+F_O0_mul_6_7   = np.load("F-statistics/F_mul_6_7.npy")
+dof_O0_mul_6_7   = np.loadtxt("F-statistics/dof_mul_6_7.txt", dtype=int)
+SNR_O0_mul_6_7   = calc_snr (F_O0_mul_6_7, dof_O0_mul_6_7)
+ics_O0_mul_6_7_sort = np.loadtxt("ics/ics_mul_6_7_sort.txt", dtype=int)
+print(ics_O0_mul_6_7_sort)
+#+end_src
+
+#+RESULTS:
+#+begin_example
+Max SNR: 5.3420
+[154  41 109 155 145  42  67 146  40  68 153 144  17  66 133 102 122 147
+ 158 121 110  50 134  76  98 163  43 132  49 115 123  75 101  28  31 148
+ 112  51  77 108  74 157  18  97  16 135  27  39  34 139 140 116 162 164
+  99 152  30  29  85 107  48  32 156  73 143 161  35  78 120  86  65  20
+ 131  58 138  26  69 165 114 125  15 124 111  33 159 173  84  87 103  60
+ 141 172  96  21  62  52 160  38 126 171 127 128  44 137  83  56 106  93
+  57 151  47 176 113 174  94 129  79  95  88  64 167  25  19  72 175 117
+  59   6  70 130  61 149 104 119 168  63 170  24   1 169  53  23 166  14
+ 150   5  92 136  46   4   2  12  90  22  55  82  91   7   9  37  89  54
+   3  81  80 181 142 178 118  10  45 182 177  71  36 100 180  11 179 105
+  13   8   0]
+#+end_example
+
+
+* PoI
+
+#+begin_src python :results output replace :exports both
+ics_scaled, rects = leakage_markers_fp(SNR_O0_scaled, gap_peak=20)
+print_peaks(ics_scaled, addr_O0_scaled, SNR_O0_scaled)
+np.savetxt(f'ics/ics_scaled.txt', ics_scaled, fmt='%d')
+#+end_src
+
+#+RESULTS:
+: 0x454 652 2088.3907
+: 0x2fe 452 1858.6090
+: 0x3b8 557  691.5629
+: 0x0     3  274.5357
+: 0x536 791  145.5570
+: 0x56e 831   82.0876
+
+#+begin_src python :results output replace :exports both
+ics_shift55, rects = leakage_markers_fp(SNR_O0_shift55, gap_peak=5)
+print_peaks(ics_shift55, addr_O0_shift55, SNR_O0_shift55)
+np.savetxt(f'ics/ics_shift55.txt', ics_shift55, fmt='%d')
+#+end_src
+
+#+RESULTS:
+: 0x358 56 80.7783
+: 0x362 62 51.3548
+: 0x350 49 51.3228
+: 0x372 69 46.8823
+: 0x37e 79 14.0029
+
+#+begin_src python :results output replace :exports both
+ics_mul_4_5, rects = leakage_markers_fp(SNR_O0_mul_4_5, gap_peak=6)
+print_peaks(ics_mul_4_5, addr_O0_mul, SNR_O0_mul_4_5)
+np.savetxt(f'ics/ics_mul_4_5.txt', ics_mul_4_5, fmt='%d')
+#+end_src
+
+#+RESULTS:
+#+begin_example
+0x288 133 57.3181
+0x2b6 166 33.0367
+0x1ba  17 32.3572
+0x1ec  41 31.1399
+0x2c8 177 28.5429
+0x27a 122 20.9467
+0x2ae 157 19.8496
+0x210  67 19.3598
+0x298 145 16.7737
+0x266 113 13.8019
+0x1f6  50 11.3394
+0x1d6  31  9.4433
+0x226  76  8.2111
+0x248  99  4.2528
+0x1fe  58  2.2921
+#+end_example
+
+#+begin_src python :results output replace :exports both
+ics_mul_6_7, rects = leakage_markers_fp(SNR_O0_mul_6_7, gap_peak=6)
+print_peaks(ics_mul_6_7, addr_O0_mul, SNR_O0_mul_6_7)
+np.savetxt(f'ics/ics_mul_6_7.txt', ics_mul_6_7, fmt='%d')
+#+end_src
+
+#+RESULTS:
+#+begin_example
+0x2a8 154 5.3420
+0x1ec  41 5.1754
+0x25c 109 5.0792
+0x298 145 4.5842
+0x210  67 4.2291
+0x1ba  17 2.8621
+0x24e 102 2.6127
+0x27a 122 2.5661
+0x1f6  50 1.7771
+0x226  76 1.7242
+0x1ce  28 1.4534
+0x234  85 0.4734
+0x1fe  58 0.3009
+0x2c6 173 0.1706
+#+end_example

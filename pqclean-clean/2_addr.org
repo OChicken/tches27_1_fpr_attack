@@ -1,0 +1,472 @@
+#+TITLE: 2. Addresses
+
+This document identifies data-dependent leakage sites in two target routines of FALCON's floating-point core — Floating-Point Conversion (=fpr_scaled=) and Floating-Point Multiplication (=fpr_mul=) — by static analysis of their ARM Cortex-M4 assembly compiled at =-O3=. Within =fpr_mul=, two sub-tasks are analysed separately: mantissa multiplication (the primary profiling target) and mantissa normalization, which checks whether the product reaches =2^55= and thereby introduces additional leakage. For each leakage site, the responsible instructions (conditional moves, multiplications, and bitwise operations on secret mantissa bits) are annotated, and a [start, end] address interval is derived to serve as the SWO trace capture window in subsequent profiling steps.
+
+No CW devices are needed.
+
+The main purpose of this file is to help you settle down the parameters in the json.
+
+* Compile
+
+#+begin_src shell
+for d in O0 O1 O2 O3 Os; do
+    (cd "$d" && make build -B && make objdump-scaled && make objdump-mul)
+done
+#+end_src
+
+
+* fpr_scaled
+
+Call-chain of =smallints_to_fpr=
+
+#+begin_example
+smallints_to_fpr(r, t, logn)          sign.c:188   - loop over n coefficients
+└── fpr_of(t[u])                       sign.c:194 → fpr.h:223
+    └── return fpr_scaled(i, 0)        fpr.h:225
+        └── fpr_scaled(int64_t, int)   fpr.c        ← LEAF (naked asm on M4)
+#+end_example
+
+#+begin_src C
+    /* (<<<(< */
+    /*
+     * Extract sign bit.
+     * We have: -i = 1 + ~i
+     */
+    s = (int)((uint64_t)i >> 63);
+    i ^= -(int64_t)s;
+    i += s;
+
+    /*
+     * For now we suppose that i != 0.
+     * Otherwise, we set m to i and left-shift it as much as needed
+     * to get a 1 in the top bit. We can do that in a logarithmic
+     * number of conditional shifts.
+     */
+    m = (uint64_t)i;
+    e = 9 + sc;
+    FPR_NORM64(m, e);
+
+    /*
+     * Now m is in the 2^63..2^64-1 range. We must divide it by 512;
+     * if one of the dropped bits is a 1, this should go into the
+     * "sticky bit".
+     */
+    m |= ((uint32_t)m & 0x1FF) + 0x1FF;
+    m >>= 9;
+
+    /*
+     * Corrective action: if i = 0 then all of the above was
+     * incorrect, and we clamp e and m down to zero.
+     */
+    t = (uint32_t)((uint64_t)(i | -i) >> 63);
+    m &= -(uint64_t)t;
+    e &= -(int)t;
+#+end_src
+
+** O0
+
+Fully unrolled software emulation: =FPR_NORM64= is expanded into 6 conditional shift steps and everything lives on the stack frame. The whole computation =[0x00, 0x576]= is "interesting"; =FPR()= is an out-of-line call at =0x586=.
+
+#+begin_src asm
+ 4ee:	lsrs	r2, r0, #9      @ m >>= 9 (after sticky)
+ 500:	negs	r0, r2          @ -i      [start of t = (i|-i)>>63]
+ 514:	orrs	r4, r2          @ i | -i  (lo)
+ 528:	lsrs	r2, r1, #31     @ t = bit63(i|-i)   [t=1 iff i!=0]
+ 544:	negs	r2, r2          @ -t  (mask, lo)
+ 55a:	ands	r4, r2          @ m_lo &= -t  → leaks HW(m_lo) when i!=0
+ 55e:	ands	r1, r3          @ m_hi &= -t  → leaks HW(m_hi)
+ 574:	ands	r3, r2          @ e   &= -t   → leaks whether i=0
+#+end_src
+
+Same leakage shape as O2, just spelled out: the 6 =FPR_NORM64= steps at =0x92=..=0x4b4= (each =lsrs= a chunk of =m=, then =negs= / =orrs= / =lsrs #31= to build a data-dependent zero mask, then =ands= it back into =m=) leak the secret mantissa chunk by chunk; the masks above leak HW(m) and the i=0 decision.
+
+
+** O1
+
+Whole function is the region, =[0x00, 0x168]=; the =FPR()= packing is inlined from =0x16c= onward.
+
+#+begin_src asm
+  4e:	cmp	r4, #0          @ FPR_NORM64 step: is this chunk of m zero?
+  54:	it	lt
+  56:	movlt	r4, #0          @ build data-dependent mask from m chunk
+  @ ... repeats at 0x7c/0x82/0x84, 0xaa/0xb0/0xb2, 0xdc/0xe2/0xe4, 0x10a/0x112/0x114
+ 13e:	mul.w	r3, r2, r3      @ e &= -t  (implemented as multiply)
+ 156:	and.w	ip, ip, r5, asr #31 @ i!=0 mask → leaks whether i=0
+ 15a:	and.w	r2, r2, r5, asr #31 @ same, m_hi path
+ 15e:	lsrs	r0, r6, #9          @ m >>= 9
+ 164:	and.w	ip, ip, r0          @ m_lo mask → leaks HW(m_lo)
+ 168:	and.w	r2, r2, r4, lsr #9  @ m_hi mask → leaks HW(m_hi)
+#+end_src
+
+Same five NORM64 =it/movlt= steps + final masks as O2.
+
+
+** O2
+
+Totally the same as O3.
+
+
+** O3
+
+#+begin_src asm
+   0:	push	{r4, r5, r6, lr}
+   2:	eor.w	r0, r0, r1, asr #31
+   6:	lsrs	r5, r1, #31
+   @ ... (<<(<<<[<(<<<<<
+ 14c:	lsrs	r4, r0, #31     @ r4 = t = bit31((|i||−|i|)_hi) [t=1 if i!=0; for zero-clamp]
+ 14e:	eor.w	lr, lr, r2      @ lr = new m_hi  [FPR_NORM64 done; m in (lr:ip), e in r3]
+ 152:	mul.w	r3, r4, r3      @ r3 = t * e, is implemented as "e &= -(int)t" [e=0 if t=0; e unchanged if t!=0]
+ 156:	ubfx	r2, ip, #0, #9  @ [sticky A] r2 = m_lo & 0x1FF
+ 15a:	addw	r3, r3, #1076	@ 0x434 @ [FPR] e += 1076  ← interleaved here
+ 15e:	addw	r2, r2, #511	@ 0x1ff @ [sticky B] r2 = (m_lo & 0x1FF) + 0x1FF
+ 162:	cmp	r3, #0          @ [FPR] set lt flag for t = (u32)e>>31  ← interleaved here
+ 164:	orr.w	r2, r2, ip      @ [sticky C] r2 = m_lo | ((m_lo&0x1FF)+0x1FF)
+ 168:	mov.w	r2, r2, lsr #9  @ m >>= 9
+ 16c:	mov.w	ip, #4294967295	@ 0xffffffff @ [FPR] m &= (u64)t - 1
+ 170:	it	lt              @ [FPR] lt flag set by instruction in 0x162: r3 < 0?
+ 172:	movlt.w	ip, #0          @ [FPR] if r3 < 0, then ip = 0
+ 176:	orr.w	r2, r2, lr, lsl #23 @ m >>= 9 complete. r2 = (m_lo>>9)|(m_hi<<23) [(m>>9)_lo: low 32 bits of mantissa/512]
+ 17a:	and.w	ip, ip, r0, asr #31 @ m &= -(u64)t — AND in i≠0 mask
+ 17e:	and.w	ip, ip, r2      @ ip = final m_lo  [masked low 32 bits of m>>9]
+ 182:	lsrs	r2, r3, #31     @ [FPR] second t = (u32)e>>31 for m_hi
+ 184:	subs	r2, #1          @ [FPR] r2 = t - 1 (mask: 0xFFFFFFFF or 0)
+ 186:	and.w	r2, r2, r0, asr #31 @ [scaled] r2&=(r0>>31) AND in i≠0 mask (m &= -(u64)t for m_hi)
+ 18a:	and.w	r2, r2, lr, lsr #9  @ [scaled] apply combined mask to m_hi
+ 18e:	mov.w	r0, ip, lsr #2  @ [FPR] x_lo = m_lo >> 2
+#+end_src
+
+Possible leakages:
+
+=0x12= to =0x12e= (FPR_NORM64, 6 steps): each step constructs a data-dependent mask from a chunk of m, then applies =it= to m. Instructions like =it lt= / =movlt= conditionally zero the mask depending on whether a secret chunk of m is zero — leaks chunks of m one by one.
+
+=0x17a=: and.w	ip, ip, r0, asr #31
+  - r0 ≥ 0 (bit 31 = 0) → r0 asr #31 = 0x00000000
+  - r0 < 0 (bit 31 = 1) → r0 asr #31 = 0xFFFFFFFF
+  - ip = e-clamp mask & (r0 asr #31) → leaks whether i = 0
+
+=0x17e=: and.w	ip, ip, r2
+  - applies combined mask to m_lo (r2 = (m>>9)_lo, a secret value)
+  - ip = masked m_lo → leaks Hamming weight of m_lo
+
+=0x186=: and.w	r2, r2, r0, asr #31
+  - same structure as 0x17a, same r0 mask (i≠0 check), applied to m_lo
+  - r2 = e-clamp mask & (r0 asr #31) → leaks whether i = 0
+
+=0x18a=: and.w	r2, r2, lr, lsr #9
+  - applies combined mask to m_hi (lr = m_hi, a secret value)
+  - r2 = masked m_hi → leaks Hamming weight of m_hi
+
+Can pick end address as =0x18e= just to reserve one more to cover the full, or simply tighter, =0x182=.
+
+
+** Os
+
+Whole function is the region, =[0x00, 0x158]=; =FPR()= is tail-called (=b.w=) at =0x160=.
+
+#+begin_src asm
+  54:	it	lt
+  56:	movlt	r2, #0          @ FPR_NORM64 step mask
+  @ ... repeats at 0x80/0x82, 0xbc/0xbe, 0xe4/0xe6, 0x112/0x114
+ 130:	ubfx	r2, r6, #0, #9      @ sticky
+ 14c:	lsrs	r1, r0, #31         @ t = bit63(i|-i) → whether i=0
+ 150:	and.w	r2, r2, r0, asr #31 @ m_lo &= -t → leaks HW(m_lo) / i=0
+ 154:	and.w	r3, r3, r0, asr #31 @ m_hi &= -t → leaks HW(m_hi)
+ 158:	muls	r1, r7              @ e &= -t (as multiply)
+#+end_src
+
+Identical structure to O1/O2.
+
+
+* fpr_mul: Multiply x1*y0
+
+Call-chain of =PQCLEAN_FALCON512_CLEAN_FFT=
+
+#+begin_example
+PQCLEAN_FALCON512_CLEAN_FFT(f, logn)             fft.c:171   - butterfly triple-loop over n coeffs
+└── FPC_MUL(y_re, y_im, y_re, y_im, s_re, s_im)  fft.c:238 → fft.c:70   (complex-multiply macro)
+    └── fpr_mul(fpct_a_re, fpct_b_re)            fft.c:79    (4× per FPC_MUL: :79, :80, :82, :83)
+        └── fpr_mul(fpr, fpr)                    fpr.c        ← LEAF (naked asm on M4)
+#+end_example
+
+#+begin_src C
+    /* (<(<(<(<(<(< */
+    /*
+     * We have two 53-bit integers to multiply; we need to split
+     * each into a lower half and a upper half. Moreover, we
+     * prefer to have lower halves to be of 25 bits each, for
+     * reasons explained later on.
+     */
+    x0 = (uint32_t)xu & 0x01FFFFFF;
+    x1 = (uint32_t)(xu >> 25);
+    y0 = (uint32_t)yu & 0x01FFFFFF;
+    y1 = (uint32_t)(yu >> 25);
+    w = (uint64_t)x0 * (uint64_t)y0;
+    z0 = (uint32_t)w & 0x01FFFFFF;
+    z1 = (uint32_t)(w >> 25);
+    w = (uint64_t)x0 * (uint64_t)y1;
+    z1 += (uint32_t)w & 0x01FFFFFF;
+    z2 = (uint32_t)(w >> 25);
+    w = (uint64_t)x1 * (uint64_t)y0;
+    z1 += (uint32_t)w & 0x01FFFFFF;
+    z2 += (uint32_t)(w >> 25);
+    zu = (uint64_t)x1 * (uint64_t)y1;
+    z2 += (z1 >> 25);
+    z1 &= 0x01FFFFFF;
+    zu += z2;
+#+end_src
+
+** O0
+
+Unrolled emulation: each =w = xi*yj= becomes two =mul.w= (the 32×32 cross terms) + one =umull=, with operands/results spilled to the stack. The =x1*y0= product alone is =[0x19e, 0x2d0]=; all four products span =[0xa8, 0x288]=.
+
+#+begin_src asm
+ 1ba:	ldrd	r3, r4, [r7, #144]  @ x1 limbs
+ 1c0:	ldrd	r8, r9, [r7, #136]  @ y0 limbs
+ 1c6:	mul.w	r2, r1, r2          @ cross term
+ 1d2:	mul.w	r3, r3, r5          @ cross term
+ 1dc:	umull	r2, r1, r2, r1      @ x1*y0 (64-bit)  ← secret × secret
+ 20c:	str.w	r3, [r7, #280]      @ z2 += (w>>25)
+#+end_src
+
+Possible leakages: the =mul.w=/=umull= at =0x1c6=, =0x1d2=, =0x1dc= multiply secret mantissa limbs → HW of both inputs and the 64-bit product leak. Same for the other three products (=0xb4/0xc0/0xca=, =0x13a/0x146/0x150=, =0x254/0x260/0x26a=).
+
+
+** O1
+
+=x1*y0= alone is =[0x44, 0x5a]=; all four multiplications span =[0x28, 0x60]=.
+
+#+begin_src asm
+  28:	umull	ip, r6, r0, r2   @ x0*y0
+  34:	umull	r0, r7, lr, r0   @ x0*y1
+  44:	umull	r2, r7, r4, r2   @ x1*y0   ← target (r4=x1, r2=y0)
+  56:	umull	r4, r0, r4, lr   @ x1*y1
+#+end_src
+
+Possible leakages: each =umull= multiplies two secret limbs; HW of inputs/output leaks the mantissa. =0x4c=/=0x54=/=0x5a= accumulate z1/z2 (secret) → HW leaks.
+
+
+** O2
+
+Totally the same as O3.
+
+
+** O3
+
+=mul= region that only cover =x1*y0=, is =[0x34, 0x70]=. A looser region, that cover all multiplications, is =[0x28, 0x72]=.
+
+#+begin_src asm
+  @ <<
+  28:	umull	r0, r2, ip, r4  @ (r2:r0) = x0 * y0 [50-bit product; r0=lo32, r2=hi32]
+  2c:	mov.w	r9, r0, lsr #25 @ r9 = r0 >> 25     [bits 49:32 of w in lo-reg portion]
+  30:	umull	ip, r5, r6, ip  @ (r5:ip) = y1 * x0 [53-bit; ip=lo32, r5=hi32]
+  34:	umull	r4, r8, r7, r4  @ (r8:r4) = x1 * y0 [53-bit; r4=lo32, r8=hi32]
+  38:	orr.w	r9, r9, r2, lsl #7
+  3c:	bic.w	r2, ip, #4261412864	@ 0xfe000000
+  40:	mov.w	ip, ip, lsr #25
+  44:	add	r2, r9
+  46:	orr.w	ip, ip, r5, lsl #7
+  4a:	bic.w	r5, r4, #4261412864	@ 0xfe000000
+  4e:	add	r5, r2
+  50:	lsrs	r4, r4, #25
+  52:	orr.w	r4, r4, r8, lsl #7
+  56:	orrs	r0, r5
+  58:	add.w	r2, ip, r4
+  5c:	bic.w	r0, r0, #4261412864	@ 0xfe000000
+  60:	add.w	r2, r2, r5, lsr #25
+  64:	mov.w	lr, #0
+  68:	add.w	r0, r0, #33554432	@ 0x2000000
+  6c:	umlal	r2, lr, r7, r6       @ (lr:r2) += x1 * y1
+  70:	subs	r0, #1               @ r0 = (z0|z1)&0x1FFFFFF + 0x1FFFFFF
+  72:	orr.w	r0, r2, r0, lsr #25  @ r0 = zu_lo | sticky [(z0|z1)!=0 → bit0 of r0 set]
+#+end_src
+
+Possible leakages:
+
+=0x28=, =0x30=, =0x34=, =0x6c= (=umull= / =umlal=): each multiplies two secret mantissa limbs
+(x0, x1, y0, y1 derived from xu, yu). Hamming weight of both inputs and output leaks
+the mantissa values of x and y.
+
+=0x56=: orrs r0, r5
+  - r0 = z0_lo (secret), r5 = z1 (secret) → r0 | r5 leaks Hamming weight of z0|z1
+
+=0x72=: orr.w r0, r2, r0, lsr #25
+  - r2 = zu_lo (secret product mantissa) → leaks Hamming weight of zu_lo with sticky bit
+
+
+** Os
+
+=x1*y0= alone is =[0x42, 0x60]=; all four multiplications span =[0x2a, 0x6c]=. Os uses =umlal= for the last product (fused accumulate).
+
+#+begin_src asm
+  2a:	umull	ip, r3, r0, r2   @ x0*y0
+  32:	umull	r4, r0, r1, r0   @ x0*y1
+  42:	umull	r2, lr, r7, r2   @ x1*y0   ← target (r7=x1, r2=y0)
+  6c:	umlal	r4, lr, r7, r1   @ (lr:r4) += x1*y1
+#+end_src
+
+Possible leakages: same as O1/O2 — secret limb multiplications leak input/output Hamming weight.
+
+
+* fpr_mul: Shift55, normalize zu to 2^54..2^55-1 (conditional right-shift by 1)
+
+#+begin_src C
+    /* <<(< */
+    /*
+     * We normalize zu to the 2^54..s^55-1 range: it could be one
+     * bit too large at this point. This is done with a conditional
+     * right-shift that takes into account the sticky bit.
+     */
+    zv = (zu >> 1) | (zu & 1);
+    w = zu >> 55;
+    zu ^= (zu ^ zv) & -w;
+#+end_src
+
+** O0
+
+Region =[0x302, 0x3a2]=. Branchless (mask built with =negs=+=ands=), spelled out on the stack.
+
+#+begin_src asm
+ 30e:	lsrs	r0, r2, #1       @ zu >> 1 (lo)
+ 310:	orr.w	r0, r0, r3, lsl #31
+ 31a:	and.w	r3, r2, #1       @ zu & 1  (sticky)  → zv
+ 348:	lsrs	r0, r3, #23      @ w = zu >> 55
+ 358:	eor.w	r4, r0, r2       @ zu ^ zv
+ 368:	negs	r0, r2           @ -w  (mask)
+ 37e:	ands	r0, r5           @ (zu ^ zv) & -w
+ 392:	eors	r4, r2           @ zu ^= ...
+#+end_src
+
+Possible leakages: =0x348= (=lsrs ...,#23=) forms =w = bit55(zu)= → leaks whether zu ≥ 2^55; the mask =ands= at =0x37e= and the final XOR leak zu_hi. No data-dependent branch (mask-based), like O2 — contrast O1 below.
+
+
+** O1
+
+Region =[0x78, 0x90]=. IMPORTANT: O1 is the *only* level that emits a real secret-dependent *branch* (=beq=); O0/O2/O3/Os are all branchless.
+
+#+begin_src asm
+  78:	lsrs	r2, r2, #1
+  7a:	orr.w	r2, r2, r0, lsl #31   @ zv_lo
+  7e:	and.w	r4, ip, #1            @ sticky
+  82:	orrs	r2, r4                @ zv
+  84:	lsrs	r6, r0, #23           @ w = zu >> 55
+  86:	tst.w	r0, #8388608	@ 0x800000  @ test bit55
+  8a:	beq.n	92                    @ ← secret-dependent BRANCH (w==0 → skip shift)
+  8c:	lsrs	r5, r0, #1            @ zv_hi
+  8e:	mov	ip, r2
+  90:	mov	r0, r5               @ commit shifted zu
+#+end_src
+
+Possible leakages: =0x86= / =0x8a= (=tst= + =beq=) branch directly on bit55(zu) — a control-flow / timing leak, strictly worse than the predicated forms; the taken path (=0x8c=..=0x90=) also touches zu_hi/zv.
+
+
+** O2
+
+Totally the same as O3.
+
+
+** O3
+
+=shift55= region is =[0x76, 0xbe)=. Normalization instructions are INTERLEAVED with =ex/ey/d/e/s= computations by the compiler (instruction scheduling at -O3). The last normalization instruction is at =0xbc=; =0xbe= starts the next operation.
+
+Together they implement zu ^= (zu ^ zv) & -w branchlessly:
+- if w=0 (eq), restore =zu_lo= to the unshifted value;
+- if w=1 (ne), write =zv_hi= into =zu_hi=.
+
+The compiler split one logical operation into three separate it-guarded moves spread =0x8c= to =0xbc= apart, filling the gaps with unrelated instructions (=0x88=, =0x90=, =0x94=, =0x98=, =0x9c=, =0x9e=, =0xa6=, =0xb0=, =0xb2=, =0xb6=, =0xbe=)
+
+#+begin_src asm
+  @ <<<<<
+  76:	lsrs	r2, r2, #1      @ shift55: zv_lo partial
+  @ "tst.w lr,0x800000" to set Z flag:
+  @     Z=1 (eq) if bit55=0 (w=0): no shift
+  @     Z=0 (ne) if bit55=1 (w=1): need shift
+  78:	tst.w	lr, #8388608	@ 0x800000  @ test bit55 is 0 (Z=1) or 1 (Z=0)
+  7c:	orr.w	r2, r2, lr, lsl #31 @ zv_lo part 2
+  80:	and.w	r4, r0, #1      @ sticky bit from zu itself
+  84:	orr.w	r2, r2, r4      @ finish zv_lo
+  88:	ubfx	ip, r1, #20, #11
+  8c:	it	eq              @ Z=1 → zu<2^55, w=0, no shift
+  8e:	moveq	r2, r0          @ r2 = r0 = zu_lo | sticky  [undo zv, keep zu_lo]
+  90:	ubfx	r0, r3, #20, #11
+  94:	eor.w	r1, r1, r3
+  98:	addw	r3, ip, #2047	@ 0x7ff
+  9c:	add	ip, r0
+  9e:	addw	r0, r0, #2047	@ 0x7ff
+  a2:	mov.w	r4, lr, lsr #23 @ w = zu>>55
+  a6:	and.w	r3, r3, r0
+  aa:	it	ne              @ Z=0 → zu ⪭ 2^55, w=1, need shift
+  ac:	movne.w	r5, lr, lsr #1  @ zv_hi = zu_hi >> 1
+  b0:	add	ip, r4
+  b2:	mov.w	r0, r3, asr #11
+  b6:	sub.w	ip, ip, #1024	@ 0x400
+  ba:	it	ne              @ Z=0 → zu ⪭ 2^55, w=1, need shift
+  bc:	movne	lr, r5          @ lr ← zv_hi, commit the shift to zu_hi
+  be:	asrs	r3, r3, #31     @ next: zu &= -(u64)d
+#+end_src
+
+Possible leakages:
+
+=0x78=: =tst.w lr, #8388608=
+  - tests bit 55 of zu (secret product mantissa) → Z flag reveals whether zu ≥ 2^55
+  - power consumption of =lr= leaks Hamming weight of zu_hi
+
+=0x8c=, =0x8e=: =it eq=; =moveq r2, r0=
+  - conditional on Z flag (= bit 55 of zu) → reveals =w = zu>>55=
+  - if w=0: r2 = r0 (zu_lo); if w=1: r2 unchanged (zv_lo) → leaks the branch decision
+
+=0xaa=, =0xac=: =it ne=; =movne.w r5, lr, lsr #1=
+  - same Z flag → reveals =w= again; r5 = zv_hi leaks zu_hi shifted
+
+=0xba=, =0xbc=: =it ne=; =movne lr, r5=
+  - same Z flag → reveals =w= a third time; lr = zu_hi (or zv_hi) leaks mantissa high word
+
+
+** Os
+
+Core =shift55= normalization is =[0x76, 0x9a]= (predicated =ite eq=, like O2/O3 — branchless).  But at cycle resolution that is only 11 cycles, and =rel_end=0x9a= even drops the =movne= (the =w=1= half of the conditional select, which leaks =zu_hi=).  We therefore widen the crop to =[0x76, 0x9c)=: out to =0x9c= (exclusive — the first exponent =addw=), so the whole =zu= formation and BOTH =moveq= / =movne= sit inside the window.
+
+#+begin_src asm
+  @ <<
+  76:	lsrs	r4, r4, #1            @ shift55: zv_lo partial
+  78:	orr.w	r4, r4, lr, lsl #31   @ zv_lo
+  7c:	and.w	r1, r3, #1            @ sticky
+  80:	orrs	r4, r1                @ zv
+  82:	ubfx	r0, r6, #20, #11      @ (interleaved: ex of next op)
+  86:	mov.w	r2, lr, lsr #1        @ zv_hi
+  8a:	tst.w	lr, #8388608	@ 0x800000  @ test bit55 → Z = w
+  8e:	ubfx	r1, r5, #20, #11      @ (interleaved: ey of next op)
+  92:	mov.w	r7, lr, lsr #23       @ w = zu >> 55
+  96:	ite	eq
+  98:	moveq	r4, r3                @ w=0: keep zu_lo
+  9a:	movne	lr, r2                @ w=1: zu_hi = zv_hi
+  9c:	addw	r3, r1, #2047         @ 0x7ff (next op)
+#+end_src
+
+=0x9c= (=addw=, exponent path) is the exclusive end.  Possible leakages: =0x8a= (=tst=) sets Z from bit55(zu) → leaks whether zu ≥ 2^55; =moveq=/=movne= leak the decision and zu_hi; the =[0x6c,0x72]= lead-in carries the full =zu= whose bit55 is the secret-dependent test.  Branchless.
+
+
+* Summary
+
+** Global addr
+
+|    | =fpr_scaled= |    =fpr_mul= |
+| O0 | 0x08001064 | 0x08001e98 |
+| O1 | 0x08000e00 | 0x080011ea |
+| O2 | 0x08000e00 | 0x0800121c |
+| O3 | 0x08000e00 | 0x0800121c |
+| Os | 0x08000e40 | 0x080011e6 |
+
+
+** Clip range
+
+|    | scaled       | multiply x1*y0 | shift55       |
+| O0 | [0x00,0x576] | [0x1ba,0x20c]  | [0x302,0x39e] |
+| O1 | [0x00,0x168] | [0x44,0x5a]    | [0x78,0x90]   |
+| O2 | [0x00,0x182] | [0x34,0x70]    | [0x76,0xbe]   |
+| O3 | [0x00,0x182] | [0x34,0x70]    | [0x76,0xbe]   |
+| Os | [0x00,0x158] | [0x42,0x60]    | [0x6c,0x9c]   |
+
+
+** O2 = O3
+
+In the follow-up tasks need not do O2, and can remove the O2 entry in =cycloc_params.json=.

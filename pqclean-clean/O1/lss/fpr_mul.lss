@@ -1,0 +1,193 @@
+
+build-stm32f4/obj/fpr.o:     file format elf32-littlearm
+
+
+Disassembly of section .text.PQCLEAN_FALCON512_CLEAN_fpr_scaled:
+
+Disassembly of section .text.PQCLEAN_FALCON512_CLEAN_fpr_add:
+
+Disassembly of section .text.PQCLEAN_FALCON512_CLEAN_fpr_mul:
+
+00000000 <PQCLEAN_FALCON512_CLEAN_fpr_mul>:
+     */
+    return FPR(sx, ex, xu);
+}
+
+fpr
+fpr_mul(fpr x, fpr y) {
+   0:	push	{r4, r5, r6, r7, lr}
+
+    /*
+     * Extract absolute values as scaled unsigned integers. We
+     * don't extract exponents yet.
+     */
+    xu = (x & (((uint64_t)1 << 52) - 1)) | ((uint64_t)1 << 52);
+   2:	ubfx	r6, r1, #0, #20
+   6:	orr.w	r6, r6, #1048576	@ 0x100000
+    yu = (y & (((uint64_t)1 << 52) - 1)) | ((uint64_t)1 << 52);
+   a:	ubfx	r5, r3, #0, #20
+   e:	orr.w	r5, r5, #1048576	@ 0x100000
+     * each into a lower half and a upper half. Moreover, we
+     * prefer to have lower halves to be of 25 bits each, for
+     * reasons explained later on.
+     */
+    x0 = (uint32_t)xu & 0x01FFFFFF;
+    x1 = (uint32_t)(xu >> 25);
+  12:	lsrs	r4, r0, #25
+  14:	orr.w	r4, r4, r6, lsl #7
+    y0 = (uint32_t)yu & 0x01FFFFFF;
+    y1 = (uint32_t)(yu >> 25);
+  18:	mov.w	lr, r2, lsr #25
+  1c:	orr.w	lr, lr, r5, lsl #7
+    x0 = (uint32_t)xu & 0x01FFFFFF;
+  20:	bic.w	r0, r0, #4261412864	@ 0xfe000000
+    y0 = (uint32_t)yu & 0x01FFFFFF;
+  24:	bic.w	r2, r2, #4261412864	@ 0xfe000000
+    w = (uint64_t)x0 * (uint64_t)y0;
+  28:	umull	ip, r6, r0, r2
+    z0 = (uint32_t)w & 0x01FFFFFF;
+    z1 = (uint32_t)(w >> 25);
+  2c:	mov.w	r5, ip, lsr #25
+  30:	orr.w	r5, r5, r6, lsl #7
+    w = (uint64_t)x0 * (uint64_t)y1;
+  34:	umull	r0, r7, lr, r0
+    z1 += (uint32_t)w & 0x01FFFFFF;
+  38:	bic.w	r6, r0, #4261412864	@ 0xfe000000
+  3c:	add	r6, r5
+    z2 = (uint32_t)(w >> 25);
+  3e:	lsrs	r0, r0, #25
+  40:	orr.w	r0, r0, r7, lsl #7
+    w = (uint64_t)x1 * (uint64_t)y0;
+  44:	umull	r2, r7, r4, r2
+    z1 += (uint32_t)w & 0x01FFFFFF;
+  48:	bic.w	r5, r2, #4261412864	@ 0xfe000000
+  4c:	add	r5, r6
+    z2 += (uint32_t)(w >> 25);
+  4e:	lsrs	r2, r2, #25
+  50:	orr.w	r2, r2, r7, lsl #7
+  54:	add	r2, r0
+    zu = (uint64_t)x1 * (uint64_t)y1;
+  56:	umull	r4, r0, r4, lr
+    z2 += (z1 >> 25);
+  5a:	add.w	r2, r2, r5, lsr #25
+    z1 &= 0x01FFFFFF;
+    zu += z2;
+  5e:	adds	r2, r2, r4
+  60:	adc.w	r0, r0, #0
+     * is made "sticky". Since the low limbs z0 and z1 are 25 bits
+     * each, we just take the upper part (zu), and consider z0 and
+     * z1 only for purposes of stickiness.
+     * (This is the reason why we chose 25-bit limbs above.)
+     */
+    zu |= ((z0 | z1) + 0x01FFFFFF) >> 25;
+  64:	orr.w	ip, r5, ip
+  68:	bic.w	ip, ip, #4261412864	@ 0xfe000000
+  6c:	add.w	ip, ip, #33554432	@ 0x2000000
+  70:	add.w	ip, ip, #4294967295	@ 0xffffffff
+  74:	orr.w	ip, r2, ip, lsr #25
+    /*
+     * We normalize zu to the 2^54..s^55-1 range: it could be one
+     * bit too large at this point. This is done with a conditional
+     * right-shift that takes into account the sticky bit.
+     */
+    zv = (zu >> 1) | (zu & 1);
+  78:	lsrs	r2, r2, #1
+  7a:	orr.w	r2, r2, r0, lsl #31
+  7e:	and.w	r4, ip, #1
+  82:	orrs	r2, r4
+    w = zu >> 55;
+  84:	lsrs	r6, r0, #23
+    zu ^= (zu ^ zv) & -w;
+  86:	tst.w	r0, #8388608	@ 0x800000
+  8a:	beq.n	92 <PQCLEAN_FALCON512_CLEAN_fpr_mul+0x92>
+  8c:	lsrs	r5, r0, #1
+  8e:	mov	ip, r2
+  90:	mov	r0, r5
+     *     by 0 or 1 extra bit (depending on the value of w).
+     *
+     * In total, we must add the exponents, then subtract
+     * 2 * (1023 + 52), then add 50 + w.
+     */
+    ex = (int)((x >> 52) & 0x7FF);
+  92:	ubfx	r2, r1, #20, #11
+    ey = (int)((y >> 52) & 0x7FF);
+  96:	ubfx	r5, r3, #20, #11
+    e = ex + ey - 2100 + (int)w;
+  9a:	adds	r4, r2, r5
+  9c:	add	r4, r6
+
+    /*
+     * If e >= -1076, then the value is "normal"; otherwise, it
+     * should be a subnormal, which we clamp down to zero.
+     */
+    e += 1076;
+  9e:	sub.w	r4, r4, #1024	@ 0x400
+     * Corrective actions for zeros: if either of the operands is
+     * zero, then the computations above were wrong. Test for zero
+     * is whether ex or ey is zero. We just have to set the mantissa
+     * (zu) to zero, the FPR() function will normalize e.
+     */
+    d = ((ex + 0x7FF) & (ey + 0x7FF)) >> 11;
+  a2:	addw	r2, r2, #2047	@ 0x7ff
+  a6:	addw	r5, r5, #2047	@ 0x7ff
+  aa:	ands	r2, r5
+  ac:	asrs	r5, r2, #11
+    zu &= -(uint64_t)d;
+  ae:	asrs	r2, r2, #31
+  b0:	negs	r5, r5
+  b2:	sbc.w	r2, r2, r2, lsl #1
+  b6:	and.w	ip, r5, ip
+  ba:	ands	r2, r0
+    t = (uint32_t)e >> 31;
+  bc:	lsrs	r0, r4, #31
+    m &= (uint64_t)t - 1;
+  be:	cmp	r4, #0
+  c0:	mov.w	r5, #4294967295	@ 0xffffffff
+  c4:	it	lt
+  c6:	movlt	r5, #0
+  c8:	subs	r0, #1
+  ca:	and.w	ip, ip, r5
+  ce:	ands	r2, r0
+    s = (int)((x ^ y) >> 63);
+  d0:	eors	r1, r3
+     * The 52 mantissa bits come from m. Value m has its top bit set
+     * (unless it is a zero); we leave it "as is": the top bit will
+     * increment the exponent by 1, except when m = 0, which is
+     * exactly what we want.
+     */
+    x = (((uint64_t)s << 63) | (m >> 2)) + ((uint64_t)(uint32_t)e << 52);
+  d2:	and.w	r1, r1, #2147483648	@ 0x80000000
+  d6:	mov.w	r0, ip, lsr #2
+  da:	orr.w	r0, r0, r2, lsl #30
+  de:	orr.w	r1, r1, r2, lsr #2
+     * round-to-nearest rule (with preference to even values in case
+     * of a tie). Note that the increment may make a carry spill
+     * into the exponent field, which is again exactly what we want
+     * in that case.
+     */
+    f = (unsigned)m & 7U;
+  e2:	and.w	ip, ip, #7
+    x += (0xC8U >> f) & 1;
+  e6:	movs	r3, #200	@ 0xc8
+  e8:	lsr.w	r3, r3, ip
+  ec:	and.w	r3, r3, #1
+  f0:	adds	r0, r0, r3
+    t = (uint32_t)(m >> 54);
+  f2:	mov.w	r2, r2, lsr #22
+    e &= -(int)t;
+  f6:	rsb	r2, r2, #0
+  fa:	and.w	r2, r2, r4
+
+    /*
+     * FPR() packs the result and applies proper rounding.
+     */
+    return FPR(s, e, zu);
+}
+  fe:	adc.w	r1, r1, r2, lsl #20
+ 102:	pop	{r4, r5, r6, r7, pc}
+
+Disassembly of section .text.PQCLEAN_FALCON512_CLEAN_fpr_div:
+
+Disassembly of section .text.PQCLEAN_FALCON512_CLEAN_fpr_sqrt:
+
+Disassembly of section .text.PQCLEAN_FALCON512_CLEAN_fpr_expm_p63:

@@ -1,0 +1,1810 @@
+#+TITLE: 6. ML Template
+
+
+* Load Traces and Crop
+
+#+begin_example
+  key_id=-22: 4.0698 dB → 19.9401 dB
+  key_id=-21: 4.0450 dB → 19.9236 dB
+  key_id=-20: 3.7414 dB → 19.2029 dB
+  key_id=-19: 4.0693 dB → 19.8181 dB
+  key_id=-18: 3.9997 dB → 19.7884 dB
+  key_id=-17: 3.8916 dB → 19.5548 dB
+  key_id=-16: 3.9985 dB → 19.8524 dB
+  key_id=-15: 3.7758 dB → 19.2904 dB
+  key_id=-14: 3.9122 dB → 19.6098 dB
+  key_id=-13: 3.8623 dB → 19.5235 dB
+  key_id=-12: 3.9887 dB → 19.8352 dB
+  key_id=-11: 4.0340 dB → 19.8556 dB
+  key_id=-10: 3.7114 dB → 19.1681 dB
+  key_id= -9: 3.9721 dB → 19.7959 dB
+  key_id= -8: 4.0058 dB → 19.9212 dB
+  key_id= -7: 3.9438 dB → 19.6788 dB
+  key_id= -6: 3.9678 dB → 19.8349 dB
+  key_id= -5: 3.7152 dB → 19.1821 dB
+  key_id= -4: 3.9883 dB → 19.8787 dB
+  key_id= -3: 3.9438 dB → 19.7370 dB
+  key_id= -2: 4.0298 dB → 19.8669 dB
+  key_id= -1: 4.1672 dB → 20.2112 dB
+  key_id=  0: 3.2528 dB → 18.4810 dB
+  key_id=  1: 3.9589 dB → 19.9065 dB
+  key_id=  2: 3.8153 dB → 19.6136 dB
+  key_id=  3: 3.7962 dB → 19.4580 dB
+  key_id=  4: 3.8000 dB → 19.5731 dB
+  key_id=  5: 3.5048 dB → 18.7946 dB
+  key_id=  6: 3.7802 dB → 19.4672 dB
+  key_id=  7: 3.7549 dB → 19.3681 dB
+  key_id=  8: 3.8242 dB → 19.6272 dB
+  key_id=  9: 3.8043 dB → 19.4868 dB
+  key_id= 10: 3.5321 dB → 18.8456 dB
+  key_id= 11: 3.8732 dB → 19.5794 dB
+  key_id= 12: 3.8099 dB → 19.4969 dB
+  key_id= 13: 3.6704 dB → 19.2192 dB
+  key_id= 14: 3.7383 dB → 19.3832 dB
+  key_id= 15: 3.6089 dB → 18.9303 dB
+  key_id= 16: 3.8231 dB → 19.5696 dB
+  key_id= 17: 3.6732 dB → 19.3027 dB
+  key_id= 18: 3.7858 dB → 19.5419 dB
+  key_id= 19: 3.8320 dB → 19.4796 dB
+  key_id= 20: 3.5372 dB → 18.8834 dB
+  key_id= 21: 3.8802 dB → 19.6491 dB
+  key_id= 22: 3.8611 dB → 19.5685 dB
+Raw: mean  3.8389 dB, min 3.2528 dB, max 4.1672 dB
+LPF: mean 19.5266 dB, min 18.4810 dB, max 20.2112 dB
+#+end_example
+
+#+begin_example
+shape summary: for FALCON_N = 512, PPC = 8,
+  trace_scaled[coeff]:      (3072, 392)
+  trace_mul[coeff]:         (3072, 80)
+  trace_shift55[coeff]:     (3072, 96)
+  trace_mul_shift55[coeff]: (3072, 200)
+recall:
+  CYC_SCALED      = 49
+  CYC_MUL         = 10
+  CYC_SHIFT55     = 12
+  CYC_MUL_SHIFT55 = 25
+#+end_example
+
+
+* MLP
+
+
+** fpr_scaled
+
+#+begin_example
+traces.shape: (138240, 392)
+label.shape: (138240,)
+traces_train.shape: (103680, 392)
+traces_test.shape: (34560, 392)
+=================================================================
+Layer (type:depth-idx)                   Param #
+=================================================================
+model_mlp                                --
+├─Flatten: 1-1                           --
+├─BatchNorm1d: 1-2                       128
+├─BatchNorm1d: 1-3                       128
+├─BatchNorm1d: 1-4                       22
+├─LazyLinear: 1-5                        --
+├─Linear: 1-6                            4,160
+├─Linear: 1-7                            715
+├─ReLU: 1-8                              --
+=================================================================
+Total params: 5,153
+Trainable params: 5,153
+Non-trainable params: 0
+=================================================================
+=================================================================
+Layer (type:depth-idx)                   Param #
+=================================================================
+model_mlp                                --
+├─Flatten: 1-1                           --
+├─BatchNorm1d: 1-2                       128
+├─BatchNorm1d: 1-3                       128
+├─BatchNorm1d: 1-4                       22
+├─LazyLinear: 1-5                        --
+├─Linear: 1-6                            4,160
+├─Linear: 1-7                            715
+├─ReLU: 1-8                              --
+=================================================================
+Total params: 5,153
+Trainable params: 5,153
+Non-trainable params: 0
+=================================================================
+Epoch 01 | train loss 0.9033 acc 0.6221 | val loss 0.7150 acc 0.6639
+Best model saved.
+Epoch 02 | train loss 0.6880 acc 0.6679 | val loss 0.6528 acc 0.6617
+Best model saved.
+Epoch 03 | train loss 0.6330 acc 0.6756 | val loss 0.6075 acc 0.6790
+Best model saved.
+Epoch 04 | train loss 0.6042 acc 0.6810 | val loss 0.6004 acc 0.6654
+Best model saved.
+Epoch 05 | train loss 0.5903 acc 0.6822 | val loss 0.5778 acc 0.6804
+Best model saved.
+Epoch 06 | train loss 0.5766 acc 0.6859 | val loss 0.5718 acc 0.6867
+Best model saved.
+Epoch 07 | train loss 0.5689 acc 0.6878 | val loss 0.5754 acc 0.6781
+Epoch 08 | train loss 0.5602 acc 0.6903 | val loss 0.5630 acc 0.6794
+Best model saved.
+Epoch 09 | train loss 0.5549 acc 0.6923 | val loss 0.5651 acc 0.6906
+Epoch 10 | train loss 0.5492 acc 0.6955 | val loss 0.5535 acc 0.6852
+Best model saved.
+Epoch 11 | train loss 0.5448 acc 0.6952 | val loss 0.5533 acc 0.6821
+Best model saved.
+Epoch 12 | train loss 0.5433 acc 0.6958 | val loss 0.5495 acc 0.6801
+Best model saved.
+Epoch 13 | train loss 0.5395 acc 0.6958 | val loss 0.5436 acc 0.6960
+Best model saved.
+Epoch 14 | train loss 0.5372 acc 0.7002 | val loss 0.5401 acc 0.7008
+Best model saved.
+Epoch 15 | train loss 0.5332 acc 0.6997 | val loss 0.5374 acc 0.6975
+Best model saved.
+Epoch 16 | train loss 0.5308 acc 0.7023 | val loss 0.5383 acc 0.6910
+Epoch 17 | train loss 0.5284 acc 0.7002 | val loss 0.5401 acc 0.6952
+Epoch 18 | train loss 0.5289 acc 0.7022 | val loss 0.5325 acc 0.6933
+Best model saved.
+Epoch 19 | train loss 0.5248 acc 0.7040 | val loss 0.5329 acc 0.6975
+Epoch 20 | train loss 0.5227 acc 0.7041 | val loss 0.5385 acc 0.6945
+Epoch 21 | train loss 0.5195 acc 0.7064 | val loss 0.5369 acc 0.6941
+Epoch 22 | train loss 0.5211 acc 0.7057 | val loss 0.5325 acc 0.6990
+Best model saved.
+Epoch 23 | train loss 0.5185 acc 0.7059 | val loss 0.5330 acc 0.6927
+Epoch 24 | train loss 0.5161 acc 0.7068 | val loss 0.5346 acc 0.6960
+Epoch 25 | train loss 0.5151 acc 0.7088 | val loss 0.5292 acc 0.7097
+Best model saved.
+Epoch 26 | train loss 0.5132 acc 0.7083 | val loss 0.5265 acc 0.7025
+Best model saved.
+Epoch 27 | train loss 0.5130 acc 0.7111 | val loss 0.5273 acc 0.7022
+Epoch 28 | train loss 0.5109 acc 0.7105 | val loss 0.5298 acc 0.6949
+Epoch 29 | train loss 0.5083 acc 0.7119 | val loss 0.5261 acc 0.6980
+Best model saved.
+Epoch 30 | train loss 0.5085 acc 0.7103 | val loss 0.5239 acc 0.6891
+Best model saved.
+Epoch 31 | train loss 0.5073 acc 0.7126 | val loss 0.5275 acc 0.7038
+Epoch 32 | train loss 0.5055 acc 0.7141 | val loss 0.5254 acc 0.6964
+Epoch 33 | train loss 0.5061 acc 0.7132 | val loss 0.5207 acc 0.7093
+Best model saved.
+Epoch 34 | train loss 0.5022 acc 0.7138 | val loss 0.5225 acc 0.7018
+Epoch 35 | train loss 0.5012 acc 0.7135 | val loss 0.5303 acc 0.7095
+Epoch 36 | train loss 0.5013 acc 0.7148 | val loss 0.5230 acc 0.7045
+Epoch 37 | train loss 0.4988 acc 0.7153 | val loss 0.5254 acc 0.6980
+Epoch 38 | train loss 0.5000 acc 0.7152 | val loss 0.5231 acc 0.7051
+Epoch 39 | train loss 0.4988 acc 0.7155 | val loss 0.5227 acc 0.7142
+Epoch 40 | train loss 0.4976 acc 0.7169 | val loss 0.5184 acc 0.7046
+Best model saved.
+Epoch 41 | train loss 0.4968 acc 0.7162 | val loss 0.5260 acc 0.7010
+Epoch 42 | train loss 0.4955 acc 0.7177 | val loss 0.5233 acc 0.6979
+Epoch 43 | train loss 0.4937 acc 0.7186 | val loss 0.5171 acc 0.7028
+Best model saved.
+Epoch 44 | train loss 0.4937 acc 0.7191 | val loss 0.5206 acc 0.7008
+Epoch 45 | train loss 0.4918 acc 0.7182 | val loss 0.5208 acc 0.6981
+Epoch 46 | train loss 0.4923 acc 0.7197 | val loss 0.5192 acc 0.7026
+Epoch 47 | train loss 0.4917 acc 0.7197 | val loss 0.5216 acc 0.7079
+Epoch 48 | train loss 0.4908 acc 0.7209 | val loss 0.5193 acc 0.6980
+Epoch 49 | train loss 0.4911 acc 0.7198 | val loss 0.5223 acc 0.7018
+Epoch 50 | train loss 0.4884 acc 0.7200 | val loss 0.5236 acc 0.7037
+Epoch 51 | train loss 0.4895 acc 0.7208 | val loss 0.5170 acc 0.7063
+Best model saved.
+Epoch 52 | train loss 0.4889 acc 0.7209 | val loss 0.5100 acc 0.7110
+Best model saved.
+Epoch 53 | train loss 0.4881 acc 0.7218 | val loss 0.5184 acc 0.6973
+Epoch 54 | train loss 0.4867 acc 0.7229 | val loss 0.5181 acc 0.6993
+Epoch 55 | train loss 0.4873 acc 0.7216 | val loss 0.5207 acc 0.6999
+Epoch 56 | train loss 0.4854 acc 0.7228 | val loss 0.5212 acc 0.7014
+Epoch 57 | train loss 0.4832 acc 0.7226 | val loss 0.5204 acc 0.7115
+Epoch 58 | train loss 0.4837 acc 0.7239 | val loss 0.5221 acc 0.7044
+Epoch 59 | train loss 0.4825 acc 0.7245 | val loss 0.5191 acc 0.7055
+Epoch 60 | train loss 0.4823 acc 0.7242 | val loss 0.5127 acc 0.7107
+Epoch 61 | train loss 0.4816 acc 0.7248 | val loss 0.5179 acc 0.7073
+Epoch 62 | train loss 0.4810 acc 0.7260 | val loss 0.5187 acc 0.7083
+Epoch 63 | train loss 0.4816 acc 0.7234 | val loss 0.5180 acc 0.7079
+Epoch 64 | train loss 0.4788 acc 0.7252 | val loss 0.5189 acc 0.7055
+Epoch 65 | train loss 0.4777 acc 0.7246 | val loss 0.5185 acc 0.7118
+Epoch 66 | train loss 0.4788 acc 0.7259 | val loss 0.5190 acc 0.7109
+Epoch 67 | train loss 0.4769 acc 0.7273 | val loss 0.5168 acc 0.7031
+Epoch 68 | train loss 0.4784 acc 0.7257 | val loss 0.5218 acc 0.7128
+Early stopping triggered.
+Test set LOSS: 0.6735
+Test set ACCURACY: 0.7139
+Test set BALANCED-ACCURACY: 0.7882
+Test set MACRO-F1: 0.7608
+Test set classification report
+              precision    recall  f1-score   support
+
+           0   1.000000  1.000000  1.000000       768
+           1   0.997399  0.998698  0.998048       768
+           2   0.998700  1.000000  0.999349       768
+           3   0.518982  0.836589  0.640578      1536
+           4   0.571806  0.845052  0.682081      1536
+           5   0.500152  0.534505  0.516758      3072
+           6   0.498329  0.582357  0.537076      3072
+           7   0.757300  0.595215  0.666545      6144
+           8   0.782037  0.590983  0.673218      6144
+           9   0.817296  0.842076  0.829501      5376
+          10   0.807255  0.844494  0.825455      5376
+
+    accuracy                       0.713889     34560
+   macro avg   0.749932  0.788179  0.760783     34560
+weighted avg   0.730181  0.713889  0.714685     34560
+
+#+end_example
+
+
+** fpr_mul shift55
+
+#+begin_example
+traces.shape: (64512, 96)
+label.shape: (64512,)
+traces_train.shape: (48384, 96)
+traces_test.shape: (16128, 96)
+=================================================================
+Layer (type:depth-idx)                   Param #
+=================================================================
+model_mlp                                --
+├─Flatten: 1-1                           --
+├─BatchNorm1d: 1-2                       128
+├─BatchNorm1d: 1-3                       128
+├─BatchNorm1d: 1-4                       4
+├─LazyLinear: 1-5                        --
+├─Linear: 1-6                            4,160
+├─Linear: 1-7                            130
+├─ReLU: 1-8                              --
+=================================================================
+Total params: 4,550
+Trainable params: 4,550
+Non-trainable params: 0
+=================================================================
+=================================================================
+Layer (type:depth-idx)                   Param #
+=================================================================
+model_mlp                                --
+├─Flatten: 1-1                           --
+├─BatchNorm1d: 1-2                       128
+├─BatchNorm1d: 1-3                       128
+├─BatchNorm1d: 1-4                       4
+├─LazyLinear: 1-5                        --
+├─Linear: 1-6                            4,160
+├─Linear: 1-7                            130
+├─ReLU: 1-8                              --
+=================================================================
+Total params: 4,550
+Trainable params: 4,550
+Non-trainable params: 0
+=================================================================
+Epoch 01 | train loss 0.2622 acc 0.9706 | val loss 0.1848 acc 0.9928
+Best model saved.
+Epoch 02 | train loss 0.1596 acc 0.9893 | val loss 0.1176 acc 0.9938
+Best model saved.
+Epoch 03 | train loss 0.1112 acc 0.9908 | val loss 0.0895 acc 0.9965
+Best model saved.
+Epoch 04 | train loss 0.0837 acc 0.9920 | val loss 0.0655 acc 0.9961
+Best model saved.
+Epoch 05 | train loss 0.0665 acc 0.9926 | val loss 0.0570 acc 0.9971
+Best model saved.
+Epoch 06 | train loss 0.0556 acc 0.9927 | val loss 0.0475 acc 0.9955
+Best model saved.
+Epoch 07 | train loss 0.0458 acc 0.9931 | val loss 0.0342 acc 0.9959
+Best model saved.
+Epoch 08 | train loss 0.0403 acc 0.9933 | val loss 0.0293 acc 0.9963
+Best model saved.
+Epoch 09 | train loss 0.0349 acc 0.9939 | val loss 0.0258 acc 0.9965
+Best model saved.
+Epoch 10 | train loss 0.0315 acc 0.9940 | val loss 0.0238 acc 0.9967
+Best model saved.
+Epoch 11 | train loss 0.0302 acc 0.9936 | val loss 0.0207 acc 0.9969
+Best model saved.
+Epoch 12 | train loss 0.0253 acc 0.9945 | val loss 0.0207 acc 0.9957
+Best model saved.
+Epoch 13 | train loss 0.0250 acc 0.9940 | val loss 0.0189 acc 0.9963
+Best model saved.
+Epoch 14 | train loss 0.0223 acc 0.9946 | val loss 0.0177 acc 0.9965
+Best model saved.
+Epoch 15 | train loss 0.0219 acc 0.9943 | val loss 0.0223 acc 0.9952
+Epoch 16 | train loss 0.0203 acc 0.9949 | val loss 0.0130 acc 0.9977
+Best model saved.
+Epoch 17 | train loss 0.0200 acc 0.9944 | val loss 0.0139 acc 0.9969
+Epoch 18 | train loss 0.0181 acc 0.9948 | val loss 0.0116 acc 0.9977
+Best model saved.
+Epoch 19 | train loss 0.0202 acc 0.9941 | val loss 0.0228 acc 0.9932
+Epoch 20 | train loss 0.0170 acc 0.9954 | val loss 0.0130 acc 0.9973
+Epoch 21 | train loss 0.0161 acc 0.9949 | val loss 0.0103 acc 0.9977
+Best model saved.
+Epoch 22 | train loss 0.0158 acc 0.9956 | val loss 0.0183 acc 0.9950
+Epoch 23 | train loss 0.0156 acc 0.9954 | val loss 0.0086 acc 0.9965
+Best model saved.
+Epoch 24 | train loss 0.0150 acc 0.9954 | val loss 0.0205 acc 0.9938
+Epoch 25 | train loss 0.0162 acc 0.9951 | val loss 0.0119 acc 0.9971
+Epoch 26 | train loss 0.0135 acc 0.9957 | val loss 0.0077 acc 0.9971
+Best model saved.
+Epoch 27 | train loss 0.0143 acc 0.9958 | val loss 0.0082 acc 0.9975
+Epoch 28 | train loss 0.0146 acc 0.9951 | val loss 0.0220 acc 0.9909
+Epoch 29 | train loss 0.0124 acc 0.9958 | val loss 0.0088 acc 0.9975
+Epoch 30 | train loss 0.0135 acc 0.9956 | val loss 0.0129 acc 0.9955
+Epoch 31 | train loss 0.0123 acc 0.9959 | val loss 0.0092 acc 0.9975
+Epoch 32 | train loss 0.0127 acc 0.9958 | val loss 0.0071 acc 0.9981
+Best model saved.
+Epoch 33 | train loss 0.0129 acc 0.9957 | val loss 0.0071 acc 0.9977
+Epoch 34 | train loss 0.0130 acc 0.9955 | val loss 0.0106 acc 0.9957
+Epoch 35 | train loss 0.0162 acc 0.9945 | val loss 0.0088 acc 0.9961
+Epoch 36 | train loss 0.0120 acc 0.9961 | val loss 0.0082 acc 0.9963
+Epoch 37 | train loss 0.0118 acc 0.9963 | val loss 0.0088 acc 0.9967
+Epoch 38 | train loss 0.0116 acc 0.9963 | val loss 0.0103 acc 0.9957
+Epoch 39 | train loss 0.0116 acc 0.9964 | val loss 0.0257 acc 0.9880
+Epoch 40 | train loss 0.0119 acc 0.9960 | val loss 0.0077 acc 0.9971
+Epoch 41 | train loss 0.0111 acc 0.9962 | val loss 0.0075 acc 0.9971
+Epoch 42 | train loss 0.0114 acc 0.9963 | val loss 0.0081 acc 0.9969
+Epoch 43 | train loss 0.0111 acc 0.9964 | val loss 0.0075 acc 0.9965
+Epoch 44 | train loss 0.0097 acc 0.9968 | val loss 0.0085 acc 0.9979
+Epoch 45 | train loss 0.0105 acc 0.9966 | val loss 0.0078 acc 0.9963
+Epoch 46 | train loss 0.0103 acc 0.9966 | val loss 0.0078 acc 0.9969
+Epoch 47 | train loss 0.0098 acc 0.9970 | val loss 0.0080 acc 0.9977
+Epoch 48 | train loss 0.0097 acc 0.9970 | val loss 0.0064 acc 0.9975
+Best model saved.
+Epoch 49 | train loss 0.0100 acc 0.9969 | val loss 0.0090 acc 0.9971
+Epoch 50 | train loss 0.0105 acc 0.9968 | val loss 0.0135 acc 0.9942
+Epoch 51 | train loss 0.0098 acc 0.9969 | val loss 0.0089 acc 0.9967
+Epoch 52 | train loss 0.0107 acc 0.9965 | val loss 0.0075 acc 0.9971
+Epoch 53 | train loss 0.0102 acc 0.9962 | val loss 0.0063 acc 0.9977
+Best model saved.
+Epoch 54 | train loss 0.0096 acc 0.9966 | val loss 0.0079 acc 0.9971
+Epoch 55 | train loss 0.0093 acc 0.9967 | val loss 0.0064 acc 0.9975
+Epoch 56 | train loss 0.0091 acc 0.9971 | val loss 0.0080 acc 0.9969
+Epoch 57 | train loss 0.0100 acc 0.9969 | val loss 0.0091 acc 0.9961
+Epoch 58 | train loss 0.0098 acc 0.9968 | val loss 0.0064 acc 0.9973
+Epoch 59 | train loss 0.0094 acc 0.9972 | val loss 0.0079 acc 0.9965
+Epoch 60 | train loss 0.0104 acc 0.9963 | val loss 0.0071 acc 0.9979
+Epoch 61 | train loss 0.0092 acc 0.9972 | val loss 0.0094 acc 0.9955
+Epoch 62 | train loss 0.0099 acc 0.9963 | val loss 0.0077 acc 0.9975
+Epoch 63 | train loss 0.0090 acc 0.9971 | val loss 0.0097 acc 0.9977
+Epoch 64 | train loss 0.0083 acc 0.9971 | val loss 0.0073 acc 0.9967
+Epoch 65 | train loss 0.0092 acc 0.9969 | val loss 0.0062 acc 0.9973
+Best model saved.
+Epoch 66 | train loss 0.0092 acc 0.9968 | val loss 0.0138 acc 0.9973
+Epoch 67 | train loss 0.0090 acc 0.9966 | val loss 0.0068 acc 0.9967
+Epoch 68 | train loss 0.0085 acc 0.9973 | val loss 0.0059 acc 0.9973
+Best model saved.
+Epoch 69 | train loss 0.0098 acc 0.9966 | val loss 0.0062 acc 0.9979
+Epoch 70 | train loss 0.0084 acc 0.9970 | val loss 0.0055 acc 0.9981
+Best model saved.
+Epoch 71 | train loss 0.0092 acc 0.9967 | val loss 0.0091 acc 0.9981
+Epoch 72 | train loss 0.0084 acc 0.9972 | val loss 0.0061 acc 0.9983
+Epoch 73 | train loss 0.0089 acc 0.9969 | val loss 0.0056 acc 0.9977
+Epoch 74 | train loss 0.0084 acc 0.9972 | val loss 0.0060 acc 0.9981
+Epoch 75 | train loss 0.0074 acc 0.9975 | val loss 0.0146 acc 0.9940
+Epoch 76 | train loss 0.0078 acc 0.9974 | val loss 0.0060 acc 0.9981
+Epoch 77 | train loss 0.0074 acc 0.9973 | val loss 0.0077 acc 0.9981
+Epoch 78 | train loss 0.0076 acc 0.9975 | val loss 0.0082 acc 0.9973
+Epoch 79 | train loss 0.0085 acc 0.9972 | val loss 0.0064 acc 0.9975
+Epoch 80 | train loss 0.0084 acc 0.9971 | val loss 0.0064 acc 0.9971
+Epoch 81 | train loss 0.0086 acc 0.9970 | val loss 0.0092 acc 0.9959
+Epoch 82 | train loss 0.0085 acc 0.9970 | val loss 0.0078 acc 0.9981
+Epoch 83 | train loss 0.0089 acc 0.9967 | val loss 0.0065 acc 0.9981
+Epoch 84 | train loss 0.0093 acc 0.9966 | val loss 0.0068 acc 0.9973
+Epoch 85 | train loss 0.0080 acc 0.9974 | val loss 0.0079 acc 0.9969
+Epoch 86 | train loss 0.0076 acc 0.9974 | val loss 0.0061 acc 0.9983
+Early stopping triggered.
+Test set LOSS: 0.0082
+Test set ACCURACY: 0.9970
+Test set BALANCED-ACCURACY: 0.9967
+Test set MACRO-F1: 0.9967
+Test set classification report
+              precision    recall  f1-score   support
+
+           0   0.997860  0.997675  0.997768     10752
+           1   0.995351  0.995722  0.995537      5376
+
+    accuracy                       0.997024     16128
+   macro avg   0.996606  0.996698  0.996652     16128
+weighted avg   0.997024  0.997024  0.997024     16128
+
+#+end_example
+
+
+** fpr_mul mul [4, 5]
+
+#+begin_example
+traces.shape: (6144, 80)
+label.shape: (6144,)
+traces_train.shape: (4608, 80)
+traces_test.shape: (1536, 80)
+=================================================================
+Layer (type:depth-idx)                   Param #
+=================================================================
+model_mlp                                --
+├─Flatten: 1-1                           --
+├─BatchNorm1d: 1-2                       128
+├─BatchNorm1d: 1-3                       128
+├─BatchNorm1d: 1-4                       4
+├─LazyLinear: 1-5                        --
+├─Linear: 1-6                            4,160
+├─Linear: 1-7                            130
+├─ReLU: 1-8                              --
+=================================================================
+Total params: 4,550
+Trainable params: 4,550
+Non-trainable params: 0
+=================================================================
+=================================================================
+Layer (type:depth-idx)                   Param #
+=================================================================
+model_mlp                                --
+├─Flatten: 1-1                           --
+├─BatchNorm1d: 1-2                       128
+├─BatchNorm1d: 1-3                       128
+├─BatchNorm1d: 1-4                       4
+├─LazyLinear: 1-5                        --
+├─Linear: 1-6                            4,160
+├─Linear: 1-7                            130
+├─ReLU: 1-8                              --
+=================================================================
+Total params: 4,550
+Trainable params: 4,550
+Non-trainable params: 0
+=================================================================
+Epoch 01 | train loss 0.4046 acc 0.8780 | val loss 0.3322 acc 0.9610
+Best model saved.
+Epoch 02 | train loss 0.3191 acc 0.9752 | val loss 0.3293 acc 0.9696
+Best model saved.
+Epoch 03 | train loss 0.2997 acc 0.9788 | val loss 0.3109 acc 0.9696
+Best model saved.
+Epoch 04 | train loss 0.2822 acc 0.9797 | val loss 0.2942 acc 0.9675
+Best model saved.
+Epoch 05 | train loss 0.2686 acc 0.9800 | val loss 0.2732 acc 0.9761
+Best model saved.
+Epoch 06 | train loss 0.2538 acc 0.9797 | val loss 0.2630 acc 0.9761
+Best model saved.
+Epoch 07 | train loss 0.2426 acc 0.9805 | val loss 0.2436 acc 0.9718
+Best model saved.
+Epoch 08 | train loss 0.2307 acc 0.9802 | val loss 0.2401 acc 0.9740
+Best model saved.
+Epoch 09 | train loss 0.2223 acc 0.9817 | val loss 0.2269 acc 0.9718
+Best model saved.
+Epoch 10 | train loss 0.2133 acc 0.9797 | val loss 0.2089 acc 0.9761
+Best model saved.
+Epoch 11 | train loss 0.2032 acc 0.9810 | val loss 0.2188 acc 0.9740
+Epoch 12 | train loss 0.1934 acc 0.9824 | val loss 0.2106 acc 0.9740
+Epoch 13 | train loss 0.1852 acc 0.9838 | val loss 0.1903 acc 0.9783
+Best model saved.
+Epoch 14 | train loss 0.1784 acc 0.9834 | val loss 0.1764 acc 0.9783
+Best model saved.
+Epoch 15 | train loss 0.1708 acc 0.9858 | val loss 0.1479 acc 0.9740
+Best model saved.
+Epoch 16 | train loss 0.1680 acc 0.9819 | val loss 0.1799 acc 0.9848
+Epoch 17 | train loss 0.1640 acc 0.9807 | val loss 0.1530 acc 0.9805
+Epoch 18 | train loss 0.1541 acc 0.9855 | val loss 0.1739 acc 0.9805
+Epoch 19 | train loss 0.1461 acc 0.9853 | val loss 0.1515 acc 0.9805
+Epoch 20 | train loss 0.1412 acc 0.9850 | val loss 0.1365 acc 0.9826
+Best model saved.
+Epoch 21 | train loss 0.1395 acc 0.9843 | val loss 0.1528 acc 0.9826
+Epoch 22 | train loss 0.1306 acc 0.9882 | val loss 0.1333 acc 0.9826
+Best model saved.
+Epoch 23 | train loss 0.1295 acc 0.9887 | val loss 0.1190 acc 0.9826
+Best model saved.
+Epoch 24 | train loss 0.1202 acc 0.9904 | val loss 0.1425 acc 0.9826
+Epoch 25 | train loss 0.1188 acc 0.9882 | val loss 0.1284 acc 0.9783
+Epoch 26 | train loss 0.1141 acc 0.9904 | val loss 0.1254 acc 0.9848
+Epoch 27 | train loss 0.1115 acc 0.9906 | val loss 0.1022 acc 0.9805
+Best model saved.
+Epoch 28 | train loss 0.1137 acc 0.9855 | val loss 0.1245 acc 0.9826
+Epoch 29 | train loss 0.1087 acc 0.9875 | val loss 0.1010 acc 0.9848
+Best model saved.
+Epoch 30 | train loss 0.1044 acc 0.9875 | val loss 0.1081 acc 0.9826
+Epoch 31 | train loss 0.0997 acc 0.9884 | val loss 0.1108 acc 0.9848
+Epoch 32 | train loss 0.0977 acc 0.9867 | val loss 0.0915 acc 0.9826
+Best model saved.
+Epoch 33 | train loss 0.0943 acc 0.9896 | val loss 0.0870 acc 0.9826
+Best model saved.
+Epoch 34 | train loss 0.0913 acc 0.9889 | val loss 0.0993 acc 0.9848
+Epoch 35 | train loss 0.0879 acc 0.9901 | val loss 0.1072 acc 0.9870
+Epoch 36 | train loss 0.0838 acc 0.9923 | val loss 0.1102 acc 0.9892
+Epoch 37 | train loss 0.0819 acc 0.9918 | val loss 0.0818 acc 0.9805
+Best model saved.
+Epoch 38 | train loss 0.0833 acc 0.9889 | val loss 0.0870 acc 0.9870
+Epoch 39 | train loss 0.0758 acc 0.9930 | val loss 0.0880 acc 0.9870
+Epoch 40 | train loss 0.0762 acc 0.9911 | val loss 0.0890 acc 0.9848
+Epoch 41 | train loss 0.0734 acc 0.9923 | val loss 0.0782 acc 0.9826
+Best model saved.
+Epoch 42 | train loss 0.0719 acc 0.9925 | val loss 0.0737 acc 0.9870
+Best model saved.
+Epoch 43 | train loss 0.0683 acc 0.9932 | val loss 0.0680 acc 0.9870
+Best model saved.
+Epoch 44 | train loss 0.0728 acc 0.9901 | val loss 0.0766 acc 0.9848
+Epoch 45 | train loss 0.0692 acc 0.9925 | val loss 0.0708 acc 0.9870
+Epoch 46 | train loss 0.0677 acc 0.9918 | val loss 0.0735 acc 0.9870
+Epoch 47 | train loss 0.0663 acc 0.9908 | val loss 0.0927 acc 0.9935
+Epoch 48 | train loss 0.0684 acc 0.9899 | val loss 0.0618 acc 0.9870
+Best model saved.
+Epoch 49 | train loss 0.0661 acc 0.9925 | val loss 0.0620 acc 0.9913
+Epoch 50 | train loss 0.0642 acc 0.9913 | val loss 0.0638 acc 0.9892
+Epoch 51 | train loss 0.0664 acc 0.9889 | val loss 0.0666 acc 0.9848
+Epoch 52 | train loss 0.0659 acc 0.9896 | val loss 0.0636 acc 0.9892
+Epoch 53 | train loss 0.0594 acc 0.9925 | val loss 0.0593 acc 0.9870
+Best model saved.
+Epoch 54 | train loss 0.0570 acc 0.9928 | val loss 0.0581 acc 0.9870
+Best model saved.
+Epoch 55 | train loss 0.0578 acc 0.9928 | val loss 0.0638 acc 0.9892
+Epoch 56 | train loss 0.0573 acc 0.9928 | val loss 0.0541 acc 0.9892
+Best model saved.
+Epoch 57 | train loss 0.0565 acc 0.9916 | val loss 0.0535 acc 0.9892
+Best model saved.
+Epoch 58 | train loss 0.0512 acc 0.9937 | val loss 0.0527 acc 0.9913
+Best model saved.
+Epoch 59 | train loss 0.0516 acc 0.9937 | val loss 0.0613 acc 0.9892
+Epoch 60 | train loss 0.0499 acc 0.9928 | val loss 0.0584 acc 0.9913
+Epoch 61 | train loss 0.0483 acc 0.9937 | val loss 0.0569 acc 0.9913
+Epoch 62 | train loss 0.0452 acc 0.9945 | val loss 0.0451 acc 0.9892
+Best model saved.
+Epoch 63 | train loss 0.0466 acc 0.9937 | val loss 0.0651 acc 0.9913
+Epoch 64 | train loss 0.0474 acc 0.9932 | val loss 0.0482 acc 0.9913
+Epoch 65 | train loss 0.0456 acc 0.9925 | val loss 0.0514 acc 0.9913
+Epoch 66 | train loss 0.0451 acc 0.9942 | val loss 0.0496 acc 0.9870
+Epoch 67 | train loss 0.0520 acc 0.9899 | val loss 0.0602 acc 0.9761
+Epoch 68 | train loss 0.0442 acc 0.9935 | val loss 0.0492 acc 0.9935
+Epoch 69 | train loss 0.0418 acc 0.9932 | val loss 0.0444 acc 0.9892
+Best model saved.
+Epoch 70 | train loss 0.0384 acc 0.9954 | val loss 0.0452 acc 0.9913
+Epoch 71 | train loss 0.0363 acc 0.9969 | val loss 0.0394 acc 0.9870
+Best model saved.
+Epoch 72 | train loss 0.0369 acc 0.9964 | val loss 0.0366 acc 0.9957
+Best model saved.
+Epoch 73 | train loss 0.0396 acc 0.9945 | val loss 0.0434 acc 0.9870
+Epoch 74 | train loss 0.0414 acc 0.9928 | val loss 0.0461 acc 0.9848
+Epoch 75 | train loss 0.0392 acc 0.9940 | val loss 0.0520 acc 0.9935
+Epoch 76 | train loss 0.0412 acc 0.9913 | val loss 0.0532 acc 0.9935
+Epoch 77 | train loss 0.0374 acc 0.9945 | val loss 0.0413 acc 0.9935
+Epoch 78 | train loss 0.0383 acc 0.9937 | val loss 0.0378 acc 0.9892
+Epoch 79 | train loss 0.0351 acc 0.9949 | val loss 0.0400 acc 0.9870
+Epoch 80 | train loss 0.0343 acc 0.9952 | val loss 0.0373 acc 0.9913
+Epoch 81 | train loss 0.0375 acc 0.9940 | val loss 0.0511 acc 0.9913
+Epoch 82 | train loss 0.0376 acc 0.9928 | val loss 0.0441 acc 0.9870
+Epoch 83 | train loss 0.0323 acc 0.9957 | val loss 0.0548 acc 0.9892
+Epoch 84 | train loss 0.0317 acc 0.9949 | val loss 0.0353 acc 0.9913
+Best model saved.
+Epoch 85 | train loss 0.0349 acc 0.9945 | val loss 0.0353 acc 0.9913
+Epoch 86 | train loss 0.0327 acc 0.9940 | val loss 0.0505 acc 0.9826
+Epoch 87 | train loss 0.0337 acc 0.9940 | val loss 0.0353 acc 0.9892
+Best model saved.
+Epoch 88 | train loss 0.0336 acc 0.9947 | val loss 0.0393 acc 0.9892
+Epoch 89 | train loss 0.0350 acc 0.9935 | val loss 0.0393 acc 0.9935
+Epoch 90 | train loss 0.0319 acc 0.9940 | val loss 0.0360 acc 0.9935
+Epoch 91 | train loss 0.0327 acc 0.9932 | val loss 0.0347 acc 0.9935
+Best model saved.
+Epoch 92 | train loss 0.0320 acc 0.9937 | val loss 0.0437 acc 0.9913
+Epoch 93 | train loss 0.0347 acc 0.9930 | val loss 0.0336 acc 0.9913
+Best model saved.
+Epoch 94 | train loss 0.0394 acc 0.9918 | val loss 0.0384 acc 0.9913
+Epoch 95 | train loss 0.0316 acc 0.9942 | val loss 0.0393 acc 0.9870
+Epoch 96 | train loss 0.0341 acc 0.9928 | val loss 0.0345 acc 0.9892
+Epoch 97 | train loss 0.0267 acc 0.9964 | val loss 0.0457 acc 0.9892
+Epoch 98 | train loss 0.0320 acc 0.9928 | val loss 0.0334 acc 0.9957
+Best model saved.
+Epoch 99 | train loss 0.0278 acc 0.9964 | val loss 0.0297 acc 0.9957
+Best model saved.
+Epoch 100 | train loss 0.0264 acc 0.9959 | val loss 0.0315 acc 0.9913
+Epoch 101 | train loss 0.0277 acc 0.9940 | val loss 0.0306 acc 0.9913
+Epoch 102 | train loss 0.0276 acc 0.9952 | val loss 0.0349 acc 0.9892
+Epoch 103 | train loss 0.0262 acc 0.9957 | val loss 0.0306 acc 0.9935
+Epoch 104 | train loss 0.0282 acc 0.9940 | val loss 0.0304 acc 0.9935
+Epoch 105 | train loss 0.0284 acc 0.9937 | val loss 0.0374 acc 0.9892
+Epoch 106 | train loss 0.0270 acc 0.9949 | val loss 0.0445 acc 0.9870
+Epoch 107 | train loss 0.0349 acc 0.9906 | val loss 0.0394 acc 0.9848
+Epoch 108 | train loss 0.0327 acc 0.9918 | val loss 0.0342 acc 0.9935
+Epoch 109 | train loss 0.0262 acc 0.9949 | val loss 0.0356 acc 0.9848
+Epoch 110 | train loss 0.0235 acc 0.9973 | val loss 0.0338 acc 0.9935
+Epoch 111 | train loss 0.0212 acc 0.9976 | val loss 0.0355 acc 0.9892
+Epoch 112 | train loss 0.0254 acc 0.9954 | val loss 0.0326 acc 0.9870
+Epoch 113 | train loss 0.0246 acc 0.9940 | val loss 0.0329 acc 0.9935
+Epoch 114 | train loss 0.0252 acc 0.9940 | val loss 0.0348 acc 0.9870
+Epoch 115 | train loss 0.0267 acc 0.9932 | val loss 0.0326 acc 0.9913
+Early stopping triggered.
+Test set LOSS: 0.0293
+Test set ACCURACY: 0.9948
+Test set BALANCED-ACCURACY: 0.9948
+Test set MACRO-F1: 0.9948
+Test set classification report
+              precision    recall  f1-score   support
+
+           0   0.993506  0.996094  0.994798       768
+           1   0.996084  0.993490  0.994785       768
+
+    accuracy                       0.994792      1536
+   macro avg   0.994795  0.994792  0.994792      1536
+weighted avg   0.994795  0.994792  0.994792      1536
+
+#+end_example
+
+
+** fpr_mul mul [6, 7]
+
+#+begin_example
+traces.shape: (6144, 80)
+label.shape: (6144,)
+traces_train.shape: (4608, 80)
+traces_test.shape: (1536, 80)
+=================================================================
+Layer (type:depth-idx)                   Param #
+=================================================================
+model_mlp                                --
+├─Flatten: 1-1                           --
+├─BatchNorm1d: 1-2                       128
+├─BatchNorm1d: 1-3                       128
+├─BatchNorm1d: 1-4                       4
+├─LazyLinear: 1-5                        --
+├─Linear: 1-6                            4,160
+├─Linear: 1-7                            130
+├─ReLU: 1-8                              --
+=================================================================
+Total params: 4,550
+Trainable params: 4,550
+Non-trainable params: 0
+=================================================================
+=================================================================
+Layer (type:depth-idx)                   Param #
+=================================================================
+model_mlp                                --
+├─Flatten: 1-1                           --
+├─BatchNorm1d: 1-2                       128
+├─BatchNorm1d: 1-3                       128
+├─BatchNorm1d: 1-4                       4
+├─LazyLinear: 1-5                        --
+├─Linear: 1-6                            4,160
+├─Linear: 1-7                            130
+├─ReLU: 1-8                              --
+=================================================================
+Total params: 4,550
+Trainable params: 4,550
+Non-trainable params: 0
+=================================================================
+Epoch 01 | train loss 0.4149 acc 0.8659 | val loss 0.3704 acc 0.9414
+Best model saved.
+Epoch 02 | train loss 0.3594 acc 0.9265 | val loss 0.3430 acc 0.9544
+Best model saved.
+Epoch 03 | train loss 0.3420 acc 0.9308 | val loss 0.3225 acc 0.9501
+Best model saved.
+Epoch 04 | train loss 0.3260 acc 0.9318 | val loss 0.3038 acc 0.9501
+Best model saved.
+Epoch 05 | train loss 0.3127 acc 0.9342 | val loss 0.3069 acc 0.9479
+Epoch 06 | train loss 0.3063 acc 0.9284 | val loss 0.2819 acc 0.9501
+Best model saved.
+Epoch 07 | train loss 0.2920 acc 0.9356 | val loss 0.2796 acc 0.9588
+Best model saved.
+Epoch 08 | train loss 0.2829 acc 0.9325 | val loss 0.2745 acc 0.9523
+Best model saved.
+Epoch 09 | train loss 0.2837 acc 0.9257 | val loss 0.2496 acc 0.9544
+Best model saved.
+Epoch 10 | train loss 0.2702 acc 0.9339 | val loss 0.2593 acc 0.9544
+Epoch 11 | train loss 0.2587 acc 0.9349 | val loss 0.2473 acc 0.9588
+Best model saved.
+Epoch 12 | train loss 0.2523 acc 0.9371 | val loss 0.2465 acc 0.9414
+Best model saved.
+Epoch 13 | train loss 0.2466 acc 0.9344 | val loss 0.2375 acc 0.9544
+Best model saved.
+Epoch 14 | train loss 0.2388 acc 0.9392 | val loss 0.2367 acc 0.9458
+Best model saved.
+Epoch 15 | train loss 0.2350 acc 0.9402 | val loss 0.2213 acc 0.9566
+Best model saved.
+Epoch 16 | train loss 0.2326 acc 0.9354 | val loss 0.2083 acc 0.9588
+Best model saved.
+Epoch 17 | train loss 0.2250 acc 0.9380 | val loss 0.2166 acc 0.9566
+Epoch 18 | train loss 0.2184 acc 0.9402 | val loss 0.1999 acc 0.9588
+Best model saved.
+Epoch 19 | train loss 0.2084 acc 0.9431 | val loss 0.1962 acc 0.9523
+Best model saved.
+Epoch 20 | train loss 0.2078 acc 0.9409 | val loss 0.1862 acc 0.9610
+Best model saved.
+Epoch 21 | train loss 0.2063 acc 0.9433 | val loss 0.1969 acc 0.9588
+Epoch 22 | train loss 0.2071 acc 0.9412 | val loss 0.1923 acc 0.9479
+Epoch 23 | train loss 0.1971 acc 0.9436 | val loss 0.1882 acc 0.9501
+Epoch 24 | train loss 0.1931 acc 0.9431 | val loss 0.1829 acc 0.9544
+Best model saved.
+Epoch 25 | train loss 0.1906 acc 0.9424 | val loss 0.1784 acc 0.9588
+Best model saved.
+Epoch 26 | train loss 0.1898 acc 0.9424 | val loss 0.1816 acc 0.9414
+Epoch 27 | train loss 0.1877 acc 0.9450 | val loss 0.1857 acc 0.9588
+Epoch 28 | train loss 0.1844 acc 0.9431 | val loss 0.1720 acc 0.9588
+Best model saved.
+Epoch 29 | train loss 0.1835 acc 0.9431 | val loss 0.1674 acc 0.9566
+Best model saved.
+Epoch 30 | train loss 0.1753 acc 0.9477 | val loss 0.1751 acc 0.9523
+Epoch 31 | train loss 0.1747 acc 0.9472 | val loss 0.1686 acc 0.9458
+Epoch 32 | train loss 0.1799 acc 0.9402 | val loss 0.1657 acc 0.9479
+Best model saved.
+Epoch 33 | train loss 0.1747 acc 0.9421 | val loss 0.1560 acc 0.9631
+Best model saved.
+Epoch 34 | train loss 0.1674 acc 0.9494 | val loss 0.1647 acc 0.9501
+Epoch 35 | train loss 0.1675 acc 0.9455 | val loss 0.1634 acc 0.9544
+Epoch 36 | train loss 0.1663 acc 0.9460 | val loss 0.1719 acc 0.9436
+Epoch 37 | train loss 0.1645 acc 0.9469 | val loss 0.1547 acc 0.9588
+Best model saved.
+Epoch 38 | train loss 0.1686 acc 0.9453 | val loss 0.1536 acc 0.9523
+Best model saved.
+Epoch 39 | train loss 0.1602 acc 0.9472 | val loss 0.1521 acc 0.9544
+Best model saved.
+Epoch 40 | train loss 0.1704 acc 0.9438 | val loss 0.1413 acc 0.9610
+Best model saved.
+Epoch 41 | train loss 0.1608 acc 0.9489 | val loss 0.1667 acc 0.9501
+Epoch 42 | train loss 0.1617 acc 0.9472 | val loss 0.1535 acc 0.9631
+Epoch 43 | train loss 0.1564 acc 0.9477 | val loss 0.1580 acc 0.9479
+Epoch 44 | train loss 0.1626 acc 0.9412 | val loss 0.1520 acc 0.9501
+Epoch 45 | train loss 0.1539 acc 0.9472 | val loss 0.1576 acc 0.9501
+Epoch 46 | train loss 0.1526 acc 0.9474 | val loss 0.1520 acc 0.9501
+Epoch 47 | train loss 0.1480 acc 0.9518 | val loss 0.1510 acc 0.9501
+Epoch 48 | train loss 0.1526 acc 0.9479 | val loss 0.1388 acc 0.9544
+Best model saved.
+Epoch 49 | train loss 0.1466 acc 0.9482 | val loss 0.1577 acc 0.9544
+Epoch 50 | train loss 0.1480 acc 0.9508 | val loss 0.1507 acc 0.9414
+Epoch 51 | train loss 0.1597 acc 0.9414 | val loss 0.1469 acc 0.9458
+Epoch 52 | train loss 0.1552 acc 0.9462 | val loss 0.1477 acc 0.9588
+Epoch 53 | train loss 0.1443 acc 0.9498 | val loss 0.1439 acc 0.9458
+Epoch 54 | train loss 0.1450 acc 0.9510 | val loss 0.1542 acc 0.9501
+Epoch 55 | train loss 0.1472 acc 0.9472 | val loss 0.1365 acc 0.9544
+Best model saved.
+Epoch 56 | train loss 0.1463 acc 0.9491 | val loss 0.1464 acc 0.9436
+Epoch 57 | train loss 0.1500 acc 0.9486 | val loss 0.1389 acc 0.9479
+Epoch 58 | train loss 0.1410 acc 0.9515 | val loss 0.1432 acc 0.9458
+Epoch 59 | train loss 0.1426 acc 0.9498 | val loss 0.1328 acc 0.9566
+Best model saved.
+Epoch 60 | train loss 0.1369 acc 0.9556 | val loss 0.1402 acc 0.9458
+Epoch 61 | train loss 0.1323 acc 0.9547 | val loss 0.1364 acc 0.9566
+Epoch 62 | train loss 0.1368 acc 0.9510 | val loss 0.1367 acc 0.9523
+Epoch 63 | train loss 0.1375 acc 0.9510 | val loss 0.1427 acc 0.9544
+Epoch 64 | train loss 0.1459 acc 0.9465 | val loss 0.1383 acc 0.9501
+Epoch 65 | train loss 0.1364 acc 0.9520 | val loss 0.1399 acc 0.9479
+Epoch 66 | train loss 0.1319 acc 0.9537 | val loss 0.1505 acc 0.9523
+Epoch 67 | train loss 0.1403 acc 0.9443 | val loss 0.1478 acc 0.9436
+Epoch 68 | train loss 0.1374 acc 0.9510 | val loss 0.1382 acc 0.9544
+Epoch 69 | train loss 0.1332 acc 0.9513 | val loss 0.1342 acc 0.9501
+Epoch 70 | train loss 0.1333 acc 0.9520 | val loss 0.1447 acc 0.9458
+Epoch 71 | train loss 0.1350 acc 0.9498 | val loss 0.1411 acc 0.9479
+Epoch 72 | train loss 0.1253 acc 0.9551 | val loss 0.1418 acc 0.9479
+Epoch 73 | train loss 0.1307 acc 0.9539 | val loss 0.1356 acc 0.9479
+Epoch 74 | train loss 0.1338 acc 0.9527 | val loss 0.1444 acc 0.9436
+Epoch 75 | train loss 0.1326 acc 0.9523 | val loss 0.1390 acc 0.9523
+Early stopping triggered.
+Test set LOSS: 0.1252
+Test set ACCURACY: 0.9609
+Test set BALANCED-ACCURACY: 0.9609
+Test set MACRO-F1: 0.9609
+Test set classification report
+              precision    recall  f1-score   support
+
+           0   0.958549  0.963542  0.961039       768
+           1   0.963351  0.958333  0.960836       768
+
+    accuracy                       0.960938      1536
+   macro avg   0.960950  0.960938  0.960937      1536
+weighted avg   0.960950  0.960938  0.960937      1536
+
+#+end_example
+
+
+** fpr_mul mul [8, 11]
+
+#+begin_example
+traces.shape: (12288, 80)
+label.shape: (12288,)
+traces_train.shape: (9216, 80)
+traces_test.shape: (3072, 80)
+=================================================================
+Layer (type:depth-idx)                   Param #
+=================================================================
+model_mlp                                --
+├─Flatten: 1-1                           --
+├─BatchNorm1d: 1-2                       128
+├─BatchNorm1d: 1-3                       128
+├─BatchNorm1d: 1-4                       8
+├─LazyLinear: 1-5                        --
+├─Linear: 1-6                            4,160
+├─Linear: 1-7                            260
+├─ReLU: 1-8                              --
+=================================================================
+Total params: 4,684
+Trainable params: 4,684
+Non-trainable params: 0
+=================================================================
+=================================================================
+Layer (type:depth-idx)                   Param #
+=================================================================
+model_mlp                                --
+├─Flatten: 1-1                           --
+├─BatchNorm1d: 1-2                       128
+├─BatchNorm1d: 1-3                       128
+├─BatchNorm1d: 1-4                       8
+├─LazyLinear: 1-5                        --
+├─Linear: 1-6                            4,160
+├─Linear: 1-7                            260
+├─ReLU: 1-8                              --
+=================================================================
+Total params: 4,684
+Trainable params: 4,684
+Non-trainable params: 0
+=================================================================
+Epoch 01 | train loss 0.9629 acc 0.6417 | val loss 0.8687 acc 0.6996
+Best model saved.
+Epoch 02 | train loss 0.8430 acc 0.7121 | val loss 0.8010 acc 0.7343
+Best model saved.
+Epoch 03 | train loss 0.8069 acc 0.7174 | val loss 0.7654 acc 0.7440
+Best model saved.
+Epoch 04 | train loss 0.7764 acc 0.7255 | val loss 0.7503 acc 0.7451
+Best model saved.
+Epoch 05 | train loss 0.7499 acc 0.7293 | val loss 0.7141 acc 0.7462
+Best model saved.
+Epoch 06 | train loss 0.7297 acc 0.7323 | val loss 0.7096 acc 0.7408
+Best model saved.
+Epoch 07 | train loss 0.7125 acc 0.7300 | val loss 0.6749 acc 0.7495
+Best model saved.
+Epoch 08 | train loss 0.6991 acc 0.7335 | val loss 0.6594 acc 0.7592
+Best model saved.
+Epoch 09 | train loss 0.6876 acc 0.7398 | val loss 0.6360 acc 0.7570
+Best model saved.
+Epoch 10 | train loss 0.6650 acc 0.7395 | val loss 0.6378 acc 0.7592
+Epoch 11 | train loss 0.6639 acc 0.7416 | val loss 0.6150 acc 0.7646
+Best model saved.
+Epoch 12 | train loss 0.6513 acc 0.7423 | val loss 0.6287 acc 0.7603
+Epoch 13 | train loss 0.6489 acc 0.7402 | val loss 0.6085 acc 0.7592
+Best model saved.
+Epoch 14 | train loss 0.6415 acc 0.7427 | val loss 0.6297 acc 0.7592
+Epoch 15 | train loss 0.6351 acc 0.7422 | val loss 0.5828 acc 0.7733
+Best model saved.
+Epoch 16 | train loss 0.6172 acc 0.7516 | val loss 0.5942 acc 0.7744
+Epoch 17 | train loss 0.6137 acc 0.7545 | val loss 0.5845 acc 0.7777
+Epoch 18 | train loss 0.6031 acc 0.7566 | val loss 0.5855 acc 0.7820
+Epoch 19 | train loss 0.6025 acc 0.7545 | val loss 0.5591 acc 0.7755
+Best model saved.
+Epoch 20 | train loss 0.5959 acc 0.7563 | val loss 0.5598 acc 0.7820
+Epoch 21 | train loss 0.5883 acc 0.7601 | val loss 0.5434 acc 0.7928
+Best model saved.
+Epoch 22 | train loss 0.5851 acc 0.7605 | val loss 0.5521 acc 0.7777
+Epoch 23 | train loss 0.5751 acc 0.7636 | val loss 0.5515 acc 0.7679
+Epoch 24 | train loss 0.5779 acc 0.7597 | val loss 0.5608 acc 0.7874
+Epoch 25 | train loss 0.5717 acc 0.7624 | val loss 0.5612 acc 0.7744
+Epoch 26 | train loss 0.5645 acc 0.7686 | val loss 0.5464 acc 0.7885
+Epoch 27 | train loss 0.5684 acc 0.7668 | val loss 0.5332 acc 0.7874
+Best model saved.
+Epoch 28 | train loss 0.5583 acc 0.7675 | val loss 0.5756 acc 0.7527
+Epoch 29 | train loss 0.5606 acc 0.7702 | val loss 0.5294 acc 0.7907
+Best model saved.
+Epoch 30 | train loss 0.5583 acc 0.7667 | val loss 0.5448 acc 0.7733
+Epoch 31 | train loss 0.5646 acc 0.7614 | val loss 0.5295 acc 0.7809
+Epoch 32 | train loss 0.5532 acc 0.7661 | val loss 0.5153 acc 0.7885
+Best model saved.
+Epoch 33 | train loss 0.5425 acc 0.7716 | val loss 0.5366 acc 0.7766
+Epoch 34 | train loss 0.5460 acc 0.7738 | val loss 0.5278 acc 0.7961
+Epoch 35 | train loss 0.5379 acc 0.7774 | val loss 0.5117 acc 0.7820
+Best model saved.
+Epoch 36 | train loss 0.5431 acc 0.7721 | val loss 0.5780 acc 0.7495
+Epoch 37 | train loss 0.5340 acc 0.7743 | val loss 0.5149 acc 0.7831
+Epoch 38 | train loss 0.5301 acc 0.7790 | val loss 0.5117 acc 0.7863
+Epoch 39 | train loss 0.5307 acc 0.7784 | val loss 0.5014 acc 0.7918
+Best model saved.
+Epoch 40 | train loss 0.5298 acc 0.7739 | val loss 0.5156 acc 0.7950
+Epoch 41 | train loss 0.5337 acc 0.7743 | val loss 0.5234 acc 0.7831
+Epoch 42 | train loss 0.5200 acc 0.7789 | val loss 0.5562 acc 0.7375
+Epoch 43 | train loss 0.5340 acc 0.7704 | val loss 0.5477 acc 0.7766
+Epoch 44 | train loss 0.5255 acc 0.7780 | val loss 0.5091 acc 0.7842
+Epoch 45 | train loss 0.5186 acc 0.7768 | val loss 0.5578 acc 0.7733
+Epoch 46 | train loss 0.5180 acc 0.7791 | val loss 0.5193 acc 0.7679
+Epoch 47 | train loss 0.5151 acc 0.7788 | val loss 0.5125 acc 0.7766
+Epoch 48 | train loss 0.5178 acc 0.7749 | val loss 0.4933 acc 0.7939
+Best model saved.
+Epoch 49 | train loss 0.5132 acc 0.7808 | val loss 0.4958 acc 0.7961
+Epoch 50 | train loss 0.5067 acc 0.7842 | val loss 0.5057 acc 0.7918
+Epoch 51 | train loss 0.5198 acc 0.7808 | val loss 0.5273 acc 0.7711
+Epoch 52 | train loss 0.5101 acc 0.7803 | val loss 0.5165 acc 0.7744
+Epoch 53 | train loss 0.5061 acc 0.7823 | val loss 0.4973 acc 0.7961
+Epoch 54 | train loss 0.5038 acc 0.7833 | val loss 0.4975 acc 0.7809
+Epoch 55 | train loss 0.4999 acc 0.7859 | val loss 0.4902 acc 0.7852
+Best model saved.
+Epoch 56 | train loss 0.5043 acc 0.7798 | val loss 0.5109 acc 0.7722
+Epoch 57 | train loss 0.4948 acc 0.7903 | val loss 0.4997 acc 0.7852
+Epoch 58 | train loss 0.4946 acc 0.7876 | val loss 0.4842 acc 0.7983
+Best model saved.
+Epoch 59 | train loss 0.4934 acc 0.7888 | val loss 0.4945 acc 0.7918
+Epoch 60 | train loss 0.4999 acc 0.7868 | val loss 0.4905 acc 0.7896
+Epoch 61 | train loss 0.4958 acc 0.7845 | val loss 0.4926 acc 0.7896
+Epoch 62 | train loss 0.4891 acc 0.7900 | val loss 0.4870 acc 0.8059
+Epoch 63 | train loss 0.4879 acc 0.7888 | val loss 0.4786 acc 0.8059
+Best model saved.
+Epoch 64 | train loss 0.4884 acc 0.7896 | val loss 0.4758 acc 0.7831
+Best model saved.
+Epoch 65 | train loss 0.4889 acc 0.7873 | val loss 0.4930 acc 0.7939
+Epoch 66 | train loss 0.4919 acc 0.7879 | val loss 0.4765 acc 0.7972
+Epoch 67 | train loss 0.4844 acc 0.7876 | val loss 0.4727 acc 0.7918
+Best model saved.
+Epoch 68 | train loss 0.4878 acc 0.7861 | val loss 0.4927 acc 0.7950
+Epoch 69 | train loss 0.4883 acc 0.7902 | val loss 0.5507 acc 0.7657
+Epoch 70 | train loss 0.4946 acc 0.7841 | val loss 0.4666 acc 0.7993
+Best model saved.
+Epoch 71 | train loss 0.4809 acc 0.7962 | val loss 0.4881 acc 0.7863
+Epoch 72 | train loss 0.4812 acc 0.7905 | val loss 0.4948 acc 0.8026
+Epoch 73 | train loss 0.4821 acc 0.7911 | val loss 0.4784 acc 0.7918
+Epoch 74 | train loss 0.4735 acc 0.7946 | val loss 0.4726 acc 0.8102
+Epoch 75 | train loss 0.4731 acc 0.7920 | val loss 0.4793 acc 0.7983
+Epoch 76 | train loss 0.4736 acc 0.7973 | val loss 0.4892 acc 0.8048
+Epoch 77 | train loss 0.4696 acc 0.7954 | val loss 0.4647 acc 0.8037
+Best model saved.
+Epoch 78 | train loss 0.4680 acc 0.7924 | val loss 0.4814 acc 0.7939
+Epoch 79 | train loss 0.4753 acc 0.7939 | val loss 0.4659 acc 0.8113
+Epoch 80 | train loss 0.4689 acc 0.7942 | val loss 0.4814 acc 0.7961
+Epoch 81 | train loss 0.4723 acc 0.7902 | val loss 0.4567 acc 0.7928
+Best model saved.
+Epoch 82 | train loss 0.4673 acc 0.7971 | val loss 0.4745 acc 0.7918
+Epoch 83 | train loss 0.4791 acc 0.7907 | val loss 0.4730 acc 0.7896
+Epoch 84 | train loss 0.4672 acc 0.7991 | val loss 0.4633 acc 0.7961
+Epoch 85 | train loss 0.4640 acc 0.7970 | val loss 0.4699 acc 0.7950
+Epoch 86 | train loss 0.4602 acc 0.7986 | val loss 0.4650 acc 0.8102
+Epoch 87 | train loss 0.4654 acc 0.7944 | val loss 0.4661 acc 0.7798
+Epoch 88 | train loss 0.4566 acc 0.8018 | val loss 0.4642 acc 0.8113
+Epoch 89 | train loss 0.4673 acc 0.7964 | val loss 0.4845 acc 0.7907
+Epoch 90 | train loss 0.4606 acc 0.7993 | val loss 0.4588 acc 0.7928
+Epoch 91 | train loss 0.4591 acc 0.8021 | val loss 0.4571 acc 0.7950
+Epoch 92 | train loss 0.4587 acc 0.7977 | val loss 0.4696 acc 0.7961
+Epoch 93 | train loss 0.4599 acc 0.7980 | val loss 0.4725 acc 0.7885
+Epoch 94 | train loss 0.4505 acc 0.8002 | val loss 0.4799 acc 0.7885
+Epoch 95 | train loss 0.4595 acc 0.7968 | val loss 0.4621 acc 0.7918
+Epoch 96 | train loss 0.4558 acc 0.7994 | val loss 0.4581 acc 0.7918
+Epoch 97 | train loss 0.4524 acc 0.8019 | val loss 0.4603 acc 0.8026
+Early stopping triggered.
+Test set LOSS: 0.4680
+Test set ACCURACY: 0.7962
+Test set BALANCED-ACCURACY: 0.7962
+Test set MACRO-F1: 0.7957
+Test set classification report
+              precision    recall  f1-score   support
+
+           0   0.650838  0.606771  0.628032       768
+           1   0.699029  0.750000  0.723618       768
+           2   0.992116  0.983073  0.987574       768
+           3   0.841764  0.845052  0.843405       768
+
+    accuracy                       0.796224      3072
+   macro avg   0.795937  0.796224  0.795657      3072
+weighted avg   0.795937  0.796224  0.795657      3072
+
+#+end_example
+
+
+** fpr_mul mul [12, 15]
+
+#+begin_example
+traces.shape: (12288, 80)
+label.shape: (12288,)
+traces_train.shape: (9216, 80)
+traces_test.shape: (3072, 80)
+=================================================================
+Layer (type:depth-idx)                   Param #
+=================================================================
+model_mlp                                --
+├─Flatten: 1-1                           --
+├─BatchNorm1d: 1-2                       128
+├─BatchNorm1d: 1-3                       128
+├─BatchNorm1d: 1-4                       8
+├─LazyLinear: 1-5                        --
+├─Linear: 1-6                            4,160
+├─Linear: 1-7                            260
+├─ReLU: 1-8                              --
+=================================================================
+Total params: 4,684
+Trainable params: 4,684
+Non-trainable params: 0
+=================================================================
+=================================================================
+Layer (type:depth-idx)                   Param #
+=================================================================
+model_mlp                                --
+├─Flatten: 1-1                           --
+├─BatchNorm1d: 1-2                       128
+├─BatchNorm1d: 1-3                       128
+├─BatchNorm1d: 1-4                       8
+├─LazyLinear: 1-5                        --
+├─Linear: 1-6                            4,160
+├─Linear: 1-7                            260
+├─ReLU: 1-8                              --
+=================================================================
+Total params: 4,684
+Trainable params: 4,684
+Non-trainable params: 0
+=================================================================
+Epoch 01 | train loss 0.9059 acc 0.6907 | val loss 0.7652 acc 0.8015
+Best model saved.
+Epoch 02 | train loss 0.7269 acc 0.8046 | val loss 0.6702 acc 0.8200
+Best model saved.
+Epoch 03 | train loss 0.6658 acc 0.8170 | val loss 0.6322 acc 0.8351
+Best model saved.
+Epoch 04 | train loss 0.6132 acc 0.8290 | val loss 0.5924 acc 0.8341
+Best model saved.
+Epoch 05 | train loss 0.5785 acc 0.8400 | val loss 0.6104 acc 0.8275
+Epoch 06 | train loss 0.5620 acc 0.8360 | val loss 0.5542 acc 0.8351
+Best model saved.
+Epoch 07 | train loss 0.5303 acc 0.8415 | val loss 0.4927 acc 0.8633
+Best model saved.
+Epoch 08 | train loss 0.5128 acc 0.8437 | val loss 0.4912 acc 0.8536
+Best model saved.
+Epoch 09 | train loss 0.4976 acc 0.8478 | val loss 0.4761 acc 0.8427
+Best model saved.
+Epoch 10 | train loss 0.4816 acc 0.8464 | val loss 0.4874 acc 0.8449
+Epoch 11 | train loss 0.4779 acc 0.8445 | val loss 0.4322 acc 0.8655
+Best model saved.
+Epoch 12 | train loss 0.4602 acc 0.8542 | val loss 0.4273 acc 0.8547
+Best model saved.
+Epoch 13 | train loss 0.4592 acc 0.8518 | val loss 0.4416 acc 0.8557
+Epoch 14 | train loss 0.4348 acc 0.8562 | val loss 0.4342 acc 0.8514
+Epoch 15 | train loss 0.4285 acc 0.8556 | val loss 0.4026 acc 0.8764
+Best model saved.
+Epoch 16 | train loss 0.4248 acc 0.8578 | val loss 0.4253 acc 0.8482
+Epoch 17 | train loss 0.4207 acc 0.8557 | val loss 0.3828 acc 0.8785
+Best model saved.
+Epoch 18 | train loss 0.4087 acc 0.8615 | val loss 0.3971 acc 0.8612
+Epoch 19 | train loss 0.4023 acc 0.8619 | val loss 0.4046 acc 0.8655
+Epoch 20 | train loss 0.4028 acc 0.8601 | val loss 0.3855 acc 0.8677
+Epoch 21 | train loss 0.3860 acc 0.8699 | val loss 0.3844 acc 0.8633
+Epoch 22 | train loss 0.3880 acc 0.8648 | val loss 0.3914 acc 0.8536
+Epoch 23 | train loss 0.3799 acc 0.8646 | val loss 0.3684 acc 0.8698
+Best model saved.
+Epoch 24 | train loss 0.3811 acc 0.8640 | val loss 0.3799 acc 0.8688
+Epoch 25 | train loss 0.3763 acc 0.8653 | val loss 0.3585 acc 0.8666
+Best model saved.
+Epoch 26 | train loss 0.3769 acc 0.8652 | val loss 0.3990 acc 0.8471
+Epoch 27 | train loss 0.3681 acc 0.8651 | val loss 0.3686 acc 0.8623
+Epoch 28 | train loss 0.3583 acc 0.8752 | val loss 0.3795 acc 0.8633
+Epoch 29 | train loss 0.3606 acc 0.8694 | val loss 0.3631 acc 0.8623
+Epoch 30 | train loss 0.3514 acc 0.8724 | val loss 0.4043 acc 0.8308
+Epoch 31 | train loss 0.3587 acc 0.8700 | val loss 0.3466 acc 0.8698
+Best model saved.
+Epoch 32 | train loss 0.3490 acc 0.8711 | val loss 0.3422 acc 0.8829
+Best model saved.
+Epoch 33 | train loss 0.3360 acc 0.8777 | val loss 0.3486 acc 0.8644
+Epoch 34 | train loss 0.3442 acc 0.8756 | val loss 0.3289 acc 0.8677
+Best model saved.
+Epoch 35 | train loss 0.3423 acc 0.8761 | val loss 0.3598 acc 0.8623
+Epoch 36 | train loss 0.3416 acc 0.8728 | val loss 0.3444 acc 0.8709
+Epoch 37 | train loss 0.3322 acc 0.8771 | val loss 0.3336 acc 0.8720
+Epoch 38 | train loss 0.3347 acc 0.8782 | val loss 0.3449 acc 0.8698
+Epoch 39 | train loss 0.3332 acc 0.8724 | val loss 0.3386 acc 0.8677
+Epoch 40 | train loss 0.3329 acc 0.8744 | val loss 0.3253 acc 0.8861
+Best model saved.
+Epoch 41 | train loss 0.3299 acc 0.8768 | val loss 0.3236 acc 0.8796
+Best model saved.
+Epoch 42 | train loss 0.3299 acc 0.8761 | val loss 0.3373 acc 0.8633
+Epoch 43 | train loss 0.3255 acc 0.8781 | val loss 0.3281 acc 0.8742
+Epoch 44 | train loss 0.3225 acc 0.8804 | val loss 0.3301 acc 0.8731
+Epoch 45 | train loss 0.3154 acc 0.8840 | val loss 0.3293 acc 0.8655
+Epoch 46 | train loss 0.3131 acc 0.8816 | val loss 0.3396 acc 0.8644
+Epoch 47 | train loss 0.3253 acc 0.8769 | val loss 0.3376 acc 0.8709
+Epoch 48 | train loss 0.3078 acc 0.8834 | val loss 0.3237 acc 0.8709
+Epoch 49 | train loss 0.3202 acc 0.8788 | val loss 0.3672 acc 0.8503
+Epoch 50 | train loss 0.3189 acc 0.8762 | val loss 0.3469 acc 0.8666
+Epoch 51 | train loss 0.3085 acc 0.8847 | val loss 0.3221 acc 0.8709
+Best model saved.
+Epoch 52 | train loss 0.3113 acc 0.8830 | val loss 0.3353 acc 0.8655
+Epoch 53 | train loss 0.3066 acc 0.8827 | val loss 0.3186 acc 0.8796
+Best model saved.
+Epoch 54 | train loss 0.3081 acc 0.8837 | val loss 0.3196 acc 0.8785
+Epoch 55 | train loss 0.2970 acc 0.8892 | val loss 0.3159 acc 0.8753
+Best model saved.
+Epoch 56 | train loss 0.3037 acc 0.8849 | val loss 0.3167 acc 0.8774
+Epoch 57 | train loss 0.2976 acc 0.8880 | val loss 0.3151 acc 0.8818
+Best model saved.
+Epoch 58 | train loss 0.2990 acc 0.8853 | val loss 0.3444 acc 0.8612
+Epoch 59 | train loss 0.2994 acc 0.8868 | val loss 0.3256 acc 0.8742
+Epoch 60 | train loss 0.3044 acc 0.8817 | val loss 0.3100 acc 0.8818
+Best model saved.
+Epoch 61 | train loss 0.2987 acc 0.8852 | val loss 0.3161 acc 0.8753
+Epoch 62 | train loss 0.2906 acc 0.8875 | val loss 0.3352 acc 0.8688
+Epoch 63 | train loss 0.2897 acc 0.8905 | val loss 0.3571 acc 0.8655
+Epoch 64 | train loss 0.2880 acc 0.8898 | val loss 0.3171 acc 0.8720
+Epoch 65 | train loss 0.2928 acc 0.8855 | val loss 0.3450 acc 0.8612
+Epoch 66 | train loss 0.3039 acc 0.8855 | val loss 0.3355 acc 0.8688
+Epoch 67 | train loss 0.2930 acc 0.8865 | val loss 0.3324 acc 0.8666
+Epoch 68 | train loss 0.2930 acc 0.8847 | val loss 0.3129 acc 0.8774
+Epoch 69 | train loss 0.2947 acc 0.8853 | val loss 0.3397 acc 0.8796
+Epoch 70 | train loss 0.2983 acc 0.8847 | val loss 0.3394 acc 0.8731
+Epoch 71 | train loss 0.2908 acc 0.8856 | val loss 0.3157 acc 0.8655
+Epoch 72 | train loss 0.2794 acc 0.8912 | val loss 0.3133 acc 0.8742
+Epoch 73 | train loss 0.2835 acc 0.8932 | val loss 0.3080 acc 0.8796
+Best model saved.
+Epoch 74 | train loss 0.2823 acc 0.8905 | val loss 0.3108 acc 0.8655
+Epoch 75 | train loss 0.2824 acc 0.8885 | val loss 0.3104 acc 0.8829
+Epoch 76 | train loss 0.2803 acc 0.8931 | val loss 0.3214 acc 0.8677
+Epoch 77 | train loss 0.2797 acc 0.8897 | val loss 0.3051 acc 0.8850
+Best model saved.
+Epoch 78 | train loss 0.2800 acc 0.8932 | val loss 0.3054 acc 0.8764
+Epoch 79 | train loss 0.2838 acc 0.8896 | val loss 0.3425 acc 0.8677
+Epoch 80 | train loss 0.2750 acc 0.8917 | val loss 0.3186 acc 0.8666
+Epoch 81 | train loss 0.2941 acc 0.8850 | val loss 0.2972 acc 0.8905
+Best model saved.
+Epoch 82 | train loss 0.2850 acc 0.8890 | val loss 0.3513 acc 0.8601
+Epoch 83 | train loss 0.2748 acc 0.8967 | val loss 0.3073 acc 0.8807
+Epoch 84 | train loss 0.2725 acc 0.8973 | val loss 0.3173 acc 0.8774
+Epoch 85 | train loss 0.2757 acc 0.8927 | val loss 0.3142 acc 0.8720
+Epoch 86 | train loss 0.2825 acc 0.8910 | val loss 0.2939 acc 0.8774
+Best model saved.
+Epoch 87 | train loss 0.2835 acc 0.8947 | val loss 0.3128 acc 0.8720
+Epoch 88 | train loss 0.2755 acc 0.8918 | val loss 0.3075 acc 0.8807
+Epoch 89 | train loss 0.2625 acc 0.9027 | val loss 0.3192 acc 0.8666
+Epoch 90 | train loss 0.2684 acc 0.8962 | val loss 0.3254 acc 0.8698
+Epoch 91 | train loss 0.2706 acc 0.8975 | val loss 0.3042 acc 0.8839
+Epoch 92 | train loss 0.2837 acc 0.8935 | val loss 0.3121 acc 0.8829
+Epoch 93 | train loss 0.2736 acc 0.8927 | val loss 0.3119 acc 0.8839
+Epoch 94 | train loss 0.2737 acc 0.8887 | val loss 0.3023 acc 0.8807
+Epoch 95 | train loss 0.2637 acc 0.8982 | val loss 0.3089 acc 0.8839
+Epoch 96 | train loss 0.2636 acc 0.8984 | val loss 0.3118 acc 0.8764
+Epoch 97 | train loss 0.2632 acc 0.8967 | val loss 0.3133 acc 0.8850
+Epoch 98 | train loss 0.2718 acc 0.8956 | val loss 0.3250 acc 0.8742
+Epoch 99 | train loss 0.2738 acc 0.8927 | val loss 0.3395 acc 0.8677
+Epoch 100 | train loss 0.2737 acc 0.8941 | val loss 0.3152 acc 0.8753
+Epoch 101 | train loss 0.2649 acc 0.8975 | val loss 0.3240 acc 0.8720
+Epoch 102 | train loss 0.2615 acc 0.8982 | val loss 0.3123 acc 0.8731
+Early stopping triggered.
+Test set LOSS: 0.2868
+Test set ACCURACY: 0.8874
+Test set BALANCED-ACCURACY: 0.8874
+Test set MACRO-F1: 0.8870
+Test set classification report
+              precision    recall  f1-score   support
+
+           0   0.938065  0.946615  0.942320       768
+           1   0.841611  0.816406  0.828817       768
+           2   0.845855  0.850260  0.848052       768
+           3   0.921795  0.936198  0.928941       768
+
+    accuracy                       0.887370      3072
+   macro avg   0.886831  0.887370  0.887032      3072
+weighted avg   0.886831  0.887370  0.887032      3072
+
+#+end_example
+
+
+** fpr_mul mul [16, 22]
+
+#+begin_example
+traces.shape: (21504, 80)
+label.shape: (21504,)
+traces_train.shape: (16128, 80)
+traces_test.shape: (5376, 80)
+=================================================================
+Layer (type:depth-idx)                   Param #
+=================================================================
+model_mlp                                --
+├─Flatten: 1-1                           --
+├─BatchNorm1d: 1-2                       128
+├─BatchNorm1d: 1-3                       128
+├─BatchNorm1d: 1-4                       14
+├─LazyLinear: 1-5                        --
+├─Linear: 1-6                            4,160
+├─Linear: 1-7                            455
+├─ReLU: 1-8                              --
+=================================================================
+Total params: 4,885
+Trainable params: 4,885
+Non-trainable params: 0
+=================================================================
+=================================================================
+Layer (type:depth-idx)                   Param #
+=================================================================
+model_mlp                                --
+├─Flatten: 1-1                           --
+├─BatchNorm1d: 1-2                       128
+├─BatchNorm1d: 1-3                       128
+├─BatchNorm1d: 1-4                       14
+├─LazyLinear: 1-5                        --
+├─Linear: 1-6                            4,160
+├─Linear: 1-7                            455
+├─ReLU: 1-8                              --
+=================================================================
+Total params: 4,885
+Trainable params: 4,885
+Non-trainable params: 0
+=================================================================
+Epoch 01 | train loss 1.5353 acc 0.4298 | val loss 1.4422 acc 0.4910
+Best model saved.
+Epoch 02 | train loss 1.4122 acc 0.4820 | val loss 1.3685 acc 0.4867
+Best model saved.
+Epoch 03 | train loss 1.3668 acc 0.4971 | val loss 1.3603 acc 0.4935
+Best model saved.
+Epoch 04 | train loss 1.3418 acc 0.5013 | val loss 1.3448 acc 0.4873
+Best model saved.
+Epoch 05 | train loss 1.3176 acc 0.5109 | val loss 1.3051 acc 0.4991
+Best model saved.
+Epoch 06 | train loss 1.2930 acc 0.5162 | val loss 1.3140 acc 0.5096
+Epoch 07 | train loss 1.2768 acc 0.5212 | val loss 1.2641 acc 0.5232
+Best model saved.
+Epoch 08 | train loss 1.2626 acc 0.5227 | val loss 1.2533 acc 0.5214
+Best model saved.
+Epoch 09 | train loss 1.2485 acc 0.5276 | val loss 1.2754 acc 0.5139
+Epoch 10 | train loss 1.2384 acc 0.5306 | val loss 1.2482 acc 0.5214
+Best model saved.
+Epoch 11 | train loss 1.2258 acc 0.5368 | val loss 1.2375 acc 0.5319
+Best model saved.
+Epoch 12 | train loss 1.2155 acc 0.5350 | val loss 1.2444 acc 0.5183
+Epoch 13 | train loss 1.2076 acc 0.5375 | val loss 1.1989 acc 0.5418
+Best model saved.
+Epoch 14 | train loss 1.2036 acc 0.5368 | val loss 1.1971 acc 0.5363
+Best model saved.
+Epoch 15 | train loss 1.1945 acc 0.5443 | val loss 1.2001 acc 0.5406
+Epoch 16 | train loss 1.1886 acc 0.5450 | val loss 1.1955 acc 0.5412
+Best model saved.
+Epoch 17 | train loss 1.1780 acc 0.5452 | val loss 1.1879 acc 0.5400
+Best model saved.
+Epoch 18 | train loss 1.1751 acc 0.5489 | val loss 1.1812 acc 0.5456
+Best model saved.
+Epoch 19 | train loss 1.1724 acc 0.5455 | val loss 1.1819 acc 0.5387
+Epoch 20 | train loss 1.1620 acc 0.5512 | val loss 1.1840 acc 0.5363
+Epoch 21 | train loss 1.1572 acc 0.5503 | val loss 1.1752 acc 0.5480
+Best model saved.
+Epoch 22 | train loss 1.1514 acc 0.5559 | val loss 1.1895 acc 0.5369
+Epoch 23 | train loss 1.1468 acc 0.5560 | val loss 1.1681 acc 0.5394
+Best model saved.
+Epoch 24 | train loss 1.1429 acc 0.5546 | val loss 1.1603 acc 0.5418
+Best model saved.
+Epoch 25 | train loss 1.1407 acc 0.5571 | val loss 1.1598 acc 0.5542
+Best model saved.
+Epoch 26 | train loss 1.1441 acc 0.5570 | val loss 1.1842 acc 0.5530
+Epoch 27 | train loss 1.1341 acc 0.5616 | val loss 1.1657 acc 0.5468
+Epoch 28 | train loss 1.1247 acc 0.5637 | val loss 1.1483 acc 0.5530
+Best model saved.
+Epoch 29 | train loss 1.1352 acc 0.5609 | val loss 1.1521 acc 0.5425
+Epoch 30 | train loss 1.1233 acc 0.5664 | val loss 1.1718 acc 0.5555
+Epoch 31 | train loss 1.1213 acc 0.5627 | val loss 1.1350 acc 0.5518
+Best model saved.
+Epoch 32 | train loss 1.1164 acc 0.5673 | val loss 1.1853 acc 0.5276
+Epoch 33 | train loss 1.1177 acc 0.5629 | val loss 1.1287 acc 0.5592
+Best model saved.
+Epoch 34 | train loss 1.1107 acc 0.5691 | val loss 1.1657 acc 0.5443
+Epoch 35 | train loss 1.1146 acc 0.5653 | val loss 1.1474 acc 0.5505
+Epoch 36 | train loss 1.1116 acc 0.5660 | val loss 1.1583 acc 0.5394
+Epoch 37 | train loss 1.1079 acc 0.5678 | val loss 1.1379 acc 0.5648
+Epoch 38 | train loss 1.1034 acc 0.5665 | val loss 1.1306 acc 0.5536
+Epoch 39 | train loss 1.0980 acc 0.5722 | val loss 1.1338 acc 0.5555
+Epoch 40 | train loss 1.0935 acc 0.5725 | val loss 1.1109 acc 0.5772
+Best model saved.
+Epoch 41 | train loss 1.0955 acc 0.5711 | val loss 1.1464 acc 0.5480
+Epoch 42 | train loss 1.0874 acc 0.5728 | val loss 1.1172 acc 0.5673
+Epoch 43 | train loss 1.0903 acc 0.5729 | val loss 1.1424 acc 0.5530
+Epoch 44 | train loss 1.0841 acc 0.5798 | val loss 1.1087 acc 0.5611
+Best model saved.
+Epoch 45 | train loss 1.0851 acc 0.5757 | val loss 1.1118 acc 0.5580
+Epoch 46 | train loss 1.0838 acc 0.5744 | val loss 1.0979 acc 0.5642
+Best model saved.
+Epoch 47 | train loss 1.0740 acc 0.5829 | val loss 1.1171 acc 0.5611
+Epoch 48 | train loss 1.0799 acc 0.5760 | val loss 1.1306 acc 0.5536
+Epoch 49 | train loss 1.0738 acc 0.5806 | val loss 1.1231 acc 0.5586
+Epoch 50 | train loss 1.0775 acc 0.5771 | val loss 1.1249 acc 0.5549
+Epoch 51 | train loss 1.0665 acc 0.5842 | val loss 1.1236 acc 0.5542
+Epoch 52 | train loss 1.0680 acc 0.5815 | val loss 1.1208 acc 0.5642
+Epoch 53 | train loss 1.0694 acc 0.5788 | val loss 1.1176 acc 0.5567
+Epoch 54 | train loss 1.0669 acc 0.5831 | val loss 1.1211 acc 0.5623
+Epoch 55 | train loss 1.0613 acc 0.5820 | val loss 1.0968 acc 0.5710
+Best model saved.
+Epoch 56 | train loss 1.0682 acc 0.5800 | val loss 1.1225 acc 0.5604
+Epoch 57 | train loss 1.0566 acc 0.5865 | val loss 1.1147 acc 0.5691
+Epoch 58 | train loss 1.0533 acc 0.5885 | val loss 1.0981 acc 0.5660
+Epoch 59 | train loss 1.0603 acc 0.5843 | val loss 1.1160 acc 0.5691
+Epoch 60 | train loss 1.0528 acc 0.5839 | val loss 1.0936 acc 0.5784
+Best model saved.
+Epoch 61 | train loss 1.0563 acc 0.5862 | val loss 1.0976 acc 0.5728
+Epoch 62 | train loss 1.0613 acc 0.5841 | val loss 1.1197 acc 0.5592
+Epoch 63 | train loss 1.0517 acc 0.5853 | val loss 1.0895 acc 0.5660
+Best model saved.
+Epoch 64 | train loss 1.0518 acc 0.5867 | val loss 1.0816 acc 0.5710
+Best model saved.
+Epoch 65 | train loss 1.0442 acc 0.5866 | val loss 1.0979 acc 0.5567
+Epoch 66 | train loss 1.0476 acc 0.5875 | val loss 1.0932 acc 0.5685
+Epoch 67 | train loss 1.0469 acc 0.5892 | val loss 1.0904 acc 0.5580
+Epoch 68 | train loss 1.0466 acc 0.5919 | val loss 1.1010 acc 0.5604
+Epoch 69 | train loss 1.0403 acc 0.5882 | val loss 1.0908 acc 0.5747
+Epoch 70 | train loss 1.0437 acc 0.5884 | val loss 1.0900 acc 0.5685
+Epoch 71 | train loss 1.0395 acc 0.5887 | val loss 1.0852 acc 0.5766
+Epoch 72 | train loss 1.0458 acc 0.5886 | val loss 1.1033 acc 0.5710
+Epoch 73 | train loss 1.0364 acc 0.5901 | val loss 1.0769 acc 0.5790
+Best model saved.
+Epoch 74 | train loss 1.0313 acc 0.5921 | val loss 1.0851 acc 0.5666
+Epoch 75 | train loss 1.0442 acc 0.5884 | val loss 1.1244 acc 0.5660
+Epoch 76 | train loss 1.0373 acc 0.5906 | val loss 1.0730 acc 0.5784
+Best model saved.
+Epoch 77 | train loss 1.0320 acc 0.5936 | val loss 1.0697 acc 0.5852
+Best model saved.
+Epoch 78 | train loss 1.0301 acc 0.5932 | val loss 1.0920 acc 0.5666
+Epoch 79 | train loss 1.0280 acc 0.5930 | val loss 1.0638 acc 0.5871
+Best model saved.
+Epoch 80 | train loss 1.0295 acc 0.5929 | val loss 1.0853 acc 0.5697
+Epoch 81 | train loss 1.0226 acc 0.6002 | val loss 1.0728 acc 0.5809
+Epoch 82 | train loss 1.0209 acc 0.5944 | val loss 1.0687 acc 0.5772
+Epoch 83 | train loss 1.0304 acc 0.5963 | val loss 1.0926 acc 0.5704
+Epoch 84 | train loss 1.0276 acc 0.5924 | val loss 1.0777 acc 0.5778
+Epoch 85 | train loss 1.0170 acc 0.5988 | val loss 1.0762 acc 0.5865
+Epoch 86 | train loss 1.0300 acc 0.5957 | val loss 1.0955 acc 0.5549
+Epoch 87 | train loss 1.0179 acc 0.5965 | val loss 1.0755 acc 0.5759
+Epoch 88 | train loss 1.0246 acc 0.5939 | val loss 1.0974 acc 0.5766
+Epoch 89 | train loss 1.0185 acc 0.5981 | val loss 1.0703 acc 0.5772
+Epoch 90 | train loss 1.0181 acc 0.5963 | val loss 1.1262 acc 0.5573
+Epoch 91 | train loss 1.0160 acc 0.5995 | val loss 1.0725 acc 0.5710
+Epoch 92 | train loss 1.0200 acc 0.5954 | val loss 1.0716 acc 0.5921
+Epoch 93 | train loss 1.0150 acc 0.6017 | val loss 1.0878 acc 0.5673
+Epoch 94 | train loss 1.0224 acc 0.5972 | val loss 1.0765 acc 0.5784
+Epoch 95 | train loss 1.0172 acc 0.6011 | val loss 1.0675 acc 0.5834
+Early stopping triggered.
+Test set LOSS: 1.0744
+Test set ACCURACY: 0.5753
+Test set BALANCED-ACCURACY: 0.5753
+Test set MACRO-F1: 0.5711
+Test set classification report
+              precision    recall  f1-score   support
+
+           0   0.431616  0.316406  0.365139       768
+           1   0.612903  0.593750  0.603175       768
+           2   0.439732  0.513021  0.473558       768
+           3   0.449223  0.489583  0.468536       768
+           4   0.965251  0.976562  0.970874       768
+           5   0.419944  0.389323  0.404054       768
+           6   0.678867  0.748698  0.712074       768
+
+    accuracy                       0.575335      5376
+   macro avg   0.571077  0.575335  0.571058      5376
+weighted avg   0.571077  0.575335  0.571058      5376
+
+#+end_example
+
+
+** fpr_mul mul_shift55 [2, 3]
+
+#+begin_example
+traces.shape: (6144, 200)
+label.shape: (6144,)
+traces_train.shape: (4608, 200)
+traces_test.shape: (1536, 200)
+=================================================================
+Layer (type:depth-idx)                   Param #
+=================================================================
+model_mlp                                --
+├─Flatten: 1-1                           --
+├─BatchNorm1d: 1-2                       128
+├─BatchNorm1d: 1-3                       128
+├─BatchNorm1d: 1-4                       4
+├─LazyLinear: 1-5                        --
+├─Linear: 1-6                            4,160
+├─Linear: 1-7                            130
+├─ReLU: 1-8                              --
+=================================================================
+Total params: 4,550
+Trainable params: 4,550
+Non-trainable params: 0
+=================================================================
+=================================================================
+Layer (type:depth-idx)                   Param #
+=================================================================
+model_mlp                                --
+├─Flatten: 1-1                           --
+├─BatchNorm1d: 1-2                       128
+├─BatchNorm1d: 1-3                       128
+├─BatchNorm1d: 1-4                       4
+├─LazyLinear: 1-5                        --
+├─Linear: 1-6                            4,160
+├─Linear: 1-7                            130
+├─ReLU: 1-8                              --
+=================================================================
+Total params: 4,550
+Trainable params: 4,550
+Non-trainable params: 0
+=================================================================
+Epoch 01 | train loss 0.3410 acc 0.9556 | val loss 0.2725 acc 1.0000
+Best model saved.
+Epoch 02 | train loss 0.2854 acc 1.0000 | val loss 0.2765 acc 0.9978
+Epoch 03 | train loss 0.2674 acc 1.0000 | val loss 0.2622 acc 1.0000
+Best model saved.
+Epoch 04 | train loss 0.2517 acc 1.0000 | val loss 0.2468 acc 1.0000
+Best model saved.
+Epoch 05 | train loss 0.2380 acc 1.0000 | val loss 0.2347 acc 1.0000
+Best model saved.
+Epoch 06 | train loss 0.2247 acc 1.0000 | val loss 0.2218 acc 1.0000
+Best model saved.
+Epoch 07 | train loss 0.2126 acc 1.0000 | val loss 0.2106 acc 1.0000
+Best model saved.
+Epoch 08 | train loss 0.2012 acc 1.0000 | val loss 0.1997 acc 1.0000
+Best model saved.
+Epoch 09 | train loss 0.1914 acc 1.0000 | val loss 0.1881 acc 1.0000
+Best model saved.
+Epoch 10 | train loss 0.1814 acc 1.0000 | val loss 0.1803 acc 1.0000
+Best model saved.
+Epoch 11 | train loss 0.1725 acc 1.0000 | val loss 0.1709 acc 1.0000
+Best model saved.
+Epoch 12 | train loss 0.1644 acc 1.0000 | val loss 0.1637 acc 1.0000
+Best model saved.
+Epoch 13 | train loss 0.1564 acc 1.0000 | val loss 0.1543 acc 1.0000
+Best model saved.
+Epoch 14 | train loss 0.1498 acc 1.0000 | val loss 0.1464 acc 1.0000
+Best model saved.
+Epoch 15 | train loss 0.1427 acc 1.0000 | val loss 0.1407 acc 1.0000
+Best model saved.
+Epoch 16 | train loss 0.1375 acc 1.0000 | val loss 0.1339 acc 1.0000
+Best model saved.
+Epoch 17 | train loss 0.1303 acc 1.0000 | val loss 0.1286 acc 1.0000
+Best model saved.
+Epoch 18 | train loss 0.1253 acc 1.0000 | val loss 0.1230 acc 1.0000
+Best model saved.
+Epoch 19 | train loss 0.1190 acc 1.0000 | val loss 0.1188 acc 1.0000
+Best model saved.
+Epoch 20 | train loss 0.1142 acc 1.0000 | val loss 0.1115 acc 1.0000
+Best model saved.
+Epoch 21 | train loss 0.1106 acc 1.0000 | val loss 0.1105 acc 1.0000
+Best model saved.
+Epoch 22 | train loss 0.1058 acc 1.0000 | val loss 0.1033 acc 1.0000
+Best model saved.
+Epoch 23 | train loss 0.1018 acc 1.0000 | val loss 0.1019 acc 1.0000
+Best model saved.
+Epoch 24 | train loss 0.0969 acc 1.0000 | val loss 0.0929 acc 1.0000
+Best model saved.
+Epoch 25 | train loss 0.0930 acc 1.0000 | val loss 0.0952 acc 1.0000
+Epoch 26 | train loss 0.0902 acc 1.0000 | val loss 0.0910 acc 1.0000
+Best model saved.
+Epoch 27 | train loss 0.0868 acc 1.0000 | val loss 0.0879 acc 1.0000
+Best model saved.
+Epoch 28 | train loss 0.0833 acc 1.0000 | val loss 0.0873 acc 1.0000
+Best model saved.
+Epoch 29 | train loss 0.0809 acc 1.0000 | val loss 0.0751 acc 1.0000
+Best model saved.
+Epoch 30 | train loss 0.0776 acc 1.0000 | val loss 0.0728 acc 1.0000
+Best model saved.
+Epoch 31 | train loss 0.0749 acc 1.0000 | val loss 0.0753 acc 1.0000
+Epoch 32 | train loss 0.0724 acc 1.0000 | val loss 0.0664 acc 1.0000
+Best model saved.
+Epoch 33 | train loss 0.0699 acc 1.0000 | val loss 0.0719 acc 1.0000
+Epoch 34 | train loss 0.0672 acc 1.0000 | val loss 0.0678 acc 1.0000
+Epoch 35 | train loss 0.0651 acc 1.0000 | val loss 0.0620 acc 1.0000
+Best model saved.
+Epoch 36 | train loss 0.0628 acc 1.0000 | val loss 0.0641 acc 1.0000
+Epoch 37 | train loss 0.0610 acc 1.0000 | val loss 0.0572 acc 1.0000
+Best model saved.
+Epoch 38 | train loss 0.0599 acc 1.0000 | val loss 0.0607 acc 1.0000
+Epoch 39 | train loss 0.0573 acc 1.0000 | val loss 0.0542 acc 1.0000
+Best model saved.
+Epoch 40 | train loss 0.0558 acc 1.0000 | val loss 0.0536 acc 1.0000
+Best model saved.
+Epoch 41 | train loss 0.0535 acc 1.0000 | val loss 0.0540 acc 1.0000
+Epoch 42 | train loss 0.0519 acc 1.0000 | val loss 0.0519 acc 1.0000
+Best model saved.
+Epoch 43 | train loss 0.0501 acc 1.0000 | val loss 0.0510 acc 1.0000
+Best model saved.
+Epoch 44 | train loss 0.0499 acc 0.9998 | val loss 0.0439 acc 1.0000
+Best model saved.
+Epoch 45 | train loss 0.0480 acc 1.0000 | val loss 0.0465 acc 1.0000
+Epoch 46 | train loss 0.0464 acc 1.0000 | val loss 0.0478 acc 1.0000
+Epoch 47 | train loss 0.0447 acc 1.0000 | val loss 0.0443 acc 1.0000
+Epoch 48 | train loss 0.0439 acc 1.0000 | val loss 0.0438 acc 1.0000
+Best model saved.
+Epoch 49 | train loss 0.0426 acc 1.0000 | val loss 0.0404 acc 1.0000
+Best model saved.
+Epoch 50 | train loss 0.0423 acc 1.0000 | val loss 0.0326 acc 1.0000
+Best model saved.
+Epoch 51 | train loss 0.0413 acc 1.0000 | val loss 0.0392 acc 1.0000
+Epoch 52 | train loss 0.0410 acc 1.0000 | val loss 0.0375 acc 1.0000
+Epoch 53 | train loss 0.0383 acc 1.0000 | val loss 0.0402 acc 1.0000
+Epoch 54 | train loss 0.0370 acc 1.0000 | val loss 0.0387 acc 1.0000
+Epoch 55 | train loss 0.0364 acc 1.0000 | val loss 0.0373 acc 1.0000
+Epoch 56 | train loss 0.0352 acc 1.0000 | val loss 0.0358 acc 1.0000
+Epoch 57 | train loss 0.0343 acc 1.0000 | val loss 0.0350 acc 1.0000
+Epoch 58 | train loss 0.0332 acc 1.0000 | val loss 0.0335 acc 1.0000
+Epoch 59 | train loss 0.0325 acc 1.0000 | val loss 0.0333 acc 1.0000
+Epoch 60 | train loss 0.0316 acc 1.0000 | val loss 0.0318 acc 1.0000
+Best model saved.
+Epoch 61 | train loss 0.0306 acc 1.0000 | val loss 0.0297 acc 1.0000
+Best model saved.
+Epoch 62 | train loss 0.0297 acc 1.0000 | val loss 0.0304 acc 1.0000
+Epoch 63 | train loss 0.0290 acc 1.0000 | val loss 0.0288 acc 1.0000
+Best model saved.
+Epoch 64 | train loss 0.0293 acc 1.0000 | val loss 0.0275 acc 1.0000
+Best model saved.
+Epoch 65 | train loss 0.0277 acc 1.0000 | val loss 0.0281 acc 1.0000
+Epoch 66 | train loss 0.0271 acc 1.0000 | val loss 0.0268 acc 1.0000
+Best model saved.
+Epoch 67 | train loss 0.0266 acc 1.0000 | val loss 0.0266 acc 1.0000
+Best model saved.
+Epoch 68 | train loss 0.0261 acc 1.0000 | val loss 0.0260 acc 1.0000
+Best model saved.
+Epoch 69 | train loss 0.0257 acc 0.9998 | val loss 0.0184 acc 1.0000
+Best model saved.
+Epoch 70 | train loss 0.0249 acc 1.0000 | val loss 0.0245 acc 1.0000
+Epoch 71 | train loss 0.0241 acc 1.0000 | val loss 0.0252 acc 1.0000
+Epoch 72 | train loss 0.0235 acc 1.0000 | val loss 0.0254 acc 1.0000
+Epoch 73 | train loss 0.0231 acc 1.0000 | val loss 0.0242 acc 1.0000
+Epoch 74 | train loss 0.0226 acc 1.0000 | val loss 0.0238 acc 1.0000
+Epoch 75 | train loss 0.0219 acc 1.0000 | val loss 0.0217 acc 1.0000
+Epoch 76 | train loss 0.0216 acc 1.0000 | val loss 0.0217 acc 1.0000
+Epoch 77 | train loss 0.0211 acc 1.0000 | val loss 0.0209 acc 1.0000
+Epoch 78 | train loss 0.0210 acc 1.0000 | val loss 0.0196 acc 1.0000
+Epoch 79 | train loss 0.0203 acc 1.0000 | val loss 0.0191 acc 1.0000
+Epoch 80 | train loss 0.0196 acc 1.0000 | val loss 0.0197 acc 1.0000
+Epoch 81 | train loss 0.0193 acc 1.0000 | val loss 0.0192 acc 1.0000
+Epoch 82 | train loss 0.0192 acc 1.0000 | val loss 0.0202 acc 1.0000
+Epoch 83 | train loss 0.0190 acc 1.0000 | val loss 0.0174 acc 1.0000
+Best model saved.
+Epoch 84 | train loss 0.0181 acc 1.0000 | val loss 0.0191 acc 0.9978
+Epoch 85 | train loss 0.0178 acc 1.0000 | val loss 0.0176 acc 1.0000
+Epoch 86 | train loss 0.0171 acc 1.0000 | val loss 0.0179 acc 1.0000
+Epoch 87 | train loss 0.0168 acc 1.0000 | val loss 0.0173 acc 1.0000
+Best model saved.
+Epoch 88 | train loss 0.0167 acc 1.0000 | val loss 0.0166 acc 1.0000
+Best model saved.
+Epoch 89 | train loss 0.0161 acc 1.0000 | val loss 0.0158 acc 1.0000
+Best model saved.
+Epoch 90 | train loss 0.0158 acc 1.0000 | val loss 0.0156 acc 1.0000
+Best model saved.
+Epoch 91 | train loss 0.0156 acc 1.0000 | val loss 0.0155 acc 1.0000
+Best model saved.
+Epoch 92 | train loss 0.0153 acc 1.0000 | val loss 0.0146 acc 1.0000
+Best model saved.
+Epoch 93 | train loss 0.0153 acc 1.0000 | val loss 0.0160 acc 1.0000
+Epoch 94 | train loss 0.0147 acc 1.0000 | val loss 0.0144 acc 1.0000
+Best model saved.
+Epoch 95 | train loss 0.0143 acc 1.0000 | val loss 0.0137 acc 1.0000
+Best model saved.
+Epoch 96 | train loss 0.0139 acc 1.0000 | val loss 0.0137 acc 1.0000
+Best model saved.
+Epoch 97 | train loss 0.0137 acc 1.0000 | val loss 0.0133 acc 1.0000
+Best model saved.
+Epoch 98 | train loss 0.0135 acc 1.0000 | val loss 0.0132 acc 1.0000
+Best model saved.
+Epoch 99 | train loss 0.0133 acc 1.0000 | val loss 0.0151 acc 0.9978
+Epoch 100 | train loss 0.0130 acc 1.0000 | val loss 0.0130 acc 1.0000
+Best model saved.
+Epoch 101 | train loss 0.0126 acc 1.0000 | val loss 0.0126 acc 1.0000
+Best model saved.
+Epoch 102 | train loss 0.0125 acc 1.0000 | val loss 0.0120 acc 1.0000
+Best model saved.
+Epoch 103 | train loss 0.0122 acc 1.0000 | val loss 0.0120 acc 1.0000
+Best model saved.
+Epoch 104 | train loss 0.0121 acc 1.0000 | val loss 0.0120 acc 1.0000
+Epoch 105 | train loss 0.0116 acc 1.0000 | val loss 0.0116 acc 1.0000
+Best model saved.
+Epoch 106 | train loss 0.0118 acc 1.0000 | val loss 0.0117 acc 1.0000
+Epoch 107 | train loss 0.0114 acc 1.0000 | val loss 0.0102 acc 1.0000
+Best model saved.
+Epoch 108 | train loss 0.0113 acc 1.0000 | val loss 0.0104 acc 1.0000
+Epoch 109 | train loss 0.0108 acc 1.0000 | val loss 0.0105 acc 1.0000
+Epoch 110 | train loss 0.0106 acc 1.0000 | val loss 0.0103 acc 1.0000
+Epoch 111 | train loss 0.0103 acc 1.0000 | val loss 0.0100 acc 1.0000
+Best model saved.
+Epoch 112 | train loss 0.0100 acc 1.0000 | val loss 0.0099 acc 1.0000
+Best model saved.
+Epoch 113 | train loss 0.0100 acc 1.0000 | val loss 0.0098 acc 1.0000
+Best model saved.
+Epoch 114 | train loss 0.0098 acc 1.0000 | val loss 0.0095 acc 1.0000
+Best model saved.
+Epoch 115 | train loss 0.0097 acc 1.0000 | val loss 0.0099 acc 1.0000
+Epoch 116 | train loss 0.0096 acc 1.0000 | val loss 0.0098 acc 1.0000
+Epoch 117 | train loss 0.0094 acc 1.0000 | val loss 0.0090 acc 1.0000
+Best model saved.
+Epoch 118 | train loss 0.0091 acc 1.0000 | val loss 0.0095 acc 1.0000
+Epoch 119 | train loss 0.0087 acc 1.0000 | val loss 0.0089 acc 1.0000
+Best model saved.
+Epoch 120 | train loss 0.0091 acc 1.0000 | val loss 0.0092 acc 1.0000
+Epoch 121 | train loss 0.0087 acc 1.0000 | val loss 0.0082 acc 1.0000
+Best model saved.
+Epoch 122 | train loss 0.0085 acc 1.0000 | val loss 0.0080 acc 1.0000
+Best model saved.
+Epoch 123 | train loss 0.0084 acc 1.0000 | val loss 0.0096 acc 1.0000
+Epoch 124 | train loss 0.0083 acc 1.0000 | val loss 0.0086 acc 1.0000
+Epoch 125 | train loss 0.0080 acc 1.0000 | val loss 0.0083 acc 1.0000
+Epoch 126 | train loss 0.0134 acc 0.9988 | val loss 0.0060 acc 0.9978
+Best model saved.
+Epoch 127 | train loss 0.0093 acc 1.0000 | val loss 0.0080 acc 1.0000
+Epoch 128 | train loss 0.0087 acc 1.0000 | val loss 0.0085 acc 1.0000
+Epoch 129 | train loss 0.0084 acc 1.0000 | val loss 0.0080 acc 1.0000
+Epoch 130 | train loss 0.0078 acc 1.0000 | val loss 0.0079 acc 1.0000
+Epoch 131 | train loss 0.0077 acc 1.0000 | val loss 0.0080 acc 1.0000
+Epoch 132 | train loss 0.0080 acc 1.0000 | val loss 0.0076 acc 1.0000
+Epoch 133 | train loss 0.0075 acc 1.0000 | val loss 0.0075 acc 1.0000
+Epoch 134 | train loss 0.0075 acc 1.0000 | val loss 0.0074 acc 1.0000
+Epoch 135 | train loss 0.0072 acc 1.0000 | val loss 0.0072 acc 1.0000
+Epoch 136 | train loss 0.0069 acc 1.0000 | val loss 0.0071 acc 1.0000
+Epoch 137 | train loss 0.0069 acc 1.0000 | val loss 0.0070 acc 1.0000
+Epoch 138 | train loss 0.0068 acc 1.0000 | val loss 0.0064 acc 1.0000
+Epoch 139 | train loss 0.0065 acc 1.0000 | val loss 0.0068 acc 1.0000
+Epoch 140 | train loss 0.0064 acc 1.0000 | val loss 0.0063 acc 1.0000
+Epoch 141 | train loss 0.0066 acc 1.0000 | val loss 0.0067 acc 1.0000
+Epoch 142 | train loss 0.0063 acc 1.0000 | val loss 0.0062 acc 1.0000
+Early stopping triggered.
+Test set LOSS: 0.0048
+Test set ACCURACY: 1.0000
+Test set BALANCED-ACCURACY: 1.0000
+Test set MACRO-F1: 1.0000
+Test set classification report
+              precision    recall  f1-score   support
+
+           0   1.000000  1.000000  1.000000       768
+           1   1.000000  1.000000  1.000000       768
+
+    accuracy                       1.000000      1536
+   macro avg   1.000000  1.000000  1.000000      1536
+weighted avg   1.000000  1.000000  1.000000      1536
+
+#+end_example
+
+
+** fpr_mul mul_shift55 [4, 7]
+
+#+begin_example
+traces.shape: (12288, 200)
+label.shape: (12288,)
+traces_train.shape: (9216, 200)
+traces_test.shape: (3072, 200)
+=================================================================
+Layer (type:depth-idx)                   Param #
+=================================================================
+model_mlp                                --
+├─Flatten: 1-1                           --
+├─BatchNorm1d: 1-2                       128
+├─BatchNorm1d: 1-3                       128
+├─BatchNorm1d: 1-4                       8
+├─LazyLinear: 1-5                        --
+├─Linear: 1-6                            4,160
+├─Linear: 1-7                            260
+├─ReLU: 1-8                              --
+=================================================================
+Total params: 4,684
+Trainable params: 4,684
+Non-trainable params: 0
+=================================================================
+=================================================================
+Layer (type:depth-idx)                   Param #
+=================================================================
+model_mlp                                --
+├─Flatten: 1-1                           --
+├─BatchNorm1d: 1-2                       128
+├─BatchNorm1d: 1-3                       128
+├─BatchNorm1d: 1-4                       8
+├─LazyLinear: 1-5                        --
+├─Linear: 1-6                            4,160
+├─Linear: 1-7                            260
+├─ReLU: 1-8                              --
+=================================================================
+Total params: 4,684
+Trainable params: 4,684
+Non-trainable params: 0
+=================================================================
+Epoch 01 | train loss 0.5684 acc 0.9192 | val loss 0.4613 acc 0.9685
+Best model saved.
+Epoch 02 | train loss 0.4301 acc 0.9684 | val loss 0.4010 acc 0.9707
+Best model saved.
+Epoch 03 | train loss 0.3817 acc 0.9685 | val loss 0.3495 acc 0.9707
+Best model saved.
+Epoch 04 | train loss 0.3383 acc 0.9715 | val loss 0.3314 acc 0.9653
+Best model saved.
+Epoch 05 | train loss 0.3091 acc 0.9709 | val loss 0.3214 acc 0.9555
+Best model saved.
+Epoch 06 | train loss 0.2789 acc 0.9726 | val loss 0.2894 acc 0.9620
+Best model saved.
+Epoch 07 | train loss 0.2540 acc 0.9721 | val loss 0.2404 acc 0.9729
+Best model saved.
+Epoch 08 | train loss 0.2362 acc 0.9731 | val loss 0.2243 acc 0.9664
+Best model saved.
+Epoch 09 | train loss 0.2194 acc 0.9728 | val loss 0.1928 acc 0.9751
+Best model saved.
+Epoch 10 | train loss 0.2035 acc 0.9743 | val loss 0.1846 acc 0.9772
+Best model saved.
+Epoch 11 | train loss 0.1883 acc 0.9746 | val loss 0.1706 acc 0.9751
+Best model saved.
+Epoch 12 | train loss 0.1768 acc 0.9747 | val loss 0.1665 acc 0.9729
+Best model saved.
+Epoch 13 | train loss 0.1761 acc 0.9718 | val loss 0.1649 acc 0.9718
+Best model saved.
+Epoch 14 | train loss 0.1634 acc 0.9735 | val loss 0.1625 acc 0.9685
+Best model saved.
+Epoch 15 | train loss 0.1486 acc 0.9744 | val loss 0.1348 acc 0.9751
+Best model saved.
+Epoch 16 | train loss 0.1435 acc 0.9750 | val loss 0.1350 acc 0.9707
+Epoch 17 | train loss 0.1423 acc 0.9746 | val loss 0.1252 acc 0.9761
+Best model saved.
+Epoch 18 | train loss 0.1346 acc 0.9742 | val loss 0.1171 acc 0.9761
+Best model saved.
+Epoch 19 | train loss 0.1259 acc 0.9766 | val loss 0.1136 acc 0.9761
+Best model saved.
+Epoch 20 | train loss 0.1247 acc 0.9747 | val loss 0.1107 acc 0.9772
+Best model saved.
+Epoch 21 | train loss 0.1189 acc 0.9750 | val loss 0.1155 acc 0.9761
+Epoch 22 | train loss 0.1131 acc 0.9775 | val loss 0.1041 acc 0.9772
+Best model saved.
+Epoch 23 | train loss 0.1091 acc 0.9764 | val loss 0.1021 acc 0.9751
+Best model saved.
+Epoch 24 | train loss 0.1046 acc 0.9783 | val loss 0.1639 acc 0.9577
+Epoch 25 | train loss 0.1122 acc 0.9741 | val loss 0.0899 acc 0.9783
+Best model saved.
+Epoch 26 | train loss 0.1029 acc 0.9772 | val loss 0.0918 acc 0.9761
+Epoch 27 | train loss 0.0989 acc 0.9762 | val loss 0.0879 acc 0.9794
+Best model saved.
+Epoch 28 | train loss 0.0937 acc 0.9777 | val loss 0.0861 acc 0.9794
+Best model saved.
+Epoch 29 | train loss 0.0918 acc 0.9803 | val loss 0.0901 acc 0.9772
+Epoch 30 | train loss 0.0892 acc 0.9787 | val loss 0.0998 acc 0.9718
+Epoch 31 | train loss 0.0908 acc 0.9770 | val loss 0.0815 acc 0.9772
+Best model saved.
+Epoch 32 | train loss 0.0884 acc 0.9789 | val loss 0.0781 acc 0.9826
+Best model saved.
+Epoch 33 | train loss 0.0793 acc 0.9801 | val loss 0.0790 acc 0.9772
+Epoch 34 | train loss 0.0802 acc 0.9791 | val loss 0.0707 acc 0.9794
+Best model saved.
+Epoch 35 | train loss 0.0772 acc 0.9814 | val loss 0.0754 acc 0.9772
+Epoch 36 | train loss 0.0823 acc 0.9790 | val loss 0.0709 acc 0.9783
+Epoch 37 | train loss 0.0823 acc 0.9777 | val loss 0.0797 acc 0.9751
+Epoch 38 | train loss 0.0810 acc 0.9773 | val loss 0.0947 acc 0.9696
+Epoch 39 | train loss 0.0752 acc 0.9789 | val loss 0.0685 acc 0.9772
+Best model saved.
+Epoch 40 | train loss 0.0748 acc 0.9795 | val loss 0.0645 acc 0.9816
+Best model saved.
+Epoch 41 | train loss 0.0774 acc 0.9782 | val loss 0.0686 acc 0.9805
+Epoch 42 | train loss 0.0700 acc 0.9805 | val loss 0.0772 acc 0.9772
+Epoch 43 | train loss 0.0680 acc 0.9818 | val loss 0.0712 acc 0.9794
+Epoch 44 | train loss 0.0682 acc 0.9814 | val loss 0.0672 acc 0.9816
+Epoch 45 | train loss 0.0694 acc 0.9799 | val loss 0.0805 acc 0.9653
+Epoch 46 | train loss 0.0639 acc 0.9806 | val loss 0.0935 acc 0.9696
+Epoch 47 | train loss 0.0707 acc 0.9781 | val loss 0.0811 acc 0.9751
+Epoch 48 | train loss 0.0637 acc 0.9814 | val loss 0.0589 acc 0.9816
+Best model saved.
+Epoch 49 | train loss 0.0629 acc 0.9806 | val loss 0.0604 acc 0.9826
+Epoch 50 | train loss 0.0630 acc 0.9816 | val loss 0.0577 acc 0.9816
+Best model saved.
+Epoch 51 | train loss 0.0596 acc 0.9818 | val loss 0.0863 acc 0.9707
+Epoch 52 | train loss 0.0587 acc 0.9823 | val loss 0.0558 acc 0.9848
+Best model saved.
+Epoch 53 | train loss 0.0624 acc 0.9814 | val loss 0.0583 acc 0.9837
+Epoch 54 | train loss 0.0597 acc 0.9810 | val loss 0.0535 acc 0.9848
+Best model saved.
+Epoch 55 | train loss 0.0549 acc 0.9837 | val loss 0.0735 acc 0.9751
+Epoch 56 | train loss 0.0580 acc 0.9822 | val loss 0.0526 acc 0.9794
+Best model saved.
+Epoch 57 | train loss 0.0553 acc 0.9826 | val loss 0.0662 acc 0.9761
+Epoch 58 | train loss 0.0541 acc 0.9846 | val loss 0.0557 acc 0.9816
+Epoch 59 | train loss 0.0503 acc 0.9852 | val loss 0.0545 acc 0.9848
+Epoch 60 | train loss 0.0488 acc 0.9855 | val loss 0.0719 acc 0.9772
+Epoch 61 | train loss 0.0521 acc 0.9847 | val loss 0.0685 acc 0.9772
+Epoch 62 | train loss 0.0510 acc 0.9836 | val loss 0.0503 acc 0.9816
+Best model saved.
+Epoch 63 | train loss 0.0482 acc 0.9847 | val loss 0.0608 acc 0.9794
+Epoch 64 | train loss 0.0558 acc 0.9829 | val loss 0.0515 acc 0.9816
+Epoch 65 | train loss 0.0536 acc 0.9819 | val loss 0.0502 acc 0.9826
+Best model saved.
+Epoch 66 | train loss 0.0488 acc 0.9840 | val loss 0.0535 acc 0.9816
+Epoch 67 | train loss 0.0468 acc 0.9865 | val loss 0.0548 acc 0.9805
+Epoch 68 | train loss 0.0466 acc 0.9859 | val loss 0.0481 acc 0.9837
+Best model saved.
+Epoch 69 | train loss 0.0546 acc 0.9820 | val loss 0.0513 acc 0.9837
+Epoch 70 | train loss 0.0495 acc 0.9832 | val loss 0.0502 acc 0.9859
+Epoch 71 | train loss 0.0443 acc 0.9863 | val loss 0.0740 acc 0.9707
+Epoch 72 | train loss 0.0502 acc 0.9828 | val loss 0.0524 acc 0.9772
+Epoch 73 | train loss 0.0434 acc 0.9865 | val loss 0.0453 acc 0.9826
+Best model saved.
+Epoch 74 | train loss 0.0419 acc 0.9864 | val loss 0.0474 acc 0.9870
+Epoch 75 | train loss 0.0427 acc 0.9861 | val loss 0.0511 acc 0.9826
+Epoch 76 | train loss 0.0435 acc 0.9850 | val loss 0.0532 acc 0.9805
+Epoch 77 | train loss 0.0459 acc 0.9843 | val loss 0.0471 acc 0.9859
+Epoch 78 | train loss 0.0423 acc 0.9863 | val loss 0.0483 acc 0.9837
+Epoch 79 | train loss 0.0411 acc 0.9860 | val loss 0.0518 acc 0.9794
+Epoch 80 | train loss 0.0465 acc 0.9844 | val loss 0.0517 acc 0.9859
+Epoch 81 | train loss 0.0431 acc 0.9857 | val loss 0.0581 acc 0.9772
+Epoch 82 | train loss 0.0443 acc 0.9859 | val loss 0.0552 acc 0.9751
+Epoch 83 | train loss 0.0430 acc 0.9869 | val loss 0.0645 acc 0.9751
+Epoch 84 | train loss 0.0403 acc 0.9878 | val loss 0.0516 acc 0.9837
+Epoch 85 | train loss 0.0372 acc 0.9879 | val loss 0.0499 acc 0.9805
+Epoch 86 | train loss 0.0410 acc 0.9860 | val loss 0.0659 acc 0.9729
+Epoch 87 | train loss 0.0411 acc 0.9863 | val loss 0.0468 acc 0.9837
+Epoch 88 | train loss 0.0417 acc 0.9864 | val loss 0.0482 acc 0.9848
+Epoch 89 | train loss 0.0391 acc 0.9863 | val loss 0.0485 acc 0.9837
+Early stopping triggered.
+Test set LOSS: 0.0578
+Test set ACCURACY: 0.9805
+Test set BALANCED-ACCURACY: 0.9805
+Test set MACRO-F1: 0.9805
+Test set classification report
+              precision    recall  f1-score   support
+
+           0   1.000000  1.000000  1.000000       768
+           1   1.000000  1.000000  1.000000       768
+           2   0.960938  0.960938  0.960938       768
+           3   0.960938  0.960938  0.960938       768
+
+    accuracy                       0.980469      3072
+   macro avg   0.980469  0.980469  0.980469      3072
+weighted avg   0.980469  0.980469  0.980469      3072
+
+#+end_example
+

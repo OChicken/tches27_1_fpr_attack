@@ -1,0 +1,687 @@
+#+TITLE: 3. Cycle Location
+#+PROPERTY: header-args:python  :session Python/fpemu
+#+PROPERTY: header-args:python+ :results silent
+
+This document presents a primitive observation to the cycle locations of the interested operations.
+
+Note: this is just a primitive illustration, in order to summarize the necessary parts in a protocol of determining key's cycle location, cuz different keys have different locations.
+
+This document is used to
+1. obtain the cycle usage by the interested operation;
+2. obtain =expected_delta= in order to remove ETM abnormal;
+3. save location information as dict;
+
+The main purpose of this file is to help you settle down the parameters in the json.
+
+* Glossary: ETM vs SWO
+
+These two are at /different layers/ of the same trace pipeline, not alternatives: one /generates/ trace data, the other /carries/ it.
+
+#+begin_example
+DWT  (PC-match comparator)  ┐
+ETM  (instruction trace)    ├─→  TPIU  ─→  SWO            (1 wire)   → TraceWhisperer
+ITM  (software trace)       ┘  (formatter)  or TRACEDATA[3:0] (4 wires, "parallel")
+#+end_example
+
+- *DWT* — source/trigger: comparators that fire on a PC-address match (=COMP0= = =fpr_scaled= entry).
+- *ETM* — source/generator: emits the I-sync packet (carrying the PC address) when triggered.
+- *TPIU* — formatter: funnels and frames packets from the sources.
+- *SWO* — transport: the single-wire output mode of the TPIU; the physical link to the Husky. The alternative is 4-wire parallel =TRACEDATA[3:0]=.
+
+Rule of thumb: say *ETM* for /what is captured/ (the PC-address events), and *SWO* for /the link and its bandwidth/. The causal chain here: a DWT PC-match makes the ETM emit a packet, which is serialized over the SWO wire; when the loop produces matches faster than SWO can drain them, the ETM/TPIU FIFO overflows. The events are ETM; the bottleneck is SWO. Switching to parallel trace changes only the transport (SWO → =TRACEDATA[3:0]=, ~4× bandwidth); the ETM source and DWT triggers are unchanged.
+
+
+* Issues of ARM ETM in O1, O2, O3, Os
+
+The =fpr_scaled= body is byte-identical across all levels (it is naked asm), so the function is not the cause. What differs is how fast the surrounding =smallints_to_fpr= loop calls it. The per-call spacing is =smallints_to_fpr / 512= (from the cycle table in ~1_cycle_usage.org~):
+
+| level | cycles / =fpr_scaled= call |
+|-------+--------------------------|
+| O0    | 68687 / 512 ≈ 134        |
+| O1    | 37897 / 512 ≈ 74         |
+| O2    | 36872 / 512 ≈ 72         |
+| O3    | 36872 / 512 ≈ 72         |
+| Os    | 37383 / 512 ≈ 73         |
+
+** Diagnosis: SWO trace bandwidth saturation
+
+The trace path is single-wire SWO. In =enable_trace()= the baud is set by =TPIU->ACPR = 0=, i.e. *1 SWO bit per CPU cycle* (already the maximum, no headroom). One ETM I-sync packet (header + address + info, plus TPIU framing from =FFCR = 0x102=) is roughly *6-8 bytes ≈ 50-85 cycles* to serialize. So each =fpr_scaled= match needs the calls to be spaced more than ~85 cycles apart for the SWO link to keep up:
+
+- *O0 (≈134 cycles/call):* the unoptimized loop spaces the calls well above the packet time → SWO drains between events → all 512 events are captured.
+- *O1 / O2 / O3 / Os (≈72-74 cycles/call):* the optimized loop fires events at or below the packet-serialization limit → the ETM FIFO backs up and overflows within a few iterations.
+
+Periodic SYNC is *disabled* (=DWT_CTRL = 0x40000021=, ITM =SYNCENA = 0=), so after the first overflow there is *no resync packet to recover alignment* — the bytestream stays desynced for the rest of the run. The signature is: the first event is captured, then everything after is lost.
+
+Things that do /not/ help (all frequency- and PPC-independent, because the problem is the SWO-vs-code /ratio/): changing =PPC= (the SWO clock is =clkgen_freq × 8=, independent of =adc_mul=), changing =MCU_FREQ= (code speed and SWO baud scale together), or changing the match end address.
+
+
+** Fixes
+
+- *Use the O0 build* (chosen here): its wide per-call spacing keeps SWO drained, so all 512 events come through.
+- *Parallel trace:* the Husky supports 4-bit TPIU parallel trace and the firmware already sets =TPIU->CSPSR = 0x8= (4 lanes); switching =tracewhisperer_husky_setup= from ='SWO'= to ='parallel'= gives ~4× bandwidth, enough for the optimized levels. Requires the =TRACEDATA[3:0]= pins wired on the 20-pin trace header.
+- *Cycle usage only:* if only =expected_delta= / total cycles are needed (not the per-call address dict), skip ETM and bracket =smallints_to_fpr= with =HAL_CYCCNT=, as in ~1_cycle_usage.org~.
+
+
+* Common
+
+#+begin_src shell
+for d in O0 O1 O2 O3 Os; do
+    (cd "$d" && make build -B && make objdump-scaled && make objdump-mul)
+done
+find . -type f -name "*.s" -exec md5sum {} \;
+#+end_src
+
+#+begin_example
+f2fdd67065e70ef5212ee5f4d81adf21  ./Os/lss/fpr_scaled.s
+3b7433141584f0eeaec7c92596c5c6c4  ./Os/lss/fpr_mul.s
+a8546f65121b9d9b15d7e13fac3534a7  ./O3/lss/fpr_scaled.s
+b10d4264217d0bd99817533310a592eb  ./O3/lss/fpr_mul.s
+148cc70a8db2d2f0f9e30f654e6a13f8  ./O0/lss/fpr_scaled.s
+20a26a18c4161480d3a4ed461d842f35  ./O0/lss/fpr_mul.s
+a8546f65121b9d9b15d7e13fac3534a7  ./O2/lss/fpr_scaled.s
+b10d4264217d0bd99817533310a592eb  ./O2/lss/fpr_mul.s
+a8546f65121b9d9b15d7e13fac3534a7  ./O1/lss/fpr_scaled.s
+b10d4264217d0bd99817533310a592eb  ./O1/lss/fpr_mul.s
+#+end_example
+
+#+begin_src python
+FALCON_LOGN = 9
+FALCON_N = 2**FALCON_LOGN
+#+end_src
+
+#+begin_src python
+import os
+import time
+import math
+import pickle
+import json
+import numpy as np
+import chipwhisperer as cw
+import subprocess
+from tqdm import trange, tnrange
+from setup_generic import hardware_setup, clkgen_freq_setup, scope_reset, \
+    tracewhisperer_husky_setup
+from setup_generic import input2hex, cw_core_routine
+
+MCU_FREQ = 25_000_000
+PPC = 8
+HUSKY_MAX_SAMPLES = 131070
+PROGRAM = True
+#+end_src
+
+#+begin_src python
+OPT = "O0"
+scope, target = hardware_setup(f"{OPT}-falcon{FALCON_N}/build-stm32f4/fpemu.hex",
+                               "stm32f4", 'SS_VER_1_0', PROGRAM)
+#+end_src
+
+#+begin_src python
+scope_reset(scope)
+tracewhisperer = tracewhisperer_husky_setup(scope, target)
+clkgen_freq_setup(scope, target, MCU_FREQ)
+scope.clock.adc_mul = PPC
+scope.adc.samples = HUSKY_MAX_SAMPLES
+scope.gain.db = 12
+
+target.flush()
+scope_reset(scope)
+#+end_src
+
+#+begin_src python
+def set_key(cmd, key, target):
+    target.write(cmd + input2hex(key) + '\n')
+    buf = ''
+    while 'z00\n' not in buf:
+        buf += target.read(num_char=0xffff)
+    print(buf[:-5])
+    target.flush()
+#+end_src
+
+#+begin_src python :results output replace :exports both
+key_f = np.load(f"keys/Falcon{FALCON_N}_f_1000.npy", allow_pickle=True)
+key_id = 0  # or any other indices less then len(key_f)
+set_key('k', key_f[key_id].tolist(), target)
+#+end_src
+
+#+RESULTS:
+: [-2, 10, ..., -2,  3]
+
+
+** determine cycle location
+
+#+begin_src python
+from cycloc import rm_etm_abnormal, cycloc_pair
+
+def debug(loc):
+    for i in range(len(loc)):  # <
+        delta = loc[i][0] - loc[i-1][1] if i > 0 else loc[i][0]
+        print(f"{loc[i][0]:8} rule # 0, delta = {delta}")
+        print(f"{loc[i][1]:8} rule # 0, delta = {loc[i][1] - loc[i][0]}")
+#+end_src
+
+
+* fpr_scaled
+
+#+begin_src python
+with open("cycloc_params.json") as f:
+    cfg = json.load(f)[OPT]["scaled"]
+addr_global    = int(cfg["addr_global"], 0)
+rel_start      = int(cfg["rel_start"], 0)
+rel_end        = int(cfg["rel_end"], 0)
+#+end_src
+
+#+begin_src python :session :results output :exports both
+loc0, loc1 = cycloc_pair('p', '', addr_global, rel_start, rel_end,
+                         scope, target, tracewhisperer)
+print(f"len(loc0) = {len(loc0)}")
+print(f"len(loc1) = {len(loc1)}")
+#+end_src
+
+#+RESULTS:
+: len(loc0) = 509
+: len(loc1) = 508
+
+Use this to /manually/ read the =expected_delta=:
+
+#+begin_src python
+for i in range(len(loc1) - 1):
+    print(f"{i:3}", loc1[i+1][0] - loc1[i][0])
+#+end_src
+
+You shall see
+
+#+begin_example
+  0 134
+  1 134
+...
+506 134
+#+end_example
+
+Ideally, this quantity is the same throughout all =len(loc0)-1= (=loc1= gives the same). So we choose =expected_delta = [134]= for =FALCON_N=512=.
+
+|            | =expected_delta= |
+|------------+----------------|
+| Falcon512  | [134]          |
+| Falcon1024 | [134]          |
+
+Usually =fpr_scaled= do not have any abnormal, in contrast to =fpr_mul=. A standard procedure requires us to apply =rm_etm_abnormal= to remove the abnormal. =rm_etm_abnormal= is designed such that, when there are no abnormal points, applying this function will not change =loc0=, =loc1=.
+
+#+begin_src python
+expected_delta = cfg["expected_delta"][str(FALCON_N)]
+loc0 = rm_etm_abnormal(loc0, expected_delta)
+# loc1 anomaly is a split: missed event gives delta=280 (not 268) followed by
+# delta=122 (not 134); the two steps together equal 3×134=402.  anomaly_tol=15
+# accepts 280 as ≈268 (off by 12), and the follow-up 122 is then ≈134 (off by 12)
+# within the same tolerance applied in the next normal-check iteration.
+# loc1 = rm_etm_abnormal(loc1, [134], tol=15)
+loc1 = rm_etm_abnormal(loc1, expected_delta, tol=15)
+loc = []
+for i in range(FALCON_N):
+    loc.append([loc0[i][0], loc1[i][0]])
+debug(loc)
+#+end_src
+
+Explanation to the exampled print out:
+
+In =smallints_to_fpr= there are =FALCON_N= times calls of =fpr_of=:
+
+#+begin_src C
+/* fpr.h */
+static inline fpr
+fpr_of(int64_t i) {
+    return fpr_scaled(i, 0);
+}
+
+/* sign.c */
+static void
+smallints_to_fpr(fpr *r, const int8_t *t, unsigned logn) {
+    size_t n, u;
+
+    n = MKN(logn);
+    for (u = 0; u < n /* > */; u ++) {  /* FALCON_N calls */
+        r[u] = fpr_of(t[u]);
+    }
+}
+#+end_src
+
+#+begin_example
+     139 rule # 0, delta = 139  // f[0] scaled start
+     188 rule # 0, delta = 49   // f[0] scaled end
+     273 rule # 0, delta = 85   // f[1] scaled start
+     322 rule # 0, delta = 49   // f[1] scaled end
+...
+   68479 rule # 0, delta = 85   // f[510] scaled start
+   68528 rule # 0, delta = 49   // f[510] scaled end
+   68613 rule # 0, delta = 85   // f[511] scaled start
+   68662 rule # 0, delta = 49   // f[511] scaled end
+#+end_example
+
+Note: the beginning =139= is different from other =85=, due to the "bootstrap" of =f[0]=.
+
+From lines such as
+
+#+begin_example
+     188 rule # 0, delta = 49   // f[0] scaled end
+     322 rule # 0, delta = 49   // f[1] scaled end
+#+end_example
+
+We know that *scaled uses 49 cycles*.
+
+
+* fpr_mul
+
+** Multiply x1*y0
+
+#+begin_src python
+with open("cycloc_params.json") as f:
+    cfg = json.load(f)[OPT]["mul"]
+addr_global    = int(cfg["addr_global"], 0)
+rel_start      = int(cfg["rel_start"], 0)
+rel_end        = int(cfg["rel_end"], 0)
+#+end_src
+
+#+begin_src python :session :results output :exports both
+loc0, loc1 = cycloc_pair('p', '', addr_global, rel_start, rel_end,
+                         scope, target, tracewhisperer)
+print(f"len(loc0) = {len(loc0)}")
+print(f"len(loc1) = {len(loc1)}")
+#+end_src
+
+#+RESULTS:
+: len(loc0) = 511
+: len(loc1) = 511
+
+The length is not FALCON_N=512. This issue is caused by ETM. That's why it's necessary to extract the =expected_delta= to remove the abnormal.
+
+Use this to /manually/ read the =expected_delta=:
+
+#+begin_src python
+for i in range(len(loc1) - 1):
+    print(f"{i:3}", loc1[i+1][0] - loc1[i][0])
+#+end_src
+
+You shall see
+
+#+begin_example
+  0 100
+  1 282
+  2 100
+  3 1095
+  4 100
+  5 282
+  6 99    ← tolerable
+  7 1096  ← tolerable
+  8 99    ← tolerable
+  9 283   ← tolerable
+ 10 99    ← tolerable
+ 11 1096  ← tolerable
+ 12 100
+ 13 282
+ 14 100
+ 15 1095
+...
+286 100
+287 1095
+288 100
+289 282
+290 1195  ← ABNORMAL HERE (= 100 + 1095: one ETM event missed)
+291 99
+292 283
+293 99
+294 1096
+...
+503 100
+504 282
+505 100
+506 1095
+507 99
+508 283
+509 99
+          ← MISSING (len = 511, one event short of 512)
+#+end_example
+
+The reason why we have to read out the =expected_delta= /manually/ is, generally it's not always the same. E.g. here we choose =[100, 282, 100, 1095]=, but 99, 283, 1096 are allowable. They are regarded as a valid choice, guaranteed by =tol=15= in the function.
+
+|            | =expected_delta=        |
+|------------+-----------------------|
+| Falcon512  | [100, 282, 100, 1095] |
+| Falcon1024 | [100, 282, 100, 1095] |
+
+Now apply the rm abnormal process:
+
+#+begin_src python
+print("0x28, 0x50")
+expected_delta = cfg["expected_delta"][str(FALCON_N)]
+loc0 = rm_etm_abnormal(loc0, expected_delta)
+assert len(loc0) == FALCON_N
+loc1 = rm_etm_abnormal(loc1, expected_delta)
+assert len(loc1) == FALCON_N
+#+end_src
+
+#+begin_src python
+loc = []
+for i in range(FALCON_N):
+    loc.append([loc0[i][0], loc1[i][0]])
+debug(loc)
+#+end_src
+
+Explanation to the exampled print out:
+
+In =fft.c=, =Zf(FFT)= (= =falcon_inner_FFT=)
+
+#+begin_src C
+void
+Zf(FFT)(fpr *f, unsigned logn) {
+    n = (size_t)1 << logn;
+    hn = n >> 1;  /* half n */
+    t = hn;
+    for (u = 1, m = 2; u < logn; u ++, m <<= 1) { /* ← logn */
+        ht = t >> 1;  /* half t */
+        hm = m >> 1;  /* half m */
+        for (i1 = 0, j1 = 0; i1 < hm; i1 ++, j1 += t) {
+            for (j = j1; j < j2; j ++) {
+                x_re = f[j];
+                x_im = f[j + hn];
+                y_re = f[j + ht];
+                y_im = f[j + ht + hn];
+                FPC_MUL(y_re, y_im, y_re, y_im, s_re, s_im);  /* 4 consecutive fpr_mul called */
+            }  /* ) */
+        }
+    }
+}
+#+end_src
+
+calls macro function =FPC_MUL=:
+
+#+begin_src C
+/*
+ * Multplication of two complex numbers (d = a * b).
+ */
+#define FPC_MUL(d_re, d_im, a_re, a_im, b_re, b_im)   do { \
+        fpr fpct_a_re, fpct_a_im; \
+        fpr fpct_b_re, fpct_b_im; \
+        fpr fpct_d_re, fpct_d_im; \
+        fpct_a_re = (a_re); \
+        fpct_a_im = (a_im); \
+        fpct_b_re = (b_re); \
+        fpct_b_im = (b_im); \
+        fpct_d_re = fpr_sub( \
+                             fpr_mul(fpct_a_re, fpct_b_re), \    /* ← HERE */
+                             fpr_mul(fpct_a_im, fpct_b_im)); \   /* ← HERE */
+        fpct_d_im = fpr_add( \
+                             fpr_mul(fpct_a_re, fpct_b_im), \    /* ← HERE */
+                             fpr_mul(fpct_a_im, fpct_b_re)); \   /* ← HERE */
+        (d_re) = fpct_d_re; \
+        (d_im) = fpct_d_im; \
+    } while (0)
+#+end_src
+
+There are =fpr_sub= and =fpr_add=, resp, each of them contains two =fpr_mul=, so for each =f[i]= there are 4 times consecutive calling of =fpr_mul=.
+
+#+begin_example
+// 0x28, 0x50
+   68995 rule # 0, delta = 68995    // sub mul(Re(f[  0]), Re(f[256])), x1*y0 start
+   69005 rule # 0, delta = 10       //                                  x1*y0 end
+   69095 rule # 0, delta = 90       //     mul(Im(f[  0]), Im(f[256])), x1*y0 start
+   69105 rule # 0, delta = 10       //                                  x1*y0 end
+   69377 rule # 0, delta = 272      // add mul(Re(f[  0]), Re(f[256])), x1*y0 start
+   69387 rule # 0, delta = 10       //                                  x1*y0 end
+   69477 rule # 0, delta = 90       //     mul(Im(f[  0]), Im(f[256])), x1*y0 start
+   69487 rule # 0, delta = 10       //                                  x1*y0 end
+   70572 rule # 0, delta = 1085     // sub mul(Re(f[  1]), Re(f[257])), x1*y0 start
+   70582 rule # 0, delta = 10       //                                  x1*y0 end
+   70672 rule # 0, delta = 90       //     mul(Im(f[  1]), Im(f[257])), x1*y0 start
+   70682 rule # 0, delta = 10       //                                  x1*y0 end
+   70954 rule # 0, delta = 272      // add mul(Re(f[  1]), Re(f[257])), x1*y0 start
+   70964 rule # 0, delta = 10       //                                  x1*y0 end
+   71053 rule # 0, delta = 89       //     mul(Im(f[  1]), Im(f[257])), x1*y0 start
+   71063 rule # 0, delta = 10       //                                  x1*y0 end
+...                                 //     (coefficient groups f[2] .. f[125] omitted)
+  267697 rule # 0, delta = 1085     // sub mul(Re(f[126]), Re(f[382])), x1*y0 start
+  267707 rule # 0, delta = 10       //                                  x1*y0 end
+  267797 rule # 0, delta = 90       //     mul(Im(f[126]), Im(f[382])), x1*y0 start
+  267807 rule # 0, delta = 10       //                                  x1*y0 end
+  268079 rule # 0, delta = 272      // add mul(Re(f[126]), Re(f[382])), x1*y0 start
+  268089 rule # 0, delta = 10       //                                  x1*y0 end
+  268179 rule # 0, delta = 90       //     mul(Im(f[126]), Im(f[382])), x1*y0 start
+  268189 rule # 0, delta = 10       //                                  x1*y0 end
+  269274 rule # 0, delta = 1085     // sub mul(Re(f[127]), Re(f[383])), x1*y0 start
+  269284 rule # 0, delta = 10       //                                  x1*y0 end
+  269373 rule # 0, delta = 89       //     mul(Im(f[127]), Im(f[383])), x1*y0 start
+  269383 rule # 0, delta = 10       //                                  x1*y0 end
+  269656 rule # 0, delta = 273      // add mul(Re(f[127]), Re(f[383])), x1*y0 start
+  269666 rule # 0, delta = 10       //                                  x1*y0 end
+  269755 rule # 0, delta = 89       //     mul(Im(f[127]), Im(f[383])), x1*y0 start
+  269765 rule # 0, delta = 10       //                                  x1*y0 end (last group)
+#+end_example
+
+The capture yields 128 coefficient groups (=f[0]/f[256]= .. =f[127]/f[383]=), 4 =fpr_mul= each = 512 events.
+
+The 4 start-gaps per coefficient are =[1085, 90, 272, 90]= (= =expected_delta [1095, 100, 282, 100]= minus the 10-cycle mul duration, modulo jitter of ±1).
+
+From lines such as
+
+#+begin_example
+   69005 rule # 0, delta = 10       // sub mul(Re(f[  0]), Re(f[256])), x1*y0 end
+   69105 rule # 0, delta = 10       // sub mul(Im(f[  0]), Im(f[256])), x1*y0 end
+   69387 rule # 0, delta = 10       // add mul(Re(f[  0]), Re(f[256])), x1*y0 end
+   69487 rule # 0, delta = 10       // add mul(Im(f[  0]), Im(f[256])), x1*y0 end
+#+end_example
+
+We know that *multiplication of x1*y0 uses 10 cycles*.
+
+Note: the beginning =68995= is different from others, due to the "bootstrap" of =f[0]=.
+
+
+** shift55/Normalization
+
+Analogue procedure as the previous subsection.
+
+#+begin_src python
+with open("cycloc_params.json") as f:
+    cfg = json.load(f)[OPT]["shift55"]
+addr_global    = int(cfg["addr_global"], 0)
+rel_start      = int(cfg["rel_start"], 0)
+rel_end        = int(cfg["rel_end"], 0)
+#+end_src
+
+#+begin_src python :session :results output :exports both
+loc0, loc1 = cycloc_pair('p', '', addr_global, rel_start, rel_end,
+                         scope, target, tracewhisperer)
+print(f"len(loc0) = {len(loc0)}")
+print(f"len(loc1) = {len(loc1)}")
+#+end_src
+
+#+RESULTS:
+: len(loc0) = 511
+: len(loc1) = 511
+
+#+begin_src python
+for i in range(len(loc1) - 1):
+    print(f"{i:3}", loc1[i+1][0] - loc1[i][0])
+#+end_src
+
+|            | =expected_delta=        |
+|------------+-----------------------|
+| Falcon512  | [100, 282, 100, 1095] |
+| Falcon1024 | [100, 282, 100, 1095] |
+
+#+begin_src python
+print("0x5c, 0x8a")
+expected_delta = cfg["expected_delta"][str(FALCON_N)]
+loc0 = rm_etm_abnormal(loc0, expected_delta)
+assert len(loc0) == FALCON_N
+loc1 = rm_etm_abnormal(loc1, expected_delta)
+assert len(loc1) == FALCON_N
+#+end_src
+
+#+begin_src python
+loc = []
+for i in range(FALCON_N):
+    loc.append([loc0[i][0], loc1[i][0]])
+debug(loc)
+#+end_src
+
+#+begin_example
+// 0x5c, 0x8a
+   69008 rule # 0, delta = 69008    // sub mul(Re(f[  0]), Re(f[256])), shift55 start
+   69020 rule # 0, delta = 12       //                                  shift55 end
+   69108 rule # 0, delta = 88       //     mul(Im(f[  0]), Im(f[256])), shift55 start
+   69120 rule # 0, delta = 12       //                                  shift55 end
+   69390 rule # 0, delta = 270      // add mul(Re(f[  0]), Re(f[256])), shift55 start
+   69402 rule # 0, delta = 12       //                                  shift55 end
+   69490 rule # 0, delta = 88       //     mul(Im(f[  0]), Im(f[256])), shift55 start
+   69502 rule # 0, delta = 12       //                                  shift55 end
+   70585 rule # 0, delta = 1083     // sub mul(Re(f[  1]), Re(f[257])), shift55 start
+   70597 rule # 0, delta = 12       //                                  shift55 end
+   70685 rule # 0, delta = 88       //     mul(Im(f[  1]), Im(f[257])), shift55 start
+   70697 rule # 0, delta = 12       //                                  shift55 end
+   70967 rule # 0, delta = 270      // add mul(Re(f[  1]), Re(f[257])), shift55 start
+   70979 rule # 0, delta = 12       //                                  shift55 end
+   71066 rule # 0, delta = 87       //     mul(Im(f[  1]), Im(f[257])), shift55 start
+   71078 rule # 0, delta = 12       //                                  shift55 end
+...                                 //     (coefficient groups f[2] .. f[125] omitted)
+  267710 rule # 0, delta = 1083     // sub mul(Re(f[126]), Re(f[382])), shift55 start
+  267722 rule # 0, delta = 12       //                                  shift55 end
+  267810 rule # 0, delta = 88       //     mul(Im(f[126]), Im(f[382])), shift55 start
+  267822 rule # 0, delta = 12       //                                  shift55 end
+  268092 rule # 0, delta = 270      // add mul(Re(f[126]), Re(f[382])), shift55 start
+  268104 rule # 0, delta = 12       //                                  shift55 end
+  268192 rule # 0, delta = 88       //     mul(Im(f[126]), Im(f[382])), shift55 start
+  268204 rule # 0, delta = 12       //                                  shift55 end
+  269287 rule # 0, delta = 1083     // sub mul(Re(f[127]), Re(f[383])), shift55 start
+  269299 rule # 0, delta = 12       //                                  shift55 end
+  269386 rule # 0, delta = 87       //     mul(Im(f[127]), Im(f[383])), shift55 start
+  269398 rule # 0, delta = 12       //                                  shift55 end
+  269669 rule # 0, delta = 271      // add mul(Re(f[127]), Re(f[383])), shift55 start
+  269681 rule # 0, delta = 12       //                                  shift55 end
+  269768 rule # 0, delta = 87       //     mul(Im(f[127]), Im(f[383])), shift55 start
+  269780 rule # 0, delta = 12       //                                  shift55 end (last group)
+#+end_example
+
+From lines such as
+
+#+begin_example
+   69020 rule # 0, delta = 12       // sub mul(Re(f[  0]), Re(f[256])), shift55 end
+   69120 rule # 0, delta = 12       // sub mul(Im(f[  0]), Im(f[256])), shift55 end
+   69402 rule # 0, delta = 12       // add mul(Re(f[  0]), Re(f[256])), shift55 end
+   69502 rule # 0, delta = 12       // add mul(Im(f[  0]), Im(f[256])), shift55 end
+#+end_example
+
+We know that *shift55 uses 12 cycles*.
+
+
+** mul + shift55
+
+#+begin_src python
+with open("cycloc_params.json") as f:
+    cfg = json.load(f)[OPT]["mul_shift55"]
+addr_global    = int(cfg["addr_global"], 0)
+rel_start      = int(cfg["rel_start"], 0)
+rel_end        = int(cfg["rel_end"], 0)
+#+end_src
+
+#+begin_src python :results output replace :exports both
+loc0, loc1 = cycloc_pair('p', '', addr_global, rel_start, rel_end,
+                         scope, target, tracewhisperer)
+print(f"len(loc0) = {len(loc0)}")
+print(f"len(loc1) = {len(loc1)}")
+#+end_src
+
+#+RESULTS:
+: len(loc0) = 511
+: len(loc1) = 511
+
+#+begin_src python
+for i in range(len(loc1) - 1):
+    print(f"{i:3}", loc1[i+1][0] - loc1[i][0])
+#+end_src
+
+|            | =expected_delta=        |
+|------------+-----------------------|
+| Falcon512  | [100, 282, 100, 1095] |
+| Falcon1024 | [100, 282, 100, 1095] |
+
+#+begin_src python
+print("0x28, 0x8a")
+expected_delta = cfg["expected_delta"][str(FALCON_N)]
+loc0 = rm_etm_abnormal(loc0, expected_delta)
+assert len(loc0) == FALCON_N
+loc1 = rm_etm_abnormal(loc1, expected_delta, tol=15)
+assert len(loc1) == FALCON_N
+#+end_src
+
+#+begin_src python
+loc = []
+for i in range(FALCON_N):
+    loc.append([loc0[i][0], loc1[i][0]])
+debug(loc)
+#+end_src
+
+From lines such as
+
+#+begin_example
+   69020 rule # 0, delta = 25       // sub mul(Re(f[  0]), Re(f[256])), shift55 end
+   69402 rule # 0, delta = 25       // sub mul(Im(f[  0]), Im(f[256])), shift55 end
+   70597 rule # 0, delta = 25       // add mul(Re(f[  0]), Re(f[256])), shift55 end
+   70979 rule # 0, delta = 25       // add mul(Im(f[  0]), Im(f[256])), shift55 end
+#+end_example
+
+We know that *mul_shift55 (a segment concatenate mul and shift55) uses 25 cycles*.
+
+
+* Run All
+
+#+begin_src shell
+OPT=O0
+FALCON_N=512
+echo Run $OPT
+
+python cycloc.py $OPT scaled      $FALCON_N profile -22 23
+python cycloc.py $OPT mul         $FALCON_N profile -22 23
+python cycloc.py $OPT shift55     $FALCON_N profile -22 23
+python cycloc.py $OPT mul_shift55 $FALCON_N profile -22 23
+
+python cycloc.py $OPT scaled      $FALCON_N f 0 100
+python cycloc.py $OPT mul         $FALCON_N f 0 100
+python cycloc.py $OPT shift55     $FALCON_N f 0 100
+python cycloc.py $OPT mul_shift55 $FALCON_N f 0 100
+
+python cycloc.py $OPT scaled      $FALCON_N g 0 100
+python cycloc.py $OPT mul         $FALCON_N g 0 100
+python cycloc.py $OPT shift55     $FALCON_N g 0 100
+python cycloc.py $OPT mul_shift55 $FALCON_N g 0 100
+
+FALCON_N=1024
+python cycloc.py $OPT scaled      $FALCON_N profile -15 16
+python cycloc.py $OPT mul         $FALCON_N profile -15 16
+python cycloc.py $OPT shift55     $FALCON_N profile -15 16
+python cycloc.py $OPT mul_shift55 $FALCON_N profile -15 16
+#+end_src
+
+
+* Summary
+
+The result is stored in the json file a.w.a. the =loc_*.pkl=. The dir structure is
+
+#+begin_example
+O0-falcon512/
+├── cycloc_params.json
+├── traces_attack/
+│   └── ...
+└── traces_profile/
+    ├── loc_scaled.pkl
+    ├── loc_shift55.pkl
+    ├── loc_mul.pkl
+    ├── loc_mul_shift55.pkl
+    ├── profile_-22/
+    │   ├── trace_00.npy
+    │   └── trace_01.npy
+    ├── profile_-21/
+    │   ├── trace_00.npy
+    │   └── trace_01.npy
+    ├── ...
+    └── profile_22/
+        ├── trace_00.npy
+        └── trace_01.npy
+#+end_example

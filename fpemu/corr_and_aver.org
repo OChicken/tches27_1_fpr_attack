@@ -1,0 +1,139 @@
+#+TITLE: corr and aver
+#+PROPERTY: header-args:python  :session Python/fpemu
+#+PROPERTY: header-args:python+ :results silent
+#+PROPERTY: header-args:python+ :tangle corr_and_aver.py
+
+#+begin_src python
+import numpy as np
+import glob
+
+OPT = "O0"
+FALCON_N = 512
+PREFIX = "."
+DATA_PATH = f"{PREFIX}/{OPT}-falcon{FALCON_N}"
+N_KEYS   = 100     # f_000 .. f_099  (and g_000 .. g_099)
+
+def key_corr(fg, k, n_traces, traces_path):
+    """One key -> one corr, via its own 3-trace reference (mean) and noise (std)."""
+    traces = np.stack([
+        np.load(f"{traces_path}/{fg}_{k:03}/trace_{t:02}.npy").astype(np.float64)
+        for t in range(n_traces)
+    ])                                     # (n_traces, SAMPLES)
+    ref_trace = traces.mean(axis=0)        # this key's reference (not saved)
+    noise     = traces.std(axis=0)         # this key's noise     (not saved; here for SNR)
+    return float(np.mean([np.corrcoef(tr, ref_trace)[0, 1] for tr in traces]))
+#+end_src
+
+
+* Per-key reference and correlation: Raw
+
+#+begin_src python
+# trace_00 .. trace_29 per key
+traces_path = f"{DATA_PATH}/traces_attack_raw"
+
+f_corr = [key_corr("f", k, 30, traces_path) for k in range(N_KEYS)]   # f_000 -> f_corr[0], ...
+g_corr = [key_corr("g", k, 30, traces_path) for k in range(N_KEYS)]   # g_000 -> g_corr[0], ...
+#+end_src
+
+Old (0~19 and 20~29 are collected in different environment)
+
+#+begin_src python :results output replace :exports both
+print(f"f_corr: {len(f_corr)} values, mean {np.mean(f_corr):.6f}, min {np.min(f_corr):.6f}")
+print(f"g_corr: {len(g_corr)} values, mean {np.mean(g_corr):.6f}, min {np.min(g_corr):.6f}")
+#+end_src
+
+#+RESULTS:
+: f_corr: 100 values, mean 0.755152, min 0.753757
+: g_corr: 100 values, mean 0.753868, min 0.752378
+
+New
+
+#+begin_src python
+traces_path = f"{DATA_PATH}/traces_attack_raw"
+f_corr = [key_corr("f", k, 30, traces_path) for k in range(N_KEYS)]   # f_000 -> f_corr[0], ...
+#+end_src
+
+#+begin_src python :results output replace :exports both
+print(f"f_corr: {len(f_corr)} values, mean {np.mean(f_corr):.6f}, min {np.min(f_corr):.6f}")
+print(f"g_corr: {len(g_corr)} values, mean {np.mean(g_corr):.6f}, min {np.min(g_corr):.6f}")
+#+end_src
+
+#+RESULTS:
+: f_corr: 100 values, mean 0.747318, min 0.746142
+: g_corr: 100 values, mean 0.753868, min 0.752378
+
+mle_N = 10:
+
+#+begin_src python :results output replace :exports both
+traces_path = f"{DATA_PATH}/traces_attack_raw"
+f_corr = [key_corr("f", k, 10, traces_path) for k in range(N_KEYS)]   # f_000 -> f_corr[0], ...
+print(f"f_corr: {len(f_corr)} values, mean {np.mean(f_corr):.6f}, min {np.min(f_corr):.6f}")
+#+end_src
+
+#+RESULTS:
+: f_corr: 100 values, mean 0.767429, min 0.766032
+
+mle_N = 3:
+
+#+begin_src python :results output replace :exports both
+traces_path = f"{DATA_PATH}/traces_attack_raw"
+f_corr = [key_corr("f", k, 3, traces_path) for k in range(N_KEYS)]   # f_000 -> f_corr[0], ...
+print(f"f_corr: {len(f_corr)} values, mean {np.mean(f_corr):.6f}, min {np.min(f_corr):.6f}")
+#+end_src
+
+#+RESULTS:
+: f_corr: 100 values, mean 0.833994, min 0.832682
+
+#+begin_src python :results output replace :exports both
+traces_path = f"{DATA_PATH}/traces_attack_raw"
+f_corr = [key_corr("f", k, 2, traces_path) for k in range(N_KEYS)]   # f_000 -> f_corr[0], ...
+print(f"f_corr: {len(f_corr)} values, mean {np.mean(f_corr):.6f}, min {np.min(f_corr):.6f}")
+#+end_src
+
+#+RESULTS:
+: f_corr: 100 values, mean 0.878456, min 0.877254
+
+
+* merged and average
+
+#+begin_src python
+raw_path = f"{DATA_PATH}/traces_attack_raw"
+aver_path = f"{DATA_PATH}/traces_attack"
+
+def coaverage(fg):
+    for k in range(N_KEYS):
+        for n in range(10):
+            print(3*n+0, 3*n+1, 3*n+2)
+            t0 = np.load(f"{raw_path}/{fg}_{k:03}/trace_{3*n+0:02}.npy")
+            t1 = np.load(f"{raw_path}/{fg}_{k:03}/trace_{3*n+1:02}.npy")
+            t2 = np.load(f"{raw_path}/{fg}_{k:03}/trace_{3*n+2:02}.npy")
+            traces = np.array([t0, t1, t2])
+            trace  = traces.mean(axis=0)
+            subprocess.run(["mkdir", "-p", f"{aver_path}/{fg}_{k:03}"])
+            np.save(f"{aver_path}/{fg}_{k:03}/trace_{n:02}.npy", trace)
+#+end_src
+
+#+begin_src python
+coaverage('f')
+coaverage('g')
+#+end_src
+
+
+* Per-key reference and correlation: 3-in-1 Averaged
+
+#+begin_src python
+# trace_00 .. trace_09 per key
+traces_path = f"{DATA_PATH}/traces_attack"
+
+f_corr = [key_corr("f", k, 10, traces_path) for k in range(N_KEYS)]   # f_000 -> f_corr[0], ...
+g_corr = [key_corr("g", k, 10, traces_path) for k in range(N_KEYS)]   # g_000 -> g_corr[0], ...
+#+end_src
+
+#+begin_src python :results output replace :exports both
+print(f"f_corr: {len(f_corr)} values, mean {np.mean(f_corr):.6f}, min {np.min(f_corr):.6f}")
+print(f"g_corr: {len(g_corr)} values, mean {np.mean(g_corr):.6f}, min {np.min(g_corr):.6f}")
+#+end_src
+
+#+RESULTS:
+: f_corr: 100 values, mean 0.896089, min 0.895362
+: g_corr: 100 values, mean 0.753868, min 0.752378

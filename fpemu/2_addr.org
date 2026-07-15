@@ -1,0 +1,485 @@
+#+TITLE: 2. Addresses
+
+This document identifies data-dependent leakage sites in two target routines of FALCON's floating-point core — Floating-Point Conversion (=fpr_scaled=) and Floating-Point Multiplication (=fpr_mul=) — by static analysis of their ARM Cortex-M4 assembly compiled at =-O3=. Within =fpr_mul=, two sub-tasks are analysed separately: mantissa multiplication (the primary profiling target) and mantissa normalization, which checks whether the product reaches =2^55= and thereby introduces additional leakage. For each leakage site, the responsible instructions (conditional moves, multiplications, and bitwise operations on secret mantissa bits) are annotated, and a [start, end] address interval is derived to serve as the SWO trace capture window in subsequent profiling steps.
+
+No CW devices are needed.
+
+* Compile
+
+#+begin_src shell
+for d in O0 O1 O2 O3 Os; do
+    (cd "$d" && make build -B && make objdump-scaled && make objdump-mul)
+done
+#+end_src
+
+
+* fpr_scaled
+
+Call-chain of =smallints_to_fpr=
+
+#+begin_example
+smallints_to_fpr(r, t, logn)          sign.c:188   - loop over n coefficients
+└── fpr_of(t[u])                       sign.c:194 → fpr.h:223
+    └── return fpr_scaled(i, 0)        fpr.h:225
+        └── fpr_scaled(int64_t, int)   fpr.c        ← LEAF (naked asm on M4)
+#+end_example
+
+Understandable C in PQClean:
+
+#+begin_src C
+    /* (<<<(< */
+    /*
+     * Extract sign bit.
+     * We have: -i = 1 + ~i
+     */
+    s = (int)((uint64_t)i >> 63);
+    i ^= -(int64_t)s;
+    i += s;
+
+    /*
+     * For now we suppose that i != 0.
+     * Otherwise, we set m to i and left-shift it as much as needed
+     * to get a 1 in the top bit. We can do that in a logarithmic
+     * number of conditional shifts.
+     */
+    m = (uint64_t)i;
+    e = 9 + sc;
+    FPR_NORM64(m, e);
+
+    /*
+     * Now m is in the 2^63..2^64-1 range. We must divide it by 512;
+     * if one of the dropped bits is a 1, this should go into the
+     * "sticky bit".
+     */
+    m |= ((uint32_t)m & 0x1FF) + 0x1FF;
+    m >>= 9;
+
+    /*
+     * Corrective action: if i = 0 then all of the above was
+     * incorrect, and we clamp e and m down to zero.
+     */
+    t = (uint32_t)((uint64_t)(i | -i) >> 63);
+    m &= -(uint64_t)t;
+    e &= -(int)t;
+#+end_src
+
+** O0
+
+The main part is the same as =O3=, except three differences:
+
+- additional =.text.fpr_trunc= section
+- additional =.text.fpr_ursh= section
+- up to the return (=0x80: pop {r4, r5, r6, pc}=)
+
+=fpr_scaled= does/not/call =fpr_ursh=, =fpr_trunc=, or anything else. So:
+
+#+begin_example
+smallints_to_fpr → fpr_of → fpr_scaled        ⟂  fpr_ursh / fpr_trunc
+#+end_example
+
+=fpr_ursh= / =fpr_trunc= are leakage-relevant but in the /sampler/ and /final-rounding/ stages (and inside =fpr_add=), with *no call path* from =smallints_to_fpr=. They're irrelevant to the =fpr_scaled= window.
+
+*** additional =fpr_trunc= section
+
+At =-O0= nothing is inlined, so the extra section shows up when disassembling =fpr.o=.
+
+For details, see the =fpr_scaled= → =Os= section below.
+
+
+*** additional =fpr_ursh= section
+
+=fpr_ursh= is the constant-time 64-bit unsigned right shift used by the C helpers (=fpr_trunc=, =fpr_rint=) to shift by a possibly-secret count without falling back to a non-constant-time libgcc routine:
+
+#+begin_src C
+static inline uint64_t
+fpr_ursh(uint64_t x, int n)   /* shift count n in 0..63 */
+{
+	/* <<<(<(( */
+	x ^= (x ^ (x >> 32)) & -(uint64_t)(n >> 5);  /* if n >= 32, fold hi 32 bits into lo */
+	return x >> (n & 31);                        /* then one 0..31 barrel shift */
+}
+#+end_src
+
+It belongs to /other phases/ of signing, never the input-conversion phase. =fpr_ursh= (=fpr.h:128=, the constant-time 64-bit unsigned right shift) is reached from three callers, all outside the =fpr_scaled= / =fpr_mul= windows:
+
+#+begin_example
+do_sign_dyn
+├── Gaussian sampling: Zf(sampler)            sign.c:1357
+│   └── BerExp                                sign.c:1293
+│       └── fpr_expm_p63                      fpr.c: 1287
+│           └── fpr_trunc                     fpr.h:  366
+│               └── fpr_ursh                  fpr.h:  380
+├── output rounding: fpr_rint (t0/t1)          sign.c:854,872,1061,1079
+│   └── fpr_ursh                              fpr.h:  313
+└── mantissa alignment: fpr_add   (used throughout, incl. FFT)
+    └── fpr_ursh                              fpr.c:  533
+#+end_example
+
+At =-O0= nothing is inlined, so every =static inline= helper gets its own out-of-line copy.
+
+One nuance worth noting: =fpr_ursh= /does/ get pulled into the FFT region too - but only indirectly through =fpr_add='s mantissa-alignment step (=fpr.c:533=), not through =fpr_scaled= / =fpr_mul=. Our capture window is strictly the =fpr_scaled= and the =x1*y0= =fpr_mul= body, neither =fpr_ursh= nor =fpr_trunc= appears in it - confirming the disassembly observation that those sections are siblings in =fpr.o=, not part of the windows we are profiling.
+
+
+*** dead trailing instructions after the return
+
+The function body is byte-identical to =O3= up to the return (=0x80: pop {r4, r5, r6, pc}=), after which =-O0= emits three dead trailing instructions that the optimizing levels (=-O3=, =-Os=) strip:
+
+#+begin_src asm
+  82:	nop
+  84:	mov	r0, r2
+  86:	mov	r1, r3
+#+end_src
+
+They are an un-eliminated epilogue tail (=mov r0,r2; mov r1,r3= would place the result in the return registers) that is unreachable past the =pop=. They do not touch the leakage instructions or the addresses / clip ranges below.
+
+
+** O1
+
+Totally the same as O3.
+
+
+** O2
+
+Totally the same as O3.
+
+
+** O3
+
+#+begin_src asm
+   @ <<<<
+   0:	push	{r4, r5, r6, lr}
+   2:	asrs	r3, r1, #31  @ s = sign mask (0 or -1)
+   4:	eors	r0, r3  @ abs: i ^= -s
+   6:	eors	r1, r3
+   8:	subs	r0, r0, r3  @ abs: i += s  -> |i| in (r1:r0)
+   a:	sbcs	r1, r3
+   c:	addw	r2, r2, #1022  @ e = sc + 1022
+  10:	orrs.w	r4, r0, r1
+  14:	bics.w	r4, r4, r2, asr #31
+  18:	negs	r5, r4
+  1a:	orrs	r4, r5
+  1c:	ands.w	r2, r2, r4, asr #31  @ zero-clamp e when i == 0
+  20:	adds	r2, #32
+  22:	negs	r4, r1  @ FPR_NORM64: bring top mantissa bit to bit63
+  24:	orrs	r4, r1
+  26:	eors.w	r5, r0, r1
+  2a:	bics.w	r5, r5, r4, asr #31
+  2e:	eors	r1, r5
+  30:	ands.w	r0, r0, r4, asr #31
+  34:	lsrs	r4, r4, #31
+  36:	adds.w	r2, r2, r4, lsl #5
+  3a:	clz	r4, r1  @ clz = normalization shift (leaks magnitude of |i|)
+  3e:	subs	r2, r2, r4  @ e -= shift
+  40:	rsbs	r5, r4, #32
+  44:	lsls	r1, r4  @ left-shift mantissa by clz count
+  46:	lsrs.w	r5, r0, r5
+  4a:	lsls	r0, r4
+  4c:	orrs	r1, r5
+  4e:	bfc	r1, #31, #1  @ clear implicit top bit
+  52:	movs	r5, r0
+  54:	lsrs	r0, r0, #11  @ m >>= 11
+  56:	orrs.w	r0, r0, r1, lsl #21
+  5a:	lsrs	r1, r1, #11
+  5c:	orrs.w	r1, r1, r2, lsl #20  @ pack exponent into bits 52..62
+  60:	ubfx	r6, r5, #0, #9  @ sticky bit from the 9 dropped low bits
+  64:	addw	r6, r6, #511
+  68:	orrs	r5, r6
+  6a:	ubfx	r5, r5, #9, #3
+  6e:	movs	r6, #200  @ rounding table 0xC8
+  70:	lsrs	r6, r5
+  72:	ands.w	r6, r6, #1  @ round bit
+  76:	adds	r0, r0, r6  @ apply rounding
+  78:	adcs.w	r1, r1, #0
+  7c:	orrs.w	r1, r1, r3, lsl #31  @ reapply sign
+  80:	pop	{r4, r5, r6, pc}
+#+end_src
+
+Possible leakages:
+
+=0x3a=: clz r4, r1
+  - r4 = number of leading zeros of |i|'s high word = the FPR_NORM64 normalization shift
+  - this directly encodes the bit-length (magnitude) of the secret coefficient i
+  - the single strongest leak in the function
+
+=0x44=, =0x46=, =0x4a=: lsls r1, r4 / lsrs.w r5, r0, r5 / lsls r0, r4
+  - the mantissa is shifted by the secret count r4
+  - both the shift amount (magnitude of i) and the shifted mantissa operands leak
+
+=0x1c=: and.w r2, r2, r4, asr #31
+  - r4 asr #31 is the (i != 0) mask → e is zero-clamped when i == 0; leaks whether i = 0
+
+=0x30=: and.w r0, r0, r4, asr #31  (with the 0x22..0x36 block)
+  - selects the low vs high word for normalization depending on whether |i|'s high word is zero
+  - leaks whether |i| >= 2^32 (a coarse magnitude bit; clz at 0x3a then refines it)
+
+=0x60= .. =0x72=: ubfx r6, r5, #0, #9 ... ands.w r6, r6, #1  (sticky + 0xC8 round table)
+  - operate on the low 9 mantissa bits → leak the low mantissa bits / their Hamming weight
+
+=0x7c=: orrs.w r1, r1, r3, lsl #31
+  - reapplies the sign mask r3 → leaks the sign of i
+
+The whole function is the window: =[0x00, 0x80]= (the naked asm has no out-of-line tail at -O3; the trailing =nop/mov= at 0x82 appears only at -O0).
+
+
+** Os
+
+Totally the same as =O3=, except that =fpr.o= gains an additional =.text.fpr_trunc= section. This is /not/ part of =fpr_scaled=.
+
+=fpr_trunc= is a separate =static inline= helper in =fpr.h= that converts an =fpr= (IEEE-754 binary64) to an =int64_t= by truncation toward zero (the float-to-int floor of the absolute value, with the sign reapplied):
+
+#+begin_src C
+static inline int64_t
+fpr_trunc(fpr x)
+{
+	/* <<(<((< */
+	uint64_t t, xu;
+	int e, cc;
+
+	/* Absolute value: left-shift the mantissa into the 2^62..2^63-1
+	 * range, then right-shift it back afterwards. */
+	e = (int)(x >> 52) & 0x7FF;
+	xu = ((x << 10) | ((uint64_t)1 << 62)) & (((uint64_t)1 << 63) - 1); /* )))>)) */
+	cc = 1085 - e;
+	xu = fpr_ursh(xu, cc & 63);   /* drop the fractional bits */
+
+	/* If the exponent is too low (cc > 63) the shift was wrong: clamp
+	 * to 0. Also covers the input == 0 case. */
+	xu &= -(uint64_t)((uint32_t)(cc - 64) >> 31);
+
+	/* Reapply the sign if the source value was negative. */
+	t = x >> 63;
+	xu = (xu ^ -t) + t;
+	return *(int64_t *)&xu;
+}
+#+end_src
+
+It belongs to /other phases/ of signing, never the input-conversion phase. =fpr_trunc= (=fpr.h:366=, float-to-int truncation toward zero) is reached only through the *Gaussian sampler* (exp approximation):
+
+#+begin_example
+do_sign_dyn
+└── ffSampling → samp = Zf(sampler)              sign.c:1357
+    └── BerExp                                   sign.c:1293
+        ├── fpr_trunc(fpr_mul(x, fpr_inv_log2))  sign.c:1304   (reduce x mod log2)
+        └── fpr_expm_p63(r, ccs)                 sign.c:1331 → fpr.c:1287
+            └── fpr_trunc(...)                   fpr.c:1324,1357 → fpr.h:366  (LEAF)
+#+end_example
+
+At =-Os= (optimize for size) it keeps a single out-of-line copy (=nm= shows =00000000 t fpr_trunc=), so the extra section shows up when disassembling =fpr.o=; at =-O3= the compiler inlines it into every call site, so no standalone copy exists. It is unrelated to the =fpr_scaled= / =fpr_mul= leakage windows and does not change any address or clip range below.
+
+
+* fpr_mul: Multiply x1*y0
+
+Call-chain of =Zf(FFT)=
+
+#+begin_example
+Zf(FFT)(f, logn)                                 fft.c:172   - butterfly triple-loop over n coeffs
+└── FPC_MUL(y_re, y_im, y_re, y_im, s_re, s_im)  fft.c:290 → fft.c:70   (complex-multiply macro)
+    └── fpr_mul(fpct_a_re, fpct_b_re)            fft.c:79    (4× per FPC_MUL: :79, :80, :82, :83)
+        └── fpr_mul(fpr, fpr)                    fpr.c        ← LEAF (naked asm on M4)
+#+end_example
+
+=Zf(FFT)= expands to =falcon_inner_FFT=. Understandable C in PQClean:
+
+#+begin_src C
+    /* (<(<(<(<(<(< */
+    /*
+     * We have two 53-bit integers to multiply; we need to split
+     * each into a lower half and a upper half. Moreover, we
+     * prefer to have lower halves to be of 25 bits each, for
+     * reasons explained later on.
+     */
+    x0 = (uint32_t)xu & 0x01FFFFFF;
+    x1 = (uint32_t)(xu >> 25);
+    y0 = (uint32_t)yu & 0x01FFFFFF;
+    y1 = (uint32_t)(yu >> 25);
+    w = (uint64_t)x0 * (uint64_t)y0;
+    z0 = (uint32_t)w & 0x01FFFFFF;
+    z1 = (uint32_t)(w >> 25);
+    w = (uint64_t)x0 * (uint64_t)y1;
+    z1 += (uint32_t)w & 0x01FFFFFF;
+    z2 = (uint32_t)(w >> 25);
+    w = (uint64_t)x1 * (uint64_t)y0;
+    z1 += (uint32_t)w & 0x01FFFFFF;
+    z2 += (uint32_t)(w >> 25);
+    zu = (uint64_t)x1 * (uint64_t)y1;
+    z2 += (z1 >> 25);
+    z1 &= 0x01FFFFFF;
+    zu += z2;
+#+end_src
+
+** O0
+
+Main part is the same as =Os=. As explained under =fpr_scaled= → =O0=, the only differences are the extra out-of-line =.text.fpr_ursh= section in =fpr.o= and three dead trailing instructions after the return (=0xe4: ldmia.w sp!, {..., pc}=, then =nop; mov r0,r2; mov r1,r3=) that =-Os= strips. Neither affects =fpr_mul=.
+
+Possible leakages: the =mul.w=/=umull= at =0x1c6=, =0x1d2=, =0x1dc= multiply secret mantissa limbs → HW of both inputs and the 64-bit product leak. Same for the other three products (=0xb4/0xc0/0xca=, =0x13a/0x146/0x150=, =0x254/0x260/0x26a=).
+
+
+** O1
+
+Totally the same as O3.
+
+
+** O2
+
+Totally the same as O3.
+
+
+** O3
+
+In the asm the four mantissa products accumulate via one =umull= (=0x28=) and three =umlal= (=0x38=, =0x3c=, =0x50=); the =x1*y0= cross term alone is the =umlal sl, fp, r5, r6= at =0x3c=. The region covering all four products is =[0x28, 0x50]= (or =[0x04, 0x50]= if the mantissa extraction at =0x04=..=0x24= is included).
+
+#+begin_src asm
+   @ <<<<
+   4:	bics.w	r4, r0, #4261412864  @ r4 = x_lo (low mantissa half)
+   8:	lsls	r5, r1, #7
+   a:	orrs.w	r5, r5, r0, lsr #25
+   e:	orrs.w	r5, r5, #134217728  @ set implicit mantissa bit
+  12:	bics.w	r5, r5, #4026531840  @ r5 = x_hi
+  16:	bics.w	r6, r2, #4261412864  @ r6 = y_lo
+  1a:	lsls	r7, r3, #7
+  1c:	orrs.w	r7, r7, r2, lsr #25
+  20:	orrs.w	r7, r7, #134217728  @ set implicit bit
+  24:	bics.w	r7, r7, #4026531840  @ r7 = y_hi
+  28:	umull	r8, sl, r4, r6  @ (sl:r8)  = x_lo * y_lo
+  2c:	movs.w	sl, sl, lsl #7
+  30:	orrs.w	sl, sl, r8, lsr #25
+  34:	eors.w	fp, fp, fp
+  38:	umlal	sl, fp, r4, r7  @ (fp:sl) += x_lo * y_hi
+  3c:	umlal	sl, fp, r5, r6  @ (fp:sl) += x_hi * y_lo   <- the x1*y0 cross term
+  40:	orrs.w	r8, r8, sl, lsl #7
+  44:	movs.w	sl, sl, lsr #25
+  48:	orrs.w	sl, sl, fp, lsl #7
+  4c:	eors.w	fp, fp, fp
+  50:	umlal	sl, fp, r5, r7  @ (fp:sl) += x_hi * y_hi
+#+end_src
+
+Possible leakages:
+
+=0x28= (=umull=), =0x38=, =0x3c=, =0x50= (=umlal=): each multiplies two secret mantissa halves
+(=x_lo=, =x_hi=, =y_lo=, =y_hi=). The Hamming weight of both inputs and of the 64-bit product
+leaks the mantissa values of x and y. The =x1*y0= cross term is the =umlal= at =0x3c=.
+
+=0x04= .. =0x24= (=bics= / =lsls= / =orrs=): extract the 53-bit mantissa halves from xu, yu
+(with the implicit leading bit) → leak the Hamming weight of the secret mantissa words.
+
+
+** Os
+
+Totally the same as =O3= (plus the out-of-line =.text.fpr_trunc= section explained under =fpr_scaled= → =Os=; it is a sibling helper in the same =fpr.o=, not part of =fpr_mul=).
+
+
+* fpr_mul: Shift55, normalize zu to 2^54..2^55-1 (conditional right-shift by 1)
+
+Understandable C in PQClean:
+
+#+begin_src C
+    /* <<(< */
+    /*
+     * We normalize zu to the 2^54..s^55-1 range: it could be one
+     * bit too large at this point. This is done with a conditional
+     * right-shift that takes into account the sticky bit.
+     */
+    zv = (zu >> 1) | (zu & 1);
+    w = zu >> 55;
+    zu ^= (zu ^ zv) & -w;
+#+end_src
+
+** O0
+
+Main part is the same as =Os=. shift55 is interleaved inside =fpr_mul=, so the same two differences noted under =fpr_scaled= -> =O0= apply (extra out-of-line =.text.fpr_ursh= section in =fpr.o=, and the trailing =nop; mov r0,r2; mov r1,r3= after =fpr_mul='s return that =-Os= strips); nothing in the shift55 window itself changes.
+
+
+** O1
+
+Totally the same as O3.
+
+
+** O2
+
+Totally the same as O3.
+
+
+** O3
+
+=shift55= (normalization) region in the asm is =[0x5c, 0x8a]=.
+
+It implements =zu ^= (zu ^ zv) & -w= branchlessly with a mask (no =it=-guarded moves, unlike the C-compiler output): =w = zu >> 55= is formed at =0x64=, the all-ones/zero mask =-w= at =0x68=, the shifted candidate =zv = zu >> 1= is built in (=r7=:=r6=) at =0x6a=..=0x72=, and the XOR-swap =zu ^= (zu ^ zv) & -w= is committed at =0x76=..=0x8a=. The result is =zv= (shift) when =w = 1=, or =zu= (no shift) when =w = 0=.
+
+#+begin_src asm
+  @ <(<<<<(
+  5c:	orrs.w	sl, sl, r8, lsr #31  @ fold in sticky bit
+  @ C: zv = (zu >> 1) | (zu & 1);  [Part 1: Extract sticky bit]
+  60:	ands.w	r6, sl, #1
+  @ C: w = zu >> 55; and implicit -w [Mask computation, interleaved to avoid pipeline stalls]
+  64:	movs.w	r5, fp, lsr #23  @ w = bit55 of product (is zu >= 2^55 ?)  <- leakage
+  68:	negs	r5, r5  @ r5 = -w  (all-ones mask if w = 1)
+  @ C: zv = (zu >> 1) | (zu & 1);  [Part 2: Complete zv shift and concatenation]
+  6a:	orrs.w	r6, r6, sl, lsr #1  @ zv = zu >> 1 (shifted candidate)
+  6e:	orrs.w	r6, r6, fp, lsl #31
+  72:	movs.w	r7, fp, lsr #1
+  @ C: zu ^= (zu ^ zv) & -w;       [Branch-free conditional selection]
+  76:	eors.w	sl, sl, r6  @ XOR-swap: conditionally apply the >>1
+  7a:	eors.w	fp, fp, r7
+  7e:	bics.w	sl, sl, r5  @ & ~mask (keep diff only when w = 1)
+  82:	bics.w	fp, fp, r5
+  86:	eors.w	r6, r6, sl  @ commit conditional shift into zu
+  8a:	eors.w	r7, r7, fp
+#+end_src
+
+Possible leakages:
+
+=0x64=: movs.w r5, fp, lsr #23
+  - r5 = w = bit 55 of the product (=zu >> 55=) → reveals whether zu >= 2^55
+  - the secret normalization decision; also leaks Hamming weight of zu_hi (=fp=)
+
+=0x68=: negs r5, r5
+  - r5 = -w, an all-ones (w=1) or zero (w=0) mask → leaks w again
+
+=0x76= .. =0x8a= (=eors= / =bics=): the XOR-swap applying (zu ^ zv) & -w
+  - operate on zu_lo/zu_hi and the shifted candidate zv → leak the mantissa words and the w decision
+
+
+** Os
+
+Totally the same as =O3= (plus the out-of-line =.text.fpr_trunc= section explained under =fpr_scaled= → =Os=; it is a sibling helper in the same =fpr.o=, not part of =fpr_mul=).
+
+
+* Summary
+
+** Global addr
+
+|    | =fpr_scaled= |    =fpr_mul= |
+| O0 | 0x08000e00 | 0x08000fca |
+| O1 | 0x08000e00 | 0x08000fbe |
+| O2 | 0x08000e00 | 0x08000fc0 |
+| O3 | 0x08000e00 | 0x08000fc0 |
+| Os | 0x08000e00 | 0x08000fbe |
+
+
+** Clip range
+
+=fpr_scaled= and =fpr_mul= are naked hand-written asm, so their bodies are
+optimization-independent: the windows below are identical for every level (only the
+=Global addr= above differs, because the linker places the functions differently).
+
+|    | scaled      | multiply x1*y0 | shift55     |
+| O0 | [0x00,0x80] | [0x28,0x50]    | [0x5c,0x8a] |
+| O1 | [0x00,0x80] | [0x28,0x50]    | [0x5c,0x8a] |
+| O2 | [0x00,0x80] | [0x28,0x50]    | [0x5c,0x8a] |
+| O3 | [0x00,0x80] | [0x28,0x50]    | [0x5c,0x8a] |
+| Os | [0x00,0x80] | [0x28,0x50]    | [0x5c,0x8a] |
+
+The =multiply x1*y0= window =[0x28, 0x50]= covers all four mantissa products; the =x1*y0=
+cross term itself is the =umlal= at =0x3c=.
+
+
+** O1 = Os, O2 = O3
+
+We can remove the O1 and O2 entry in =cycloc_params.json=.
+
+
+** All clip ranges coincide
+
+The clip ranges are identical at every optimization level, so the leakage in the windows of interest is the same everywhere; it makes no difference which level we analyse for the leakage itself.
+
+The level matters only for the /next/ task (~3_cycloc.org~), where ARM-ETM cycle-location capture *fails for O1, O2, O3, Os but succeeds for O0*, thanks to O0's dead trailing instructions after the return. We therefore build the follow-up tasks (cycle location, template profiling, attack) on O0. The reason is explained below.

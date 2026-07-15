@@ -1,0 +1,101 @@
+#+TITLE: 1. Cycle Usage
+
+This document presents a primitive observation to the cycle usage of =smallints_to_fpr= and =Zf(FFT)=. It obtain the required Husky =N_CONCATENTATE=, in order to collect trace.
+
+* Common
+
+#+begin_src shell
+for d in O0 O1 O2 O3 Os; do
+    (cd "$d" && make build TEST_CYCLE=1 -B && make objdump-scaled && make objdump-mul)
+done
+#+end_src
+
+#+begin_src python :session :results silent
+FALCON_LOGN = 9
+FALCON_N = 2**FALCON_LOGN
+#+end_src
+
+#+begin_src python :session :results silent
+import os
+import time
+import math
+import pickle
+import numpy as np
+import chipwhisperer as cw
+import subprocess
+from tqdm import trange, tnrange
+from setup_generic import hardware_setup, clkgen_freq_setup, scope_reset, \
+    tracewhisperer_husky_setup
+from setup_generic import input2hex, cw_core_routine
+
+MCU_FREQ = 25_000_000
+PPC = 8
+HUSKY_MAX_SAMPLES = 131070
+PROGRAM = True
+#+end_src
+
+#+begin_src python :session :results silent
+OPT = "O0"
+scope, target = hardware_setup(f"{OPT}/build-stm32f4/fpemu.hex",
+                               "stm32f4", 'SS_VER_1_0', PROGRAM)
+#+end_src
+
+#+begin_src python :session :results silent
+scope_reset(scope)
+tracewhisperer = tracewhisperer_husky_setup(scope, target)
+clkgen_freq_setup(scope, target, MCU_FREQ)
+scope.clock.adc_mul = PPC
+scope.adc.samples = HUSKY_MAX_SAMPLES
+scope.gain.db = 12
+
+target.flush()
+scope_reset(scope)
+#+end_src
+
+#+begin_src python :session :results silent
+def set_key(cmd, key, target):
+    target.write(cmd + input2hex(key) + '\n')
+    buf = ''
+    while 'z00\n' not in buf:
+        buf += target.read(num_char=0xffff)
+    print(buf[:-5])
+    target.flush()
+#+end_src
+
+#+begin_src python :session :results output :exports both
+key_f = np.load(f"keys/Falcon{FALCON_N}_f_1000.npy", allow_pickle=True)
+key_id = 0  # or any other indices less then len(key_f)
+set_key('k', key_f[key_id].tolist(), target)
+#+end_src
+
+#+RESULTS:
+: [-2, 10, ..., -2,  3]
+
+
+* Cycle Usage
+
+We shall measure trace segment-wise. It's calculated by
+
+: #CONCATENATE = TOTAL_SAMPLES // HUSKY_MAX_SAMPLES + 1
+: TOTAL_SAMPLES = TOTAL_CYCLES * PPC
+
+To measure =TOTAL_CYCLES=, wrap =HAL_CYCCNT= around the interested parts.
+
+#+begin_src python :session :results output :exports both
+_, _ = cw_core_routine('p', '', scope, target)
+data = ''
+while 'z00\n' not in data:
+    data += target.read(num_char=0xffff)
+print(data[:-5])
+#+end_src
+
+#+RESULTS:
+: smallints_to_fpr: 68687
+: Zf(FFT): 202064
+
+|                  |     O0 |     O1 |     O2 |     O3 |     Os |
+|------------------+--------+--------+--------+--------+--------|
+| =smallints_to_fpr= |  68687 |  37897 |  36872 |  36872 |  37383 |
+| =Zf(FFT)=          | 202064 | 159172 | 158022 | 158022 | 160961 |
+| total            | 270751 | 236241 | 194894 | 194894 | 198344 |
+| #concatenate     |     17 |     15 |     12 |     12 |     13 |

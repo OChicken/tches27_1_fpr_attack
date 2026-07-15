@@ -1,0 +1,174 @@
+#+TITLE: keys
+
+No CW devices are needed.
+
+* Compress
+
+#+begin_src python :session :results silent
+import os
+import numpy as np
+import pandas as pd
+
+FALCON_N = 512
+#+end_src
+
+#+begin_src python :session :results silent
+N_rows = 1000  # read the first 100 rows. 'header=None' b.c. no csv header.
+
+df = pd.read_csv(f'Falcon{FALCON_N}_f_1000.csv', header=None, nrows=N_rows)
+# #col/row should be consistence with FALCON_N
+if df.shape[1] != FALCON_N:
+    raise ValueError(f"#col/row is not {FALCON_N}, instead {df.shape[1]}")
+key_f = df.values.tolist()
+
+df = pd.read_csv(f'Falcon{FALCON_N}_g_1000.csv', header=None, nrows=N_rows)
+# #col/row should be consistence with FALCON_N
+if df.shape[1] != FALCON_N:
+    raise ValueError(f"#col/row is not {FALCON_N}, instead {df.shape[1]}")
+key_g = df.values.tolist()
+
+df = pd.read_csv(f"Falcon{FALCON_N}_h_1000.csv", header=None, nrows=N_rows)
+# #col/row should be consistence with FALCON_N
+if df.shape[1] != FALCON_N:
+    raise ValueError(f"#col/row is not {FALCON_N}, instead {df.shape[1]}")
+key_h = df.values.tolist()
+#+end_src
+
+#+begin_src python :session :results silent
+def convert_csv_key(key, key_type, dtype):
+    np.save(f"Falcon{FALCON_N}_{key_type}_1000.npy", np.array(key, dtype=dtype))
+
+convert_csv_key(key_f, "f", np.int8)
+convert_csv_key(key_g, "g", np.int8)
+convert_csv_key(key_h, "h", np.uint16)
+#+end_src
+
+#+begin_src python :session :results silent
+f = np.load(f"Falcon{FALCON_N}_f_1000.npy", allow_pickle=True)
+g = np.load(f"Falcon{FALCON_N}_g_1000.npy", allow_pickle=True)
+h = np.load(f"Falcon{FALCON_N}_h_1000.npy", allow_pickle=True)
+#+end_src
+
+#+begin_src python :session :results silent
+assert np.array_equal(f, np.array(key_f, dtype=np.int8))
+assert np.array_equal(g, np.array(key_g, dtype=np.int8))
+assert np.array_equal(h, np.array(key_h, dtype=np.uint16))
+#+end_src
+
+
+* Calc FG
+
+#+begin_src python :session :results silent
+df = pd.read_csv(f'Falcon{FALCON_N}_F_1000.csv', header=None, nrows=N_rows)
+# #col/row should be consistence with FALCON_N
+if df.shape[1] != FALCON_N:
+    raise ValueError(f"#col/row is not {FALCON_N}, instead {df.shape[1]}")
+key_F = df.values.tolist()
+
+df = pd.read_csv(f'Falcon{FALCON_N}_G_1000.csv', header=None, nrows=N_rows)
+# #col/row should be consistence with FALCON_N
+if df.shape[1] != FALCON_N:
+    raise ValueError(f"#col/row is not {FALCON_N}, instead {df.shape[1]}")
+key_G = df.values.tolist()
+#+end_src
+
+#+begin_src python :session :results silent
+def convert_csv_key(key, key_type, dtype):
+    np.save(f"falcon{FALCON_N}_{key_type}_1000.npy", np.array(key, dtype=dtype))
+
+convert_csv_key(key_F, "F", np.int8)
+convert_csv_key(key_G, "G", np.int8)
+F = np.load(f"falcon{FALCON_N}_F_1000.npy", allow_pickle=True)
+G = np.load(f"falcon{FALCON_N}_G_1000.npy", allow_pickle=True)
+#+end_src
+
+#+begin_src python :session :results silent
+assert np.array_equal(F, np.array(key_F, dtype=np.int8))
+assert np.array_equal(G, np.array(key_G, dtype=np.int8))
+#+end_src
+
+
+* Fabricate Keys for Profiling
+
+Illustrate how to fabricate the keys for profiling.
+
+#+begin_src python :session :results silent
+FALCON_LOGN = 9 # change 9 to 10
+FALCON_N = 2**FALCON_LOGN
+KEY_TYPE = 'f'  # change 'f' to 'g'
+#+end_src
+
+** Primitive observation
+
+#+begin_src python :session :results silent
+key_list = np.load(f"Falcon{FALCON_N}_{KEY_TYPE}_1000.npy", allow_pickle=True)
+#+end_src
+
+We observe that the abs of the key coeff is in a range:
+
+#+begin_src python :session :results silent
+coeff_max = 0
+coeff_min = 0
+for key_id in range(1000):
+    key = key_list[key_id]
+    for i in range(FALCON_N):
+        if key[i] <= coeff_min:
+            coeff_min = key[i]
+        if key[i] >= coeff_max:
+            coeff_max = key[i]
+print(coeff_min, coeff_max)
+#+end_src
+
+Summary the findings:
+
+|   | FALCON_N | coeff_min | coeff_max |
+|---+----------+-----------+-----------|
+| f |      512 |       -20 |        18 |
+| g |      512 |       -19 |        18 |
+| f |     1024 |       -14 |        13 |
+| g |     1024 |       -14 |        14 |
+
+The min/max do not excess a certain range. This is of great advantage in the classification task in multiplication. In the multiplication there are following sets:
+
+#+begin_example
+{4, 5}, {6, 7}, {8, ..., 11}, {12, ..., 15}, {16, ..., 22}, {23, ..., 31}
+#+end_example
+
+That means, if stick to the theoretical range --- [-31, 31] for falcon512, [-15, 15] for falcon1024, then the task is 6-class and 4-class classification task, resp. However, if we take the above information into account, then we can simply choose [-22, 22] for falcon512, then it turns to 5-class classification task.
+
+
+** Fabricate Keys for Profiling
+
+In profiling we actually don't care the actual key, but the key coefficients. So such a key is indexed with key coefficient and return the coefficient itself, with length =FALCON_N=:
+
+#+begin_example
+[-22: [-22, ..., -22],  // 512 or 1024 consecutive "-22"
+ -21: [-21, ..., -21],
+ ...,
+  -1: [ -1, ...,  -1],
+   0: [  0, ...,   0],
+   1: [  1, ...,   1],
+ ...,
+  21: [ 21, ...,  21],
+  22: [ 22, ...,  22]]
+#+end_example
+
+#+begin_src python :session :results silent
+import pickle
+
+FALCON_N = 512
+key_main_eles = range(-22, 23)
+key512 = {val: [val] * FALCON_N for val in key_main_eles}
+with open("Falcon512_profile.pkl", "wb") as f:
+    pickle.dump(key512, f)
+#+end_src
+
+#+begin_src python :session :results silent
+import pickle
+
+FALCON_N = 1024
+key_main_eles = range(-15, 16)
+key1024 = {val: [val] * FALCON_N for val in key_main_eles}
+with open("Falcon1024_profile.pkl", "wb") as f:
+    pickle.dump(key1024, f)
+#+end_src

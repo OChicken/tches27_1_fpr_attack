@@ -1,0 +1,2224 @@
+#+TITLE: 8. Attack
+
+Configurations:
+- OPT = O0
+- FALCON_N = 512
+- MODEL = MLP
+- SKIP_SHIFT55 = False
+- MLE_N = 13
+- N_WORKERS = 2
+
+2026-07-12 13:32:57.580173
+
+key  0
+
+#+begin_example
+f key_id= 0: 1.54 dB → 18.58 dB
+the remaining coff after scaled classifier is 459
+[f] [    scaled] 480/512 = 0.9375
+[f] [   shift55] 194/194 = 1.0000
+[f] [   mul_4_5] 59/59 = 1.0000   (mis-routed here: 4)
+[f] [   mul_6_7] 35/35 = 1.0000   (mis-routed here: 2)
+g key_id= 0: 1.66 dB → 18.64 dB
+the remaining coff after scaled classifier is 453
+[g] [    scaled] 481/512 = 0.9395
+[g] [   shift55] 176/176 = 1.0000
+[g] [   mul_4_5] 46/46 = 1.0000   (mis-routed here: 1)
+[g] [   mul_6_7] 20/20 = 1.0000
+total-determined (remove some after scaled classifier) is 571
+jinru
+need is 228
+len of candidates is 287
+the 0th key guess's state is -4, #attempt = 1000000
+#+end_example
+
+key  1
+
+#+begin_example
+f key_id= 1: 1.59 dB → 18.64 dB
+the remaining coff after scaled classifier is 458
+[f] [    scaled] 484/512 = 0.9453
+[f] [   shift55] 176/176 = 1.0000
+[f] [   mul_4_5] 38/38 = 1.0000   (mis-routed here: 3)
+[f] [   mul_6_7] 20/20 = 1.0000
+g key_id= 1: 1.65 dB → 18.65 dB
+the remaining coff after scaled classifier is 458
+[g] [    scaled] 489/512 = 0.9551
+[g] [   shift55] 178/178 = 1.0000
+[g] [   mul_4_5] 39/39 = 1.0000   (mis-routed here: 1)
+[g] [   mul_6_7] 23/23 = 1.0000
+total-determined (remove some after scaled classifier) is 592
+jinru
+need is 203
+len of candidates is 283
+the 1th key guess's state is 2, #attempt = 5117
+#+end_example
+
+key  2
+
+#+begin_example
+f key_id= 2: 1.59 dB → 18.65 dB
+the remaining coff after scaled classifier is 466
+[f] [    scaled] 495/512 = 0.9668
+[f] [   shift55] 182/182 = 1.0000
+[f] [   mul_4_5] 58/58 = 1.0000
+[f] [   mul_6_7] 20/20 = 1.0000
+g key_id= 2: 1.63 dB → 18.63 dB
+the remaining coff after scaled classifier is 451
+[g] [    scaled] 476/512 = 0.9297
+[g] [   shift55] 205/205 = 1.0000
+[g] [   mul_4_5] 56/56 = 1.0000   (mis-routed here: 2)
+[g] [   mul_6_7] 32/32 = 1.0000   (mis-routed here: 1)
+total-determined (remove some after scaled classifier) is 594
+jinru
+need is 236
+len of candidates is 318
+the 2th key guess's state is -4, #attempt = 1000000
+#+end_example
+
+key  3
+
+#+begin_example
+f key_id= 3: 1.57 dB → 18.62 dB
+the remaining coff after scaled classifier is 474
+[f] [    scaled] 485/512 = 0.9473
+[f] [   shift55] 177/177 = 1.0000
+[f] [   mul_4_5] 57/57 = 1.0000   (mis-routed here: 3)
+[f] [   mul_6_7] 26/26 = 1.0000
+g key_id= 3: 1.63 dB → 18.62 dB
+the remaining coff after scaled classifier is 450
+[g] [    scaled] 481/512 = 0.9395
+[g] [   shift55] 178/178 = 1.0000
+[g] [   mul_4_5] 40/40 = 1.0000   (mis-routed here: 2)
+[g] [   mul_6_7] 20/20 = 1.0000
+total-determined (remove some after scaled classifier) is 605
+jinru
+need is 213
+len of candidates is 306
+the 3th key guess's state is -4, #attempt = 1000000
+#+end_example
+
+key  4
+
+#+begin_example
+f key_id= 4: 1.57 dB → 18.59 dB
+the remaining coff after scaled classifier is 470
+[f] [    scaled] 493/512 = 0.9629
+[f] [   shift55] 172/172 = 1.0000
+[f] [   mul_4_5] 42/42 = 1.0000
+[f] [   mul_6_7] 28/28 = 1.0000
+g key_id= 4: 1.66 dB → 18.62 dB
+the remaining coff after scaled classifier is 456
+[g] [    scaled] 496/512 = 0.9688
+[g] [   shift55] 169/169 = 1.0000
+[g] [   mul_4_5] 40/40 = 1.0000
+[g] [   mul_6_7] 27/27 = 1.0000
+total-determined (remove some after scaled classifier) is 595
+jinru
+need is 189
+len of candidates is 272
+the 4th key guess's state is 2, #attempt = 2419
+#+end_example
+
+key  5
+
+#+begin_example
+f key_id= 5: 1.57 dB → 18.59 dB
+the remaining coff after scaled classifier is 469
+[f] [    scaled] 495/512 = 0.9668
+[f] [   shift55] 181/181 = 1.0000
+[f] [   mul_4_5] 51/51 = 1.0000
+[f] [   mul_6_7] 28/28 = 1.0000
+g key_id= 5: 1.63 dB → 18.61 dB
+the remaining coff after scaled classifier is 451
+[g] [    scaled] 488/512 = 0.9531
+[g] [   shift55] 179/179 = 1.0000
+[g] [   mul_4_5] 47/47 = 1.0000   (mis-routed here: 1)
+[g] [   mul_6_7] 23/23 = 1.0000
+total-determined (remove some after scaled classifier) is 602
+jinru
+need is 211
+len of candidates is 301
+the 5th key guess's state is 2, #attempt = 1853
+#+end_example
+
+key  6
+
+#+begin_example
+f key_id= 6: 1.59 dB → 18.63 dB
+the remaining coff after scaled classifier is 458
+[f] [    scaled] 483/512 = 0.9434
+[f] [   shift55] 182/182 = 1.0000
+[f] [   mul_4_5] 43/43 = 1.0000   (mis-routed here: 2)
+[f] [   mul_6_7] 32/32 = 1.0000
+g key_id= 6: 1.66 dB → 18.65 dB
+the remaining coff after scaled classifier is 456
+[g] [    scaled] 479/512 = 0.9355
+[g] [   shift55] 183/183 = 1.0000
+[g] [   mul_4_5] 38/38 = 1.0000   (mis-routed here: 1)
+[g] [   mul_6_7] 34/34 = 1.0000
+total-determined (remove some after scaled classifier) is 577
+jinru
+need is 223
+len of candidates is 288
+the 6th key guess's state is 2, #attempt = 40782
+#+end_example
+
+key  7
+
+#+begin_example
+f key_id= 7: 1.56 dB → 18.59 dB
+the remaining coff after scaled classifier is 458
+[f] [    scaled] 483/512 = 0.9434
+[f] [   shift55] 171/171 = 1.0000
+[f] [   mul_4_5] 49/49 = 1.0000   (mis-routed here: 1)
+[f] [   mul_6_7] 21/21 = 1.0000
+g key_id= 7: 1.66 dB → 18.64 dB
+the remaining coff after scaled classifier is 452
+[g] [    scaled] 480/512 = 0.9375
+[g] [   shift55] 194/194 = 1.0000
+[g] [   mul_4_5] 53/53 = 1.0000   (mis-routed here: 1)
+[g] [   mul_6_7] 29/29 = 1.0000
+total-determined (remove some after scaled classifier) is 584
+jinru
+need is 225
+len of candidates is 297
+the 7th key guess's state is 2, #attempt = 2122
+#+end_example
+
+key  8
+
+#+begin_example
+f key_id= 8: 1.59 dB → 18.65 dB
+the remaining coff after scaled classifier is 470
+[f] [    scaled] 489/512 = 0.9551
+[f] [   shift55] 184/184 = 1.0000
+[f] [   mul_4_5] 51/51 = 1.0000   (mis-routed here: 2)
+[f] [   mul_6_7] 34/34 = 1.0000
+g key_id= 8: 1.63 dB → 18.62 dB
+the remaining coff after scaled classifier is 455
+[g] [    scaled] 476/512 = 0.9297
+[g] [   shift55] 182/182 = 1.0000
+[g] [   mul_4_5] 44/44 = 1.0000   (mis-routed here: 1)
+[g] [   mul_6_7] 20/20 = 1.0000
+total-determined (remove some after scaled classifier) is 593
+jinru
+need is 214
+len of candidates is 295
+the 8th key guess's state is 2, #attempt = 73510
+#+end_example
+
+key  9
+
+#+begin_example
+f key_id= 9: 1.59 dB → 18.64 dB
+the remaining coff after scaled classifier is 464
+[f] [    scaled] 482/512 = 0.9414
+[f] [   shift55] 185/185 = 1.0000
+[f] [   mul_4_5] 48/48 = 1.0000   (mis-routed here: 2)
+[f] [   mul_6_7] 24/24 = 1.0000
+g key_id= 9: 1.68 dB → 18.68 dB
+the remaining coff after scaled classifier is 461
+[g] [    scaled] 481/512 = 0.9395
+[g] [   shift55] 172/172 = 1.0000
+[g] [   mul_4_5] 41/41 = 1.0000   (mis-routed here: 2)
+[g] [   mul_6_7] 23/23 = 1.0000
+total-determined (remove some after scaled classifier) is 610
+jinru
+need is 201
+len of candidates is 299
+the 9th key guess's state is 2, #attempt = 15117
+#+end_example
+
+key 10
+
+#+begin_example
+f key_id=10: 1.61 dB → 18.66 dB
+the remaining coff after scaled classifier is 469
+[f] [    scaled] 490/512 = 0.9570
+[f] [   shift55] 176/176 = 1.0000
+[f] [   mul_4_5] 52/52 = 1.0000
+[f] [   mul_6_7] 32/32 = 1.0000   (mis-routed here: 1)
+g key_id=10: 1.68 dB → 18.64 dB
+the remaining coff after scaled classifier is 455
+[g] [    scaled] 480/512 = 0.9375
+[g] [   shift55] 179/179 = 1.0000
+[g] [   mul_4_5] 46/46 = 1.0000
+[g] [   mul_6_7] 22/22 = 1.0000
+total-determined (remove some after scaled classifier) is 602
+jinru
+need is 207
+len of candidates is 297
+the 10th key guess's state is -4, #attempt = 1000000
+#+end_example
+
+key 11
+
+#+begin_example
+f key_id=11: 1.58 dB → 18.62 dB
+the remaining coff after scaled classifier is 471
+[f] [    scaled] 483/512 = 0.9434
+[f] [   shift55] 191/191 = 1.0000
+[f] [   mul_4_5] 48/48 = 1.0000   (mis-routed here: 2)
+[f] [   mul_6_7] 32/32 = 1.0000   (mis-routed here: 1)
+g key_id=11: 1.62 dB → 18.58 dB
+the remaining coff after scaled classifier is 459
+[g] [    scaled] 486/512 = 0.9492
+[g] [   shift55] 179/179 = 1.0000
+[g] [   mul_4_5] 49/49 = 1.0000
+[g] [   mul_6_7] 25/25 = 1.0000
+total-determined (remove some after scaled classifier) is 597
+jinru
+need is 219
+len of candidates is 304
+the 11th key guess's state is -4, #attempt = 1000000
+#+end_example
+
+key 12
+
+#+begin_example
+f key_id=12: 1.59 dB → 18.62 dB
+the remaining coff after scaled classifier is 455
+[f] [    scaled] 486/512 = 0.9492
+[f] [   shift55] 182/182 = 1.0000
+[f] [   mul_4_5] 52/52 = 1.0000   (mis-routed here: 2)
+[f] [   mul_6_7] 20/20 = 1.0000
+g key_id=12: 1.67 dB → 18.64 dB
+the remaining coff after scaled classifier is 444
+[g] [    scaled] 485/512 = 0.9473
+[g] [   shift55] 175/175 = 1.0000
+[g] [   mul_4_5] 45/45 = 1.0000
+[g] [   mul_6_7] 28/28 = 1.0000
+total-determined (remove some after scaled classifier) is 593
+jinru
+need is 199
+len of candidates is 280
+the 12th key guess's state is 2, #attempt = 119065
+#+end_example
+
+key 13
+
+#+begin_example
+f key_id=13: 1.58 dB → 18.60 dB
+the remaining coff after scaled classifier is 471
+[f] [    scaled] 480/512 = 0.9375
+[f] [   shift55] 173/173 = 1.0000
+[f] [   mul_4_5] 40/40 = 1.0000   (mis-routed here: 4)
+[f] [   mul_6_7] 28/28 = 1.0000
+g key_id=13: 1.68 dB → 18.66 dB
+the remaining coff after scaled classifier is 445
+[g] [    scaled] 472/512 = 0.9219
+[g] [   shift55] 175/175 = 1.0000
+[g] [   mul_4_5] 36/36 = 1.0000   (mis-routed here: 3)
+[g] [   mul_6_7] 32/32 = 1.0000
+total-determined (remove some after scaled classifier) is 585
+jinru
+need is 206
+len of candidates is 279
+the 13th key guess's state is -4, #attempt = 1000000
+#+end_example
+
+key 14
+
+#+begin_example
+f key_id=14: 1.58 dB → 18.60 dB
+the remaining coff after scaled classifier is 459
+[f] [    scaled] 489/512 = 0.9551
+[f] [   shift55] 186/186 = 1.0000
+[f] [   mul_4_5] 61/61 = 1.0000   (mis-routed here: 3)
+[f] [   mul_6_7] 25/25 = 1.0000   (mis-routed here: 1)
+g key_id=14: 1.68 dB → 18.64 dB
+the remaining coff after scaled classifier is 447
+[g] [    scaled] 478/512 = 0.9336
+[g] [   shift55] 184/184 = 1.0000
+[g] [   mul_4_5] 45/45 = 1.0000   (mis-routed here: 1)
+[g] [   mul_6_7] 25/25 = 1.0000
+total-determined (remove some after scaled classifier) is 570
+jinru
+need is 237
+len of candidates is 295
+the 14th key guess's state is -4, #attempt = 1000000
+#+end_example
+
+key 15
+
+#+begin_example
+f key_id=15: 1.59 dB → 18.63 dB
+the remaining coff after scaled classifier is 468
+[f] [    scaled] 479/512 = 0.9355
+[f] [   shift55] 195/195 = 1.0000
+[f] [   mul_4_5] 50/50 = 1.0000   (mis-routed here: 1)
+[f] [   mul_6_7] 28/28 = 1.0000   (mis-routed here: 1)
+g key_id=15: 1.66 dB → 18.63 dB
+the remaining coff after scaled classifier is 459
+[g] [    scaled] 484/512 = 0.9453
+[g] [   shift55] 182/182 = 1.0000
+[g] [   mul_4_5] 48/48 = 1.0000
+[g] [   mul_6_7] 21/21 = 1.0000
+total-determined (remove some after scaled classifier) is 599
+jinru
+need is 225
+len of candidates is 312
+the 15th key guess's state is -4, #attempt = 1000000
+#+end_example
+
+key 16
+
+#+begin_example
+f key_id=16: 1.58 dB → 18.61 dB
+the remaining coff after scaled classifier is 470
+[f] [    scaled] 473/512 = 0.9238
+[f] [   shift55] 175/175 = 1.0000
+[f] [   mul_4_5] 44/44 = 1.0000   (mis-routed here: 5)
+[f] [   mul_6_7] 27/27 = 1.0000
+g key_id=16: 1.69 dB → 18.65 dB
+the remaining coff after scaled classifier is 451
+[g] [    scaled] 472/512 = 0.9219
+[g] [   shift55] 171/171 = 1.0000
+[g] [   mul_4_5] 33/33 = 1.0000   (mis-routed here: 1)
+[g] [   mul_6_7] 32/32 = 1.0000
+total-determined (remove some after scaled classifier) is 579
+jinru
+need is 204
+len of candidates is 271
+the 16th key guess's state is -4, #attempt = 1000000
+#+end_example
+
+key 17
+
+#+begin_example
+f key_id=17: 1.57 dB → 18.59 dB
+the remaining coff after scaled classifier is 479
+[f] [    scaled] 497/512 = 0.9707
+[f] [   shift55] 175/175 = 1.0000
+[f] [   mul_4_5] 40/40 = 1.0000   (mis-routed here: 1)
+[f] [   mul_6_7] 38/38 = 1.0000
+g key_id=17: 1.70 dB → 18.65 dB
+the remaining coff after scaled classifier is 454
+[g] [    scaled] 481/512 = 0.9395
+[g] [   shift55] 182/182 = 1.0000
+[g] [   mul_4_5] 39/39 = 1.0000
+[g] [   mul_6_7] 28/28 = 1.0000
+total-determined (remove some after scaled classifier) is 594
+jinru
+need is 222
+len of candidates is 304
+the 17th key guess's state is 2, #attempt = 26
+#+end_example
+
+key 18
+
+#+begin_example
+f key_id=18: 1.56 dB → 18.58 dB
+the remaining coff after scaled classifier is 459
+[f] [    scaled] 491/512 = 0.9590
+[f] [   shift55] 172/172 = 1.0000
+[f] [   mul_4_5] 51/51 = 1.0000   (mis-routed here: 1)
+[f] [   mul_6_7] 34/34 = 1.0000
+g key_id=18: 1.70 dB → 18.64 dB
+the remaining coff after scaled classifier is 439
+[g] [    scaled] 473/512 = 0.9238
+[g] [   shift55] 186/186 = 1.0000
+[g] [   mul_4_5] 45/45 = 1.0000   (mis-routed here: 2)
+[g] [   mul_6_7] 16/16 = 1.0000
+total-determined (remove some after scaled classifier) is 583
+jinru
+need is 219
+len of candidates is 290
+the 18th key guess's state is -4, #attempt = 1000000
+#+end_example
+
+key 19
+
+#+begin_example
+f key_id=19: 1.57 dB → 18.60 dB
+the remaining coff after scaled classifier is 459
+[f] [    scaled] 493/512 = 0.9629
+[f] [   shift55] 170/170 = 1.0000
+[f] [   mul_4_5] 47/47 = 1.0000   (mis-routed here: 1)
+[f] [   mul_6_7] 30/30 = 1.0000   (mis-routed here: 3)
+g key_id=19: 1.69 dB → 18.62 dB
+the remaining coff after scaled classifier is 455
+[g] [    scaled] 483/512 = 0.9434
+[g] [   shift55] 186/186 = 1.0000
+[g] [   mul_4_5] 49/49 = 1.0000   (mis-routed here: 2)
+[g] [   mul_6_7] 21/21 = 1.0000
+total-determined (remove some after scaled classifier) is 593
+jinru
+need is 215
+len of candidates is 296
+the 19th key guess's state is 2, #attempt = 612031
+#+end_example
+
+key 20
+
+#+begin_example
+f key_id=20: 1.55 dB → 18.60 dB
+the remaining coff after scaled classifier is 460
+[f] [    scaled] 485/512 = 0.9473
+[f] [   shift55] 164/164 = 1.0000
+[f] [   mul_4_5] 46/46 = 1.0000   (mis-routed here: 1)
+[f] [   mul_6_7] 20/20 = 1.0000
+g key_id=20: 1.69 dB → 18.64 dB
+the remaining coff after scaled classifier is 449
+[g] [    scaled] 484/512 = 0.9453
+[g] [   shift55] 185/185 = 1.0000
+[g] [   mul_4_5] 45/45 = 1.0000   (mis-routed here: 1)
+[g] [   mul_6_7] 27/27 = 1.0000
+total-determined (remove some after scaled classifier) is 606
+jinru
+need is 199
+len of candidates is 293
+the 20th key guess's state is 2, #attempt = 339985
+#+end_example
+
+key 21
+
+#+begin_example
+f key_id=21: 1.60 dB → 18.63 dB
+the remaining coff after scaled classifier is 455
+[f] [    scaled] 482/512 = 0.9414
+[f] [   shift55] 181/181 = 1.0000
+[f] [   mul_4_5] 58/58 = 1.0000   (mis-routed here: 3)
+[f] [   mul_6_7] 24/24 = 1.0000
+g key_id=21: 1.69 dB → 18.64 dB
+the remaining coff after scaled classifier is 458
+[g] [    scaled] 482/512 = 0.9414
+[g] [   shift55] 181/181 = 1.0000
+[g] [   mul_4_5] 43/43 = 1.0000   (mis-routed here: 2)
+[g] [   mul_6_7] 24/24 = 1.0000
+total-determined (remove some after scaled classifier) is 590
+jinru
+need is 220
+len of candidates is 298
+the 21th key guess's state is 2, #attempt = 7834
+#+end_example
+
+key 22
+
+#+begin_example
+f key_id=22: 1.58 dB → 18.61 dB
+the remaining coff after scaled classifier is 458
+[f] [    scaled] 482/512 = 0.9414
+[f] [   shift55] 178/178 = 1.0000
+[f] [   mul_4_5] 51/51 = 1.0000   (mis-routed here: 1)
+[f] [   mul_6_7] 17/17 = 1.0000   (mis-routed here: 3)
+g key_id=22: 1.67 dB → 18.64 dB
+the remaining coff after scaled classifier is 470
+[g] [    scaled] 488/512 = 0.9531
+[g] [   shift55] 174/174 = 1.0000
+[g] [   mul_4_5] 41/41 = 1.0000   (mis-routed here: 1)
+[g] [   mul_6_7] 21/21 = 1.0000
+total-determined (remove some after scaled classifier) is 605
+jinru
+need is 201
+len of candidates is 294
+the 22th key guess's state is 2, #attempt = 16482
+#+end_example
+
+key 23
+
+#+begin_example
+f key_id=23: 1.58 dB → 18.60 dB
+the remaining coff after scaled classifier is 464
+[f] [    scaled] 484/512 = 0.9453
+[f] [   shift55] 189/189 = 1.0000
+[f] [   mul_4_5] 49/49 = 1.0000
+[f] [   mul_6_7] 25/25 = 1.0000
+g key_id=23: 1.67 dB → 18.65 dB
+the remaining coff after scaled classifier is 464
+[g] [    scaled] 486/512 = 0.9492
+[g] [   shift55] 167/167 = 1.0000
+[g] [   mul_4_5] 36/36 = 1.0000   (mis-routed here: 1)
+[g] [   mul_6_7] 23/23 = 1.0000
+total-determined (remove some after scaled classifier) is 600
+jinru
+need is 206
+len of candidates is 294
+the 23th key guess's state is 2, #attempt = 10230
+#+end_example
+
+key 24
+
+#+begin_example
+f key_id=24: 1.56 dB → 18.59 dB
+the remaining coff after scaled classifier is 461
+[f] [    scaled] 480/512 = 0.9375
+[f] [   shift55] 185/185 = 1.0000
+[f] [   mul_4_5] 48/48 = 1.0000   (mis-routed here: 3)
+[f] [   mul_6_7] 28/28 = 1.0000
+g key_id=24: 1.64 dB → 18.61 dB
+the remaining coff after scaled classifier is 457
+[g] [    scaled] 481/512 = 0.9395
+[g] [   shift55] 189/189 = 1.0000
+[g] [   mul_4_5] 49/49 = 1.0000
+[g] [   mul_6_7] 26/26 = 1.0000
+total-determined (remove some after scaled classifier) is 584
+jinru
+need is 234
+len of candidates is 306
+the 24th key guess's state is -4, #attempt = 1000000
+#+end_example
+
+key 25
+
+#+begin_example
+f key_id=25: 1.59 dB → 18.62 dB
+the remaining coff after scaled classifier is 478
+[f] [    scaled] 486/512 = 0.9492
+[f] [   shift55] 185/185 = 1.0000
+[f] [   mul_4_5] 55/55 = 1.0000   (mis-routed here: 5)
+[f] [   mul_6_7] 26/26 = 1.0000
+g key_id=25: 1.64 dB → 18.58 dB
+the remaining coff after scaled classifier is 467
+[g] [    scaled] 483/512 = 0.9434
+[g] [   shift55] 180/180 = 1.0000
+[g] [   mul_4_5] 48/48 = 1.0000   (mis-routed here: 1)
+[g] [   mul_6_7] 20/20 = 1.0000
+total-determined (remove some after scaled classifier) is 595
+jinru
+need is 228
+len of candidates is 311
+the 25th key guess's state is -4, #attempt = 1000000
+#+end_example
+
+key 26
+
+#+begin_example
+f key_id=26: 1.60 dB → 18.64 dB
+the remaining coff after scaled classifier is 478
+[f] [    scaled] 494/512 = 0.9648
+[f] [   shift55] 173/173 = 1.0000
+[f] [   mul_4_5] 38/38 = 1.0000   (mis-routed here: 1)
+[f] [   mul_6_7] 19/19 = 1.0000
+g key_id=26: 1.64 dB → 18.61 dB
+the remaining coff after scaled classifier is 462
+[g] [    scaled] 486/512 = 0.9492
+[g] [   shift55] 183/183 = 1.0000
+[g] [   mul_4_5] 45/45 = 1.0000   (mis-routed here: 1)
+[g] [   mul_6_7] 22/22 = 1.0000
+total-determined (remove some after scaled classifier) is 606
+jinru
+need is 201
+len of candidates is 295
+the 26th key guess's state is 2, #attempt = 135431
+#+end_example
+
+key 27
+
+#+begin_example
+f key_id=27: 1.59 dB → 18.62 dB
+the remaining coff after scaled classifier is 456
+[f] [    scaled] 479/512 = 0.9355
+[f] [   shift55] 191/191 = 1.0000
+[f] [   mul_4_5] 42/42 = 1.0000   (mis-routed here: 2)
+[f] [   mul_6_7] 26/26 = 1.0000   (mis-routed here: 2)
+g key_id=27: 1.65 dB → 18.61 dB
+the remaining coff after scaled classifier is 474
+[g] [    scaled] 483/512 = 0.9434
+[g] [   shift55] 180/180 = 1.0000
+[g] [   mul_4_5] 44/44 = 1.0000   (mis-routed here: 2)
+[g] [   mul_6_7] 30/30 = 1.0000
+total-determined (remove some after scaled classifier) is 628
+jinru
+need is 194
+len of candidates is 310
+the 27th key guess's state is 2, #attempt = 388666
+#+end_example
+
+key 28
+
+#+begin_example
+f key_id=28: 1.59 dB → 18.62 dB
+the remaining coff after scaled classifier is 466
+[f] [    scaled] 478/512 = 0.9336
+[f] [   shift55] 180/180 = 1.0000
+[f] [   mul_4_5] 49/49 = 1.0000   (mis-routed here: 1)
+[f] [   mul_6_7] 28/28 = 1.0000
+g key_id=28: 1.66 dB → 18.63 dB
+the remaining coff after scaled classifier is 461
+[g] [    scaled] 478/512 = 0.9336
+[g] [   shift55] 178/178 = 1.0000
+[g] [   mul_4_5] 31/31 = 1.0000   (mis-routed here: 4)
+[g] [   mul_6_7] 27/27 = 1.0000
+total-determined (remove some after scaled classifier) is 609
+jinru
+need is 206
+len of candidates is 303
+the 28th key guess's state is -4, #attempt = 1000000
+#+end_example
+
+key 29
+
+#+begin_example
+f key_id=29: 1.59 dB → 18.64 dB
+the remaining coff after scaled classifier is 457
+[f] [    scaled] 494/512 = 0.9648
+[f] [   shift55] 181/181 = 1.0000
+[f] [   mul_4_5] 51/51 = 1.0000   (mis-routed here: 1)
+[f] [   mul_6_7] 28/28 = 1.0000   (mis-routed here: 2)
+g key_id=29: 1.64 dB → 18.60 dB
+the remaining coff after scaled classifier is 461
+[g] [    scaled] 481/512 = 0.9395
+[g] [   shift55] 175/175 = 1.0000
+[g] [   mul_4_5] 51/51 = 1.0000   (mis-routed here: 3)
+[g] [   mul_6_7] 31/31 = 1.0000
+total-determined (remove some after scaled classifier) is 572
+jinru
+need is 220
+len of candidates is 280
+the 29th key guess's state is -4, #attempt = 1000000
+#+end_example
+
+key 30
+
+#+begin_example
+f key_id=30: 1.58 dB → 18.61 dB
+the remaining coff after scaled classifier is 457
+[f] [    scaled] 482/512 = 0.9414
+[f] [   shift55] 185/185 = 1.0000
+[f] [   mul_4_5] 52/52 = 1.0000   (mis-routed here: 1)
+[f] [   mul_6_7] 19/19 = 1.0000
+g key_id=30: 1.64 dB → 18.61 dB
+the remaining coff after scaled classifier is 462
+[g] [    scaled] 481/512 = 0.9395
+[g] [   shift55] 186/186 = 1.0000
+[g] [   mul_4_5] 47/47 = 1.0000   (mis-routed here: 2)
+[g] [   mul_6_7] 19/19 = 1.0000
+total-determined (remove some after scaled classifier) is 600
+jinru
+need is 209
+len of candidates is 297
+the 30th key guess's state is -4, #attempt = 1000000
+#+end_example
+
+key 31
+
+#+begin_example
+f key_id=31: 1.59 dB → 18.62 dB
+the remaining coff after scaled classifier is 460
+[f] [    scaled] 484/512 = 0.9453
+[f] [   shift55] 175/175 = 1.0000
+[f] [   mul_4_5] 45/45 = 1.0000
+[f] [   mul_6_7] 30/30 = 1.0000
+g key_id=31: 1.66 dB → 18.61 dB
+the remaining coff after scaled classifier is 458
+[g] [    scaled] 488/512 = 0.9531
+[g] [   shift55] 186/186 = 1.0000
+[g] [   mul_4_5] 55/55 = 1.0000   (mis-routed here: 1)
+[g] [   mul_6_7] 27/27 = 1.0000
+total-determined (remove some after scaled classifier) is 601
+jinru
+need is 217
+len of candidates is 306
+the 31th key guess's state is 2, #attempt = 31
+#+end_example
+
+key 32
+
+#+begin_example
+f key_id=32: 1.57 dB → 18.59 dB
+the remaining coff after scaled classifier is 455
+[f] [    scaled] 472/512 = 0.9219
+[f] [   shift55] 180/180 = 1.0000
+[f] [   mul_4_5] 51/51 = 1.0000   (mis-routed here: 1)
+[f] [   mul_6_7] 31/31 = 1.0000
+g key_id=32: 1.66 dB → 18.62 dB
+the remaining coff after scaled classifier is 459
+[g] [    scaled] 477/512 = 0.9316
+[g] [   shift55] 180/180 = 1.0000
+[g] [   mul_4_5] 42/42 = 1.0000   (mis-routed here: 2)
+[g] [   mul_6_7] 25/25 = 1.0000
+total-determined (remove some after scaled classifier) is 589
+jinru
+need is 220
+len of candidates is 297
+the 32th key guess's state is -4, #attempt = 1000000
+#+end_example
+
+key 33
+
+#+begin_example
+f key_id=33: 1.61 dB → 18.63 dB
+the remaining coff after scaled classifier is 472
+[f] [    scaled] 487/512 = 0.9512
+[f] [   shift55] 180/180 = 1.0000
+[f] [   mul_4_5] 47/47 = 1.0000   (mis-routed here: 2)
+[f] [   mul_6_7] 28/28 = 1.0000
+g key_id=33: 1.65 dB → 18.64 dB
+the remaining coff after scaled classifier is 469
+[g] [    scaled] 478/512 = 0.9336
+[g] [   shift55] 178/178 = 1.0000
+[g] [   mul_4_5] 41/41 = 1.0000   (mis-routed here: 3)
+[g] [   mul_6_7] 19/19 = 1.0000
+total-determined (remove some after scaled classifier) is 617
+jinru
+need is 188
+len of candidates is 293
+the 33th key guess's state is -4, #attempt = 1000000
+#+end_example
+
+key 34
+
+#+begin_example
+f key_id=34: 1.58 dB → 18.61 dB
+the remaining coff after scaled classifier is 470
+[f] [    scaled] 489/512 = 0.9551
+[f] [   shift55] 178/178 = 1.0000
+[f] [   mul_4_5] 55/55 = 1.0000   (mis-routed here: 1)
+[f] [   mul_6_7] 19/19 = 1.0000
+g key_id=34: 1.58 dB → 18.53 dB
+the remaining coff after scaled classifier is 456
+[g] [    scaled] 481/512 = 0.9395
+[g] [   shift55] 183/183 = 1.0000
+[g] [   mul_4_5] 42/42 = 1.0000   (mis-routed here: 4)
+[g] [   mul_6_7] 23/23 = 1.0000
+total-determined (remove some after scaled classifier) is 602
+jinru
+need is 215
+len of candidates is 305
+the 34th key guess's state is 2, #attempt = 141236
+#+end_example
+
+key 35
+
+#+begin_example
+f key_id=35: 1.59 dB → 18.61 dB
+the remaining coff after scaled classifier is 451
+[f] [    scaled] 482/512 = 0.9414
+[f] [   shift55] 179/179 = 1.0000
+[f] [   mul_4_5] 48/48 = 1.0000   (mis-routed here: 1)
+[f] [   mul_6_7] 25/25 = 1.0000
+g key_id=35: 1.64 dB → 18.61 dB
+the remaining coff after scaled classifier is 456
+[g] [    scaled] 484/512 = 0.9453
+[g] [   shift55] 180/180 = 1.0000
+[g] [   mul_4_5] 34/34 = 1.0000   (mis-routed here: 2)
+[g] [   mul_6_7] 27/27 = 1.0000
+total-determined (remove some after scaled classifier) is 599
+jinru
+need is 210
+len of candidates is 297
+the 35th key guess's state is 2, #attempt = 240329
+#+end_example
+
+key 36
+
+#+begin_example
+f key_id=36: 1.58 dB → 18.60 dB
+the remaining coff after scaled classifier is 460
+[f] [    scaled] 481/512 = 0.9395
+[f] [   shift55] 183/183 = 1.0000
+[f] [   mul_4_5] 44/44 = 1.0000   (mis-routed here: 1)
+[f] [   mul_6_7] 24/24 = 1.0000
+g key_id=36: 1.66 dB → 18.66 dB
+the remaining coff after scaled classifier is 454
+[g] [    scaled] 481/512 = 0.9395
+[g] [   shift55] 182/182 = 1.0000
+[g] [   mul_4_5] 43/43 = 1.0000   (mis-routed here: 1)
+[g] [   mul_6_7] 30/30 = 1.0000
+total-determined (remove some after scaled classifier) is 591
+jinru
+need is 217
+len of candidates is 296
+the 36th key guess's state is -4, #attempt = 1000000
+#+end_example
+
+key 37
+
+#+begin_example
+f key_id=37: 1.57 dB → 18.61 dB
+the remaining coff after scaled classifier is 457
+[f] [    scaled] 491/512 = 0.9590
+[f] [   shift55] 179/179 = 1.0000
+[f] [   mul_4_5] 34/34 = 1.0000   (mis-routed here: 1)
+[f] [   mul_6_7] 37/37 = 1.0000
+g key_id=37: 1.60 dB → 18.54 dB
+the remaining coff after scaled classifier is 452
+[g] [    scaled] 476/512 = 0.9297
+[g] [   shift55] 186/186 = 1.0000
+[g] [   mul_4_5] 50/50 = 1.0000   (mis-routed here: 1)
+[g] [   mul_6_7] 31/31 = 1.0000
+total-determined (remove some after scaled classifier) is 580
+jinru
+need is 221
+len of candidates is 289
+the 37th key guess's state is -4, #attempt = 1000000
+#+end_example
+
+key 38
+
+#+begin_example
+f key_id=38: 1.58 dB → 18.62 dB
+the remaining coff after scaled classifier is 472
+[f] [    scaled] 494/512 = 0.9648
+[f] [   shift55] 175/175 = 1.0000
+[f] [   mul_4_5] 51/51 = 1.0000
+[f] [   mul_6_7] 22/22 = 1.0000
+g key_id=38: 1.69 dB → 18.66 dB
+the remaining coff after scaled classifier is 455
+[g] [    scaled] 483/512 = 0.9434
+[g] [   shift55] 167/167 = 1.0000
+[g] [   mul_4_5] 36/36 = 1.0000   (mis-routed here: 2)
+[g] [   mul_6_7] 20/20 = 1.0000
+total-determined (remove some after scaled classifier) is 615
+jinru
+need is 186
+len of candidates is 289
+the 38th key guess's state is 2, #attempt = 5063
+#+end_example
+
+key 39
+
+#+begin_example
+f key_id=39: 1.56 dB → 18.60 dB
+the remaining coff after scaled classifier is 458
+[f] [    scaled] 481/512 = 0.9395
+[f] [   shift55] 180/180 = 1.0000
+[f] [   mul_4_5] 44/44 = 1.0000   (mis-routed here: 3)
+[f] [   mul_6_7] 29/29 = 1.0000
+g key_id=39: 1.65 dB → 18.60 dB
+the remaining coff after scaled classifier is 454
+[g] [    scaled] 480/512 = 0.9375
+[g] [   shift55] 177/177 = 1.0000
+[g] [   mul_4_5] 44/44 = 1.0000
+[g] [   mul_6_7] 20/20 = 1.0000
+total-determined (remove some after scaled classifier) is 604
+jinru
+need is 196
+len of candidates is 288
+the 39th key guess's state is -4, #attempt = 1000000
+#+end_example
+
+key 40
+
+#+begin_example
+f key_id=40: 1.56 dB → 18.58 dB
+the remaining coff after scaled classifier is 463
+[f] [    scaled] 489/512 = 0.9551
+[f] [   shift55] 181/181 = 1.0000
+[f] [   mul_4_5] 52/52 = 1.0000   (mis-routed here: 7)
+[f] [   mul_6_7] 21/21 = 1.0000
+g key_id=40: 1.67 dB → 18.58 dB
+the remaining coff after scaled classifier is 453
+[g] [    scaled] 483/512 = 0.9434
+[g] [   shift55] 172/172 = 1.0000
+[g] [   mul_4_5] 42/42 = 1.0000   (mis-routed here: 2)
+[g] [   mul_6_7] 25/25 = 1.0000
+total-determined (remove some after scaled classifier) is 592
+jinru
+need is 198
+len of candidates is 278
+the 40th key guess's state is 2, #attempt = 114064
+#+end_example
+
+key 41
+
+#+begin_example
+f key_id=41: 1.57 dB → 18.59 dB
+the remaining coff after scaled classifier is 469
+[f] [    scaled] 490/512 = 0.9570
+[f] [   shift55] 184/184 = 1.0000
+[f] [   mul_4_5] 51/51 = 1.0000   (mis-routed here: 3)
+[f] [   mul_6_7] 20/20 = 1.0000
+g key_id=41: 1.67 dB → 18.61 dB
+the remaining coff after scaled classifier is 460
+[g] [    scaled] 492/512 = 0.9609
+[g] [   shift55] 181/181 = 1.0000
+[g] [   mul_4_5] 53/53 = 1.0000   (mis-routed here: 1)
+[g] [   mul_6_7] 18/18 = 1.0000
+total-determined (remove some after scaled classifier) is 606
+jinru
+need is 207
+len of candidates is 301
+the 41th key guess's state is 2, #attempt = 67979
+#+end_example
+
+key 42
+
+#+begin_example
+f key_id=42: 1.57 dB → 18.58 dB
+the remaining coff after scaled classifier is 462
+[f] [    scaled] 491/512 = 0.9590
+[f] [   shift55] 201/201 = 1.0000
+[f] [   mul_4_5] 61/61 = 1.0000   (mis-routed here: 3)
+[f] [   mul_6_7] 29/29 = 1.0000   (mis-routed here: 1)
+g key_id=42: 1.65 dB → 18.60 dB
+the remaining coff after scaled classifier is 461
+[g] [    scaled] 489/512 = 0.9551
+[g] [   shift55] 176/176 = 1.0000
+[g] [   mul_4_5] 48/48 = 1.0000   (mis-routed here: 1)
+[g] [   mul_6_7] 25/25 = 1.0000
+total-determined (remove some after scaled classifier) is 599
+jinru
+need is 214
+len of candidates is 301
+the 42th key guess's state is 2, #attempt = 4
+#+end_example
+
+key 43
+
+#+begin_example
+f key_id=43: 1.57 dB → 18.58 dB
+the remaining coff after scaled classifier is 453
+[f] [    scaled] 476/512 = 0.9297
+[f] [   shift55] 179/179 = 1.0000
+[f] [   mul_4_5] 43/43 = 1.0000   (mis-routed here: 2)
+[f] [   mul_6_7] 29/29 = 1.0000   (mis-routed here: 1)
+g key_id=43: 1.69 dB → 18.62 dB
+the remaining coff after scaled classifier is 455
+[g] [    scaled] 477/512 = 0.9316
+[g] [   shift55] 191/191 = 1.0000
+[g] [   mul_4_5] 41/41 = 1.0000   (mis-routed here: 2)
+[g] [   mul_6_7] 30/30 = 1.0000
+total-determined (remove some after scaled classifier) is 579
+jinru
+need is 231
+len of candidates is 298
+the 43th key guess's state is -4, #attempt = 1000000
+#+end_example
+
+key 44
+
+#+begin_example
+f key_id=44: 1.58 dB → 18.61 dB
+the remaining coff after scaled classifier is 458
+[f] [    scaled] 486/512 = 0.9492
+[f] [   shift55] 173/173 = 1.0000
+[f] [   mul_4_5] 46/46 = 1.0000   (mis-routed here: 1)
+[f] [   mul_6_7] 23/23 = 1.0000
+g key_id=44: 1.68 dB → 18.60 dB
+the remaining coff after scaled classifier is 456
+[g] [    scaled] 475/512 = 0.9277
+[g] [   shift55] 188/188 = 1.0000
+[g] [   mul_4_5] 55/55 = 1.0000   (mis-routed here: 3)
+[g] [   mul_6_7] 22/22 = 1.0000
+total-determined (remove some after scaled classifier) is 603
+jinru
+need is 216
+len of candidates is 307
+the 44th key guess's state is 2, #attempt = 433784
+#+end_example
+
+key 45
+
+#+begin_example
+f key_id=45: 1.57 dB → 18.62 dB
+the remaining coff after scaled classifier is 461
+[f] [    scaled] 480/512 = 0.9375
+[f] [   shift55] 193/193 = 1.0000
+[f] [   mul_4_5] 54/54 = 1.0000   (mis-routed here: 2)
+[f] [   mul_6_7] 23/23 = 1.0000   (mis-routed here: 1)
+g key_id=45: 1.66 dB → 18.59 dB
+the remaining coff after scaled classifier is 463
+[g] [    scaled] 487/512 = 0.9512
+[g] [   shift55] 174/174 = 1.0000
+[g] [   mul_4_5] 43/43 = 1.0000   (mis-routed here: 2)
+[g] [   mul_6_7] 31/31 = 1.0000
+total-determined (remove some after scaled classifier) is 612
+jinru
+need is 210
+len of candidates is 310
+the 45th key guess's state is 2, #attempt = 182233
+#+end_example
+
+key 46
+
+#+begin_example
+f key_id=46: 1.56 dB → 18.57 dB
+the remaining coff after scaled classifier is 459
+[f] [    scaled] 481/512 = 0.9395
+[f] [   shift55] 180/180 = 1.0000
+[f] [   mul_4_5] 57/57 = 1.0000   (mis-routed here: 2)
+[f] [   mul_6_7] 27/27 = 1.0000
+g key_id=46: 1.72 dB → 18.64 dB
+the remaining coff after scaled classifier is 441
+[g] [    scaled] 477/512 = 0.9316
+[g] [   shift55] 180/180 = 1.0000
+[g] [   mul_4_5] 52/52 = 1.0000   (mis-routed here: 2)
+[g] [   mul_6_7] 23/23 = 1.0000
+total-determined (remove some after scaled classifier) is 577
+jinru
+need is 214
+len of candidates is 279
+the 46th key guess's state is 2, #attempt = 113805
+#+end_example
+
+key 47
+
+#+begin_example
+f key_id=47: 1.57 dB → 18.60 dB
+the remaining coff after scaled classifier is 454
+[f] [    scaled] 481/512 = 0.9395
+[f] [   shift55] 184/184 = 1.0000
+[f] [   mul_4_5] 54/54 = 1.0000   (mis-routed here: 1)
+[f] [   mul_6_7] 25/25 = 1.0000
+g key_id=47: 1.67 dB → 18.60 dB
+the remaining coff after scaled classifier is 452
+[g] [    scaled] 480/512 = 0.9375
+[g] [   shift55] 187/187 = 1.0000
+[g] [   mul_4_5] 47/47 = 1.0000   (mis-routed here: 1)
+[g] [   mul_6_7] 34/34 = 1.0000
+total-determined (remove some after scaled classifier) is 592
+jinru
+need is 226
+len of candidates is 306
+the 47th key guess's state is -4, #attempt = 1000000
+#+end_example
+
+key 48
+
+#+begin_example
+f key_id=48: 1.58 dB → 18.63 dB
+the remaining coff after scaled classifier is 462
+[f] [    scaled] 486/512 = 0.9492
+[f] [   shift55] 177/177 = 1.0000
+[f] [   mul_4_5] 38/38 = 1.0000   (mis-routed here: 3)
+[f] [   mul_6_7] 27/27 = 1.0000   (mis-routed here: 1)
+g key_id=48: 1.72 dB → 18.67 dB
+the remaining coff after scaled classifier is 444
+[g] [    scaled] 487/512 = 0.9512
+[g] [   shift55] 190/190 = 1.0000
+[g] [   mul_4_5] 49/49 = 1.0000   (mis-routed here: 1)
+[g] [   mul_6_7] 25/25 = 1.0000
+total-determined (remove some after scaled classifier) is 597
+jinru
+need is 216
+len of candidates is 301
+the 48th key guess's state is 2, #attempt = 143535
+#+end_example
+
+key 49
+
+#+begin_example
+f key_id=49: 1.58 dB → 18.61 dB
+the remaining coff after scaled classifier is 458
+[f] [    scaled] 475/512 = 0.9277
+[f] [   shift55] 187/187 = 1.0000
+[f] [   mul_4_5] 49/49 = 1.0000   (mis-routed here: 5)
+[f] [   mul_6_7] 19/19 = 1.0000
+g key_id=49: 1.67 dB → 18.60 dB
+the remaining coff after scaled classifier is 459
+[g] [    scaled] 483/512 = 0.9434
+[g] [   shift55] 188/188 = 1.0000
+[g] [   mul_4_5] 36/36 = 1.0000
+[g] [   mul_6_7] 28/28 = 1.0000
+total-determined (remove some after scaled classifier) is 593
+jinru
+need is 221
+len of candidates is 302
+the 49th key guess's state is -4, #attempt = 1000000
+#+end_example
+
+key 50
+
+#+begin_example
+f key_id=50: 1.59 dB → 18.61 dB
+the remaining coff after scaled classifier is 461
+[f] [    scaled] 485/512 = 0.9473
+[f] [   shift55] 182/182 = 1.0000
+[f] [   mul_4_5] 55/55 = 1.0000
+[f] [   mul_6_7] 24/24 = 1.0000
+g key_id=50: 1.68 dB → 18.63 dB
+the remaining coff after scaled classifier is 446
+[g] [    scaled] 475/512 = 0.9277
+[g] [   shift55] 177/177 = 1.0000
+[g] [   mul_4_5] 38/38 = 1.0000   (mis-routed here: 2)
+[g] [   mul_6_7] 19/19 = 1.0000
+total-determined (remove some after scaled classifier) is 577
+jinru
+need is 222
+len of candidates is 287
+the 50th key guess's state is 2, #attempt = 82229
+#+end_example
+
+key 51
+
+#+begin_example
+f key_id=51: 1.56 dB → 18.61 dB
+the remaining coff after scaled classifier is 456
+[f] [    scaled] 484/512 = 0.9453
+[f] [   shift55] 183/183 = 1.0000
+[f] [   mul_4_5] 46/46 = 1.0000   (mis-routed here: 4)
+[f] [   mul_6_7] 27/27 = 1.0000   (mis-routed here: 1)
+g key_id=51: 1.68 dB → 18.62 dB
+the remaining coff after scaled classifier is 442
+[g] [    scaled] 473/512 = 0.9238
+[g] [   shift55] 188/188 = 1.0000
+[g] [   mul_4_5] 46/46 = 1.0000   (mis-routed here: 1)
+[g] [   mul_6_7] 26/26 = 1.0000
+total-determined (remove some after scaled classifier) is 606
+jinru
+need is 205
+len of candidates is 299
+the 51th key guess's state is 2, #attempt = 169593
+#+end_example
+
+key 52
+
+#+begin_example
+f key_id=52: 1.57 dB → 18.62 dB
+the remaining coff after scaled classifier is 463
+[f] [    scaled] 486/512 = 0.9492
+[f] [   shift55] 176/176 = 1.0000
+[f] [   mul_4_5] 41/41 = 1.0000   (mis-routed here: 4)
+[f] [   mul_6_7] 27/27 = 1.0000   (mis-routed here: 1)
+g key_id=52: 1.67 dB → 18.61 dB
+the remaining coff after scaled classifier is 450
+[g] [    scaled] 485/512 = 0.9473
+[g] [   shift55] 176/176 = 1.0000
+[g] [   mul_4_5] 43/43 = 1.0000   (mis-routed here: 2)
+[g] [   mul_6_7] 30/30 = 1.0000
+total-determined (remove some after scaled classifier) is 580
+jinru
+need is 215
+len of candidates is 283
+the 52th key guess's state is -4, #attempt = 1000000
+#+end_example
+
+key 53
+
+#+begin_example
+f key_id=53: 1.56 dB → 18.57 dB
+the remaining coff after scaled classifier is 469
+[f] [    scaled] 492/512 = 0.9609
+[f] [   shift55] 178/178 = 1.0000
+[f] [   mul_4_5] 46/46 = 1.0000
+[f] [   mul_6_7] 24/24 = 1.0000
+g key_id=53: 1.68 dB → 18.59 dB
+the remaining coff after scaled classifier is 462
+[g] [    scaled] 484/512 = 0.9453
+[g] [   shift55] 169/169 = 1.0000
+[g] [   mul_4_5] 43/43 = 1.0000
+[g] [   mul_6_7] 24/24 = 1.0000
+total-determined (remove some after scaled classifier) is 617
+jinru
+need is 180
+len of candidates is 285
+the 53th key guess's state is 2, #attempt = 193
+#+end_example
+
+key 54
+
+#+begin_example
+f key_id=54: 1.57 dB → 18.58 dB
+the remaining coff after scaled classifier is 457
+[f] [    scaled] 478/512 = 0.9336
+[f] [   shift55] 181/181 = 1.0000
+[f] [   mul_4_5] 46/46 = 1.0000   (mis-routed here: 3)
+[f] [   mul_6_7] 24/24 = 1.0000   (mis-routed here: 2)
+g key_id=54: 1.72 dB → 18.63 dB
+the remaining coff after scaled classifier is 454
+[g] [    scaled] 481/512 = 0.9395
+[g] [   shift55] 181/181 = 1.0000
+[g] [   mul_4_5] 43/43 = 1.0000   (mis-routed here: 1)
+[g] [   mul_6_7] 29/29 = 1.0000
+total-determined (remove some after scaled classifier) is 591
+jinru
+need is 208
+len of candidates is 287
+the 54th key guess's state is 2, #attempt = 30066
+#+end_example
+
+key 55
+
+#+begin_example
+f key_id=55: 1.56 dB → 18.57 dB
+the remaining coff after scaled classifier is 467
+[f] [    scaled] 482/512 = 0.9414
+[f] [   shift55] 175/175 = 1.0000
+[f] [   mul_4_5] 41/41 = 1.0000   (mis-routed here: 5)
+[f] [   mul_6_7] 22/22 = 1.0000
+g key_id=55: 1.69 dB → 18.58 dB
+the remaining coff after scaled classifier is 450
+[g] [    scaled] 479/512 = 0.9355
+[g] [   shift55] 176/176 = 1.0000
+[g] [   mul_4_5] 51/51 = 1.0000
+[g] [   mul_6_7] 22/22 = 1.0000
+total-determined (remove some after scaled classifier) is 595
+jinru
+need is 199
+len of candidates is 282
+the 55th key guess's state is -4, #attempt = 1000000
+#+end_example
+
+key 56
+
+#+begin_example
+f key_id=56: 1.58 dB → 18.60 dB
+the remaining coff after scaled classifier is 468
+[f] [    scaled] 485/512 = 0.9473
+[f] [   shift55] 175/175 = 1.0000
+[f] [   mul_4_5] 43/43 = 1.0000   (mis-routed here: 2)
+[f] [   mul_6_7] 16/16 = 1.0000
+g key_id=56: 1.73 dB → 18.65 dB
+the remaining coff after scaled classifier is 452
+[g] [    scaled] 481/512 = 0.9395
+[g] [   shift55] 181/181 = 1.0000
+[g] [   mul_4_5] 48/48 = 1.0000   (mis-routed here: 1)
+[g] [   mul_6_7] 21/21 = 1.0000
+total-determined (remove some after scaled classifier) is 594
+jinru
+need is 200
+len of candidates is 282
+the 56th key guess's state is -4, #attempt = 1000000
+#+end_example
+
+key 57
+
+#+begin_example
+f key_id=57: 1.58 dB → 18.62 dB
+the remaining coff after scaled classifier is 466
+[f] [    scaled] 485/512 = 0.9473
+[f] [   shift55] 170/170 = 1.0000
+[f] [   mul_4_5] 42/42 = 1.0000   (mis-routed here: 1)
+[f] [   mul_6_7] 25/25 = 1.0000   (mis-routed here: 1)
+g key_id=57: 1.71 dB → 18.61 dB
+the remaining coff after scaled classifier is 449
+[g] [    scaled] 480/512 = 0.9375
+[g] [   shift55] 170/170 = 1.0000
+[g] [   mul_4_5] 42/42 = 1.0000
+[g] [   mul_6_7] 30/30 = 1.0000
+total-determined (remove some after scaled classifier) is 598
+jinru
+need is 199
+len of candidates is 285
+the 57th key guess's state is -4, #attempt = 1000000
+#+end_example
+
+key 58
+
+#+begin_example
+f key_id=58: 1.58 dB → 18.61 dB
+the remaining coff after scaled classifier is 461
+[f] [    scaled] 488/512 = 0.9531
+[f] [   shift55] 175/175 = 1.0000
+[f] [   mul_4_5] 47/47 = 1.0000   (mis-routed here: 3)
+[f] [   mul_6_7] 24/24 = 1.0000
+g key_id=58: 1.79 dB → 18.70 dB
+the remaining coff after scaled classifier is 467
+[g] [    scaled] 479/512 = 0.9355
+[g] [   shift55] 177/177 = 1.0000
+[g] [   mul_4_5] 40/40 = 1.0000   (mis-routed here: 2)
+[g] [   mul_6_7] 25/25 = 1.0000   (mis-routed here: 1)
+total-determined (remove some after scaled classifier) is 587
+jinru
+need is 215
+len of candidates is 290
+the 58th key guess's state is -4, #attempt = 1000000
+#+end_example
+
+key 59
+
+#+begin_example
+f key_id=59: 1.60 dB → 18.63 dB
+the remaining coff after scaled classifier is 451
+[f] [    scaled] 479/512 = 0.9355
+[f] [   shift55] 177/177 = 1.0000
+[f] [   mul_4_5] 49/49 = 1.0000   (mis-routed here: 3)
+[f] [   mul_6_7] 28/28 = 1.0000   (mis-routed here: 3)
+g key_id=59: 1.77 dB → 18.64 dB
+the remaining coff after scaled classifier is 453
+[g] [    scaled] 476/512 = 0.9297
+[g] [   shift55] 182/182 = 1.0000
+[g] [   mul_4_5] 35/35 = 1.0000   (mis-routed here: 1)
+[g] [   mul_6_7] 30/30 = 1.0000
+total-determined (remove some after scaled classifier) is 569
+jinru
+need is 229
+len of candidates is 286
+the 59th key guess's state is -4, #attempt = 1000000
+#+end_example
+
+key 60
+
+#+begin_example
+f key_id=60: 1.58 dB → 18.60 dB
+the remaining coff after scaled classifier is 452
+[f] [    scaled] 478/512 = 0.9336
+[f] [   shift55] 189/189 = 1.0000
+[f] [   mul_4_5] 53/53 = 1.0000   (mis-routed here: 4)
+[f] [   mul_6_7] 21/21 = 1.0000
+g key_id=60: 1.71 dB → 18.62 dB
+the remaining coff after scaled classifier is 451
+[g] [    scaled] 471/512 = 0.9199
+[g] [   shift55] 176/176 = 1.0000
+[g] [   mul_4_5] 45/45 = 1.0000   (mis-routed here: 1)
+[g] [   mul_6_7] 19/19 = 1.0000
+total-determined (remove some after scaled classifier) is 611
+jinru
+need is 197
+len of candidates is 296
+the 60th key guess's state is -4, #attempt = 1000000
+#+end_example
+
+key 61
+
+#+begin_example
+f key_id=61: 1.56 dB → 18.59 dB
+the remaining coff after scaled classifier is 468
+[f] [    scaled] 484/512 = 0.9453
+[f] [   shift55] 197/197 = 1.0000
+[f] [   mul_4_5] 48/48 = 1.0000   (mis-routed here: 1)
+[f] [   mul_6_7] 26/26 = 1.0000   (mis-routed here: 1)
+g key_id=61: 1.74 dB → 18.63 dB
+the remaining coff after scaled classifier is 459
+[g] [    scaled] 474/512 = 0.9258
+[g] [   shift55] 190/190 = 1.0000
+[g] [   mul_4_5] 53/53 = 1.0000   (mis-routed here: 2)
+[g] [   mul_6_7] 25/25 = 1.0000
+total-determined (remove some after scaled classifier) is 586
+jinru
+need is 252
+len of candidates is 326
+the 61th key guess's state is -4, #attempt = 1000000
+#+end_example
+
+key 62
+
+#+begin_example
+f key_id=62: 1.57 dB → 18.59 dB
+the remaining coff after scaled classifier is 466
+[f] [    scaled] 491/512 = 0.9590
+[f] [   shift55] 190/190 = 1.0000
+[f] [   mul_4_5] 51/51 = 1.0000   (mis-routed here: 1)
+[f] [   mul_6_7] 25/25 = 1.0000
+g key_id=62: 1.72 dB → 18.65 dB
+the remaining coff after scaled classifier is 448
+[g] [    scaled] 474/512 = 0.9258
+[g] [   shift55] 174/174 = 1.0000
+[g] [   mul_4_5] 40/40 = 1.0000
+[g] [   mul_6_7] 33/33 = 1.0000
+total-determined (remove some after scaled classifier) is 581
+jinru
+need is 222
+len of candidates is 291
+the 62th key guess's state is -4, #attempt = 1000000
+#+end_example
+
+key 63
+
+#+begin_example
+f key_id=63: 1.58 dB → 18.61 dB
+the remaining coff after scaled classifier is 459
+[f] [    scaled] 482/512 = 0.9414
+[f] [   shift55] 182/182 = 1.0000
+[f] [   mul_4_5] 58/58 = 1.0000   (mis-routed here: 4)
+[f] [   mul_6_7] 23/23 = 1.0000
+g key_id=63: 1.73 dB → 18.61 dB
+the remaining coff after scaled classifier is 447
+[g] [    scaled] 482/512 = 0.9414
+[g] [   shift55] 188/188 = 1.0000
+[g] [   mul_4_5] 54/54 = 1.0000
+[g] [   mul_6_7] 26/26 = 1.0000
+total-determined (remove some after scaled classifier) is 598
+jinru
+need is 214
+len of candidates is 300
+the 63th key guess's state is 2, #attempt = 833244
+#+end_example
+
+key 64
+
+#+begin_example
+f key_id=64: 1.55 dB → 18.58 dB
+the remaining coff after scaled classifier is 471
+[f] [    scaled] 490/512 = 0.9570
+[f] [   shift55] 189/189 = 1.0000
+[f] [   mul_4_5] 53/53 = 1.0000   (mis-routed here: 2)
+[f] [   mul_6_7] 25/25 = 1.0000
+g key_id=64: 1.79 dB → 18.65 dB
+the remaining coff after scaled classifier is 444
+[g] [    scaled] 472/512 = 0.9219
+[g] [   shift55] 188/188 = 1.0000
+[g] [   mul_4_5] 43/43 = 1.0000   (mis-routed here: 1)
+[g] [   mul_6_7] 19/19 = 1.0000
+total-determined (remove some after scaled classifier) is 587
+jinru
+need is 232
+len of candidates is 307
+the 64th key guess's state is -4, #attempt = 1000000
+#+end_example
+
+key 65
+
+#+begin_example
+f key_id=65: 1.55 dB → 18.58 dB
+the remaining coff after scaled classifier is 466
+[f] [    scaled] 487/512 = 0.9512
+[f] [   shift55] 187/187 = 1.0000
+[f] [   mul_4_5] 56/56 = 1.0000   (mis-routed here: 4)
+[f] [   mul_6_7] 28/28 = 1.0000
+g key_id=65: 1.74 dB → 18.60 dB
+the remaining coff after scaled classifier is 445
+[g] [    scaled] 473/512 = 0.9238
+[g] [   shift55] 190/190 = 1.0000
+[g] [   mul_4_5] 45/45 = 1.0000   (mis-routed here: 1)
+[g] [   mul_6_7] 28/28 = 1.0000
+total-determined (remove some after scaled classifier) is 599
+jinru
+need is 214
+len of candidates is 301
+the 65th key guess's state is -4, #attempt = 1000000
+#+end_example
+
+key 66
+
+#+begin_example
+f key_id=66: 1.57 dB → 18.57 dB
+the remaining coff after scaled classifier is 472
+[f] [    scaled] 481/512 = 0.9395
+[f] [   shift55] 184/184 = 1.0000
+[f] [   mul_4_5] 50/50 = 1.0000   (mis-routed here: 2)
+[f] [   mul_6_7] 30/30 = 1.0000   (mis-routed here: 1)
+g key_id=66: 1.75 dB → 18.64 dB
+the remaining coff after scaled classifier is 456
+[g] [    scaled] 473/512 = 0.9238
+[g] [   shift55] 179/179 = 1.0000
+[g] [   mul_4_5] 37/37 = 1.0000   (mis-routed here: 3)
+[g] [   mul_6_7] 26/26 = 1.0000   (mis-routed here: 1)
+total-determined (remove some after scaled classifier) is 603
+jinru
+need is 214
+len of candidates is 305
+the 66th key guess's state is -4, #attempt = 1000000
+#+end_example
+
+key 67
+
+#+begin_example
+f key_id=67: 1.55 dB → 18.57 dB
+the remaining coff after scaled classifier is 458
+[f] [    scaled] 480/512 = 0.9375
+[f] [   shift55] 168/168 = 1.0000
+[f] [   mul_4_5] 43/43 = 1.0000   (mis-routed here: 1)
+[f] [   mul_6_7] 24/24 = 1.0000
+g key_id=67: 1.74 dB → 18.66 dB
+the remaining coff after scaled classifier is 457
+[g] [    scaled] 475/512 = 0.9277
+[g] [   shift55] 175/175 = 1.0000
+[g] [   mul_4_5] 44/44 = 1.0000
+[g] [   mul_6_7] 24/24 = 1.0000
+total-determined (remove some after scaled classifier) is 602
+jinru
+need is 183
+len of candidates is 273
+the 67th key guess's state is -4, #attempt = 1000000
+#+end_example
+
+key 68
+
+#+begin_example
+f key_id=68: 1.59 dB → 18.64 dB
+the remaining coff after scaled classifier is 456
+[f] [    scaled] 477/512 = 0.9316
+[f] [   shift55] 176/176 = 1.0000
+[f] [   mul_4_5] 43/43 = 1.0000   (mis-routed here: 1)
+[f] [   mul_6_7] 32/32 = 1.0000
+g key_id=68: 1.75 dB → 18.67 dB
+the remaining coff after scaled classifier is 438
+[g] [    scaled] 465/512 = 0.9082
+[g] [   shift55] 182/182 = 1.0000
+[g] [   mul_4_5] 44/44 = 1.0000   (mis-routed here: 1)
+[g] [   mul_6_7] 17/17 = 1.0000
+total-determined (remove some after scaled classifier) is 577
+jinru
+need is 215
+len of candidates is 280
+the 68th key guess's state is -4, #attempt = 1000000
+#+end_example
+
+key 69
+
+#+begin_example
+f key_id=69: 1.59 dB → 18.62 dB
+the remaining coff after scaled classifier is 469
+[f] [    scaled] 490/512 = 0.9570
+[f] [   shift55] 177/177 = 1.0000
+[f] [   mul_4_5] 51/51 = 1.0000   (mis-routed here: 2)
+[f] [   mul_6_7] 31/31 = 1.0000
+g key_id=69: 1.75 dB → 18.69 dB
+the remaining coff after scaled classifier is 454
+[g] [    scaled] 479/512 = 0.9355
+[g] [   shift55] 176/176 = 1.0000
+[g] [   mul_4_5] 46/46 = 1.0000   (mis-routed here: 1)
+[g] [   mul_6_7] 22/22 = 1.0000
+total-determined (remove some after scaled classifier) is 593
+jinru
+need is 203
+len of candidates is 284
+the 69th key guess's state is 2, #attempt = 1085
+#+end_example
+
+key 70
+
+#+begin_example
+f key_id=70: 1.59 dB → 18.62 dB
+the remaining coff after scaled classifier is 458
+[f] [    scaled] 486/512 = 0.9492
+[f] [   shift55] 184/184 = 1.0000
+[f] [   mul_4_5] 49/49 = 1.0000   (mis-routed here: 1)
+[f] [   mul_6_7] 28/28 = 1.0000   (mis-routed here: 1)
+g key_id=70: 1.69 dB → 18.63 dB
+the remaining coff after scaled classifier is 441
+[g] [    scaled] 480/512 = 0.9375
+[g] [   shift55] 184/184 = 1.0000
+[g] [   mul_4_5] 46/46 = 1.0000
+[g] [   mul_6_7] 25/25 = 1.0000   (mis-routed here: 1)
+total-determined (remove some after scaled classifier) is 578
+jinru
+need is 225
+len of candidates is 291
+the 70th key guess's state is -4, #attempt = 1000000
+#+end_example
+
+key 71
+
+#+begin_example
+f key_id=71: 1.59 dB → 18.63 dB
+the remaining coff after scaled classifier is 464
+[f] [    scaled] 479/512 = 0.9355
+[f] [   shift55] 184/184 = 1.0000
+[f] [   mul_4_5] 45/45 = 1.0000   (mis-routed here: 2)
+[f] [   mul_6_7] 30/30 = 1.0000
+g key_id=71: 1.69 dB → 18.65 dB
+the remaining coff after scaled classifier is 452
+[g] [    scaled] 474/512 = 0.9258
+[g] [   shift55] 168/168 = 1.0000
+[g] [   mul_4_5] 38/38 = 1.0000
+[g] [   mul_6_7] 26/26 = 1.0000
+total-determined (remove some after scaled classifier) is 582
+jinru
+need is 221
+len of candidates is 291
+the 71th key guess's state is -4, #attempt = 1000000
+#+end_example
+
+key 72
+
+#+begin_example
+f key_id=72: 1.61 dB → 18.66 dB
+the remaining coff after scaled classifier is 457
+[f] [    scaled] 483/512 = 0.9434
+[f] [   shift55] 173/173 = 1.0000
+[f] [   mul_4_5] 45/45 = 1.0000
+[f] [   mul_6_7] 26/26 = 1.0000   (mis-routed here: 1)
+g key_id=72: 1.70 dB → 18.64 dB
+the remaining coff after scaled classifier is 443
+[g] [    scaled] 483/512 = 0.9434
+[g] [   shift55] 178/178 = 1.0000
+[g] [   mul_4_5] 44/44 = 1.0000
+[g] [   mul_6_7] 22/22 = 1.0000   (mis-routed here: 1)
+total-determined (remove some after scaled classifier) is 597
+jinru
+need is 199
+len of candidates is 284
+the 72th key guess's state is 2, #attempt = 376229
+#+end_example
+
+key 73
+
+#+begin_example
+f key_id=73: 1.59 dB → 18.62 dB
+the remaining coff after scaled classifier is 466
+[f] [    scaled] 498/512 = 0.9727
+[f] [   shift55] 178/178 = 1.0000
+[f] [   mul_4_5] 61/61 = 1.0000   (mis-routed here: 1)
+[f] [   mul_6_7] 34/34 = 1.0000
+g key_id=73: 1.67 dB → 18.58 dB
+the remaining coff after scaled classifier is 441
+[g] [    scaled] 471/512 = 0.9199
+[g] [   shift55] 180/180 = 1.0000
+[g] [   mul_4_5] 45/45 = 1.0000   (mis-routed here: 1)
+[g] [   mul_6_7] 20/20 = 1.0000
+total-determined (remove some after scaled classifier) is 575
+jinru
+need is 212
+len of candidates is 275
+the 73th key guess's state is 2, #attempt = 392558
+#+end_example
+
+key 74
+
+#+begin_example
+f key_id=74: 1.56 dB → 18.57 dB
+the remaining coff after scaled classifier is 469
+[f] [    scaled] 488/512 = 0.9531
+[f] [   shift55] 183/183 = 1.0000
+[f] [   mul_4_5] 61/61 = 1.0000   (mis-routed here: 3)
+[f] [   mul_6_7] 21/21 = 1.0000
+g key_id=74: 1.66 dB → 18.60 dB
+the remaining coff after scaled classifier is 453
+[g] [    scaled] 476/512 = 0.9297
+[g] [   shift55] 179/179 = 1.0000
+[g] [   mul_4_5] 40/40 = 1.0000
+[g] [   mul_6_7] 38/38 = 1.0000
+total-determined (remove some after scaled classifier) is 610
+jinru
+need is 206
+len of candidates is 304
+the 74th key guess's state is 2, #attempt = 676
+#+end_example
+
+key 75
+
+#+begin_example
+f key_id=75: 1.57 dB → 18.59 dB
+the remaining coff after scaled classifier is 475
+[f] [    scaled] 482/512 = 0.9414
+[f] [   shift55] 179/179 = 1.0000
+[f] [   mul_4_5] 56/56 = 1.0000   (mis-routed here: 3)
+[f] [   mul_6_7] 25/25 = 1.0000   (mis-routed here: 1)
+g key_id=75: 1.70 dB → 18.64 dB
+the remaining coff after scaled classifier is 468
+[g] [    scaled] 477/512 = 0.9316
+[g] [   shift55] 180/180 = 1.0000
+[g] [   mul_4_5] 43/43 = 1.0000
+[g] [   mul_6_7] 15/15 = 1.0000
+total-determined (remove some after scaled classifier) is 603
+jinru
+need is 199
+len of candidates is 290
+the 75th key guess's state is -4, #attempt = 1000000
+#+end_example
+
+key 76
+
+#+begin_example
+f key_id=76: 1.56 dB → 18.58 dB
+the remaining coff after scaled classifier is 460
+[f] [    scaled] 486/512 = 0.9492
+[f] [   shift55] 187/187 = 1.0000
+[f] [   mul_4_5] 52/52 = 1.0000   (mis-routed here: 3)
+[f] [   mul_6_7] 24/24 = 1.0000
+g key_id=76: 1.71 dB → 18.62 dB
+the remaining coff after scaled classifier is 452
+[g] [    scaled] 475/512 = 0.9277
+[g] [   shift55] 178/178 = 1.0000
+[g] [   mul_4_5] 43/43 = 1.0000
+[g] [   mul_6_7] 23/23 = 1.0000
+total-determined (remove some after scaled classifier) is 606
+jinru
+need is 200
+len of candidates is 294
+the 76th key guess's state is -4, #attempt = 1000000
+#+end_example
+
+key 77
+
+#+begin_example
+f key_id=77: 1.58 dB → 18.59 dB
+the remaining coff after scaled classifier is 468
+[f] [    scaled] 490/512 = 0.9570
+[f] [   shift55] 180/180 = 1.0000
+[f] [   mul_4_5] 51/51 = 1.0000   (mis-routed here: 1)
+[f] [   mul_6_7] 26/26 = 1.0000
+g key_id=77: 1.70 dB → 18.61 dB
+the remaining coff after scaled classifier is 448
+[g] [    scaled] 479/512 = 0.9355
+[g] [   shift55] 179/179 = 1.0000
+[g] [   mul_4_5] 49/49 = 1.0000   (mis-routed here: 3)
+[g] [   mul_6_7] 21/21 = 1.0000
+total-determined (remove some after scaled classifier) is 604
+jinru
+need is 202
+len of candidates is 294
+the 77th key guess's state is -4, #attempt = 1000000
+#+end_example
+
+key 78
+
+#+begin_example
+f key_id=78: 1.57 dB → 18.58 dB
+the remaining coff after scaled classifier is 479
+[f] [    scaled] 495/512 = 0.9668
+[f] [   shift55] 175/175 = 1.0000
+[f] [   mul_4_5] 52/52 = 1.0000   (mis-routed here: 3)
+[f] [   mul_6_7] 27/27 = 1.0000
+g key_id=78: 1.68 dB → 18.61 dB
+the remaining coff after scaled classifier is 448
+[g] [    scaled] 479/512 = 0.9355
+[g] [   shift55] 175/175 = 1.0000
+[g] [   mul_4_5] 43/43 = 1.0000
+[g] [   mul_6_7] 30/30 = 1.0000
+total-determined (remove some after scaled classifier) is 596
+jinru
+need is 209
+len of candidates is 293
+the 78th key guess's state is 2, #attempt = 60743
+#+end_example
+
+key 79
+
+#+begin_example
+f key_id=79: 1.56 dB → 18.59 dB
+the remaining coff after scaled classifier is 458
+[f] [    scaled] 484/512 = 0.9453
+[f] [   shift55] 176/176 = 1.0000
+[f] [   mul_4_5] 63/63 = 1.0000   (mis-routed here: 3)
+[f] [   mul_6_7] 21/21 = 1.0000
+g key_id=79: 1.69 dB → 18.63 dB
+the remaining coff after scaled classifier is 454
+[g] [    scaled] 471/512 = 0.9199
+[g] [   shift55] 194/194 = 1.0000
+[g] [   mul_4_5] 50/50 = 1.0000   (mis-routed here: 2)
+[g] [   mul_6_7] 27/27 = 1.0000
+total-determined (remove some after scaled classifier) is 594
+jinru
+need is 218
+len of candidates is 300
+the 79th key guess's state is -4, #attempt = 1000000
+#+end_example
+
+key 80
+
+#+begin_example
+f key_id=80: 1.59 dB → 18.62 dB
+the remaining coff after scaled classifier is 456
+[f] [    scaled] 485/512 = 0.9473
+[f] [   shift55] 174/174 = 1.0000
+[f] [   mul_4_5] 53/53 = 1.0000   (mis-routed here: 3)
+[f] [   mul_6_7] 21/21 = 1.0000
+g key_id=80: 1.68 dB → 18.58 dB
+the remaining coff after scaled classifier is 445
+[g] [    scaled] 473/512 = 0.9238
+[g] [   shift55] 168/168 = 1.0000
+[g] [   mul_4_5] 41/41 = 1.0000   (mis-routed here: 1)
+[g] [   mul_6_7] 22/22 = 1.0000
+total-determined (remove some after scaled classifier) is 608
+jinru
+need is 188
+len of candidates is 284
+the 80th key guess's state is 2, #attempt = 277334
+#+end_example
+
+key 81
+
+#+begin_example
+f key_id=81: 1.57 dB → 18.59 dB
+the remaining coff after scaled classifier is 464
+[f] [    scaled] 488/512 = 0.9531
+[f] [   shift55] 178/178 = 1.0000
+[f] [   mul_4_5] 51/51 = 1.0000   (mis-routed here: 2)
+[f] [   mul_6_7] 28/28 = 1.0000
+g key_id=81: 1.69 dB → 18.60 dB
+the remaining coff after scaled classifier is 463
+[g] [    scaled] 477/512 = 0.9316
+[g] [   shift55] 185/185 = 1.0000
+[g] [   mul_4_5] 36/36 = 1.0000   (mis-routed here: 1)
+[g] [   mul_6_7] 37/37 = 1.0000
+total-determined (remove some after scaled classifier) is 617
+jinru
+need is 196
+len of candidates is 301
+the 81th key guess's state is -4, #attempt = 1000000
+#+end_example
+
+key 82
+
+#+begin_example
+f key_id=82: 1.55 dB → 18.57 dB
+the remaining coff after scaled classifier is 456
+[f] [    scaled] 486/512 = 0.9492
+[f] [   shift55] 174/174 = 1.0000
+[f] [   mul_4_5] 35/35 = 1.0000   (mis-routed here: 7)
+[f] [   mul_6_7] 28/28 = 1.0000
+g key_id=82: 1.69 dB → 18.59 dB
+the remaining coff after scaled classifier is 455
+[g] [    scaled] 486/512 = 0.9492
+[g] [   shift55] 170/170 = 1.0000
+[g] [   mul_4_5] 40/40 = 1.0000   (mis-routed here: 1)
+[g] [   mul_6_7] 32/32 = 1.0000
+total-determined (remove some after scaled classifier) is 603
+jinru
+need is 189
+len of candidates is 280
+the 82th key guess's state is 2, #attempt = 386669
+#+end_example
+
+key 83
+
+#+begin_example
+f key_id=83: 1.58 dB → 18.62 dB
+the remaining coff after scaled classifier is 455
+[f] [    scaled] 488/512 = 0.9531
+[f] [   shift55] 184/184 = 1.0000
+[f] [   mul_4_5] 64/64 = 1.0000   (mis-routed here: 2)
+[f] [   mul_6_7] 24/24 = 1.0000
+g key_id=83: 1.71 dB → 18.68 dB
+the remaining coff after scaled classifier is 446
+[g] [    scaled] 474/512 = 0.9258
+[g] [   shift55] 177/177 = 1.0000
+[g] [   mul_4_5] 40/40 = 1.0000
+[g] [   mul_6_7] 22/22 = 1.0000
+total-determined (remove some after scaled classifier) is 600
+jinru
+need is 214
+len of candidates is 302
+the 83th key guess's state is 2, #attempt = 461813
+#+end_example
+
+key 84
+
+#+begin_example
+f key_id=84: 1.58 dB → 18.62 dB
+the remaining coff after scaled classifier is 461
+[f] [    scaled] 492/512 = 0.9609
+[f] [   shift55] 184/184 = 1.0000
+[f] [   mul_4_5] 58/58 = 1.0000   (mis-routed here: 2)
+[f] [   mul_6_7] 26/26 = 1.0000
+g key_id=84: 1.70 dB → 18.65 dB
+the remaining coff after scaled classifier is 459
+[g] [    scaled] 478/512 = 0.9336
+[g] [   shift55] 174/174 = 1.0000
+[g] [   mul_4_5] 36/36 = 1.0000   (mis-routed here: 1)
+[g] [   mul_6_7] 25/25 = 1.0000
+total-determined (remove some after scaled classifier) is 603
+jinru
+need is 211
+len of candidates is 302
+the 84th key guess's state is -4, #attempt = 1000000
+#+end_example
+
+key 85
+
+#+begin_example
+f key_id=85: 1.57 dB → 18.59 dB
+the remaining coff after scaled classifier is 457
+[f] [    scaled] 469/512 = 0.9160
+[f] [   shift55] 186/186 = 1.0000
+[f] [   mul_4_5] 44/44 = 1.0000   (mis-routed here: 4)
+[f] [   mul_6_7] 35/35 = 1.0000   (mis-routed here: 2)
+g key_id=85: 1.67 dB → 18.65 dB
+the remaining coff after scaled classifier is 463
+[g] [    scaled] 484/512 = 0.9453
+[g] [   shift55] 178/178 = 1.0000
+[g] [   mul_4_5] 41/41 = 1.0000   (mis-routed here: 1)
+[g] [   mul_6_7] 29/29 = 1.0000
+total-determined (remove some after scaled classifier) is 603
+jinru
+need is 214
+len of candidates is 305
+the 85th key guess's state is 2, #attempt = 580
+#+end_example
+
+key 86
+
+#+begin_example
+f key_id=86: 1.58 dB → 18.61 dB
+the remaining coff after scaled classifier is 460
+[f] [    scaled] 485/512 = 0.9473
+[f] [   shift55] 188/188 = 1.0000
+[f] [   mul_4_5] 46/46 = 1.0000   (mis-routed here: 1)
+[f] [   mul_6_7] 25/25 = 1.0000
+g key_id=86: 1.66 dB → 18.63 dB
+the remaining coff after scaled classifier is 461
+[g] [    scaled] 488/512 = 0.9531
+[g] [   shift55] 175/175 = 1.0000
+[g] [   mul_4_5] 49/49 = 1.0000   (mis-routed here: 3)
+[g] [   mul_6_7] 23/23 = 1.0000
+total-determined (remove some after scaled classifier) is 578
+jinru
+need is 219
+len of candidates is 285
+the 86th key guess's state is -4, #attempt = 1000000
+#+end_example
+
+key 87
+
+#+begin_example
+f key_id=87: 1.57 dB → 18.57 dB
+the remaining coff after scaled classifier is 465
+[f] [    scaled] 488/512 = 0.9531
+[f] [   shift55] 183/183 = 1.0000
+[f] [   mul_4_5] 60/60 = 1.0000
+[f] [   mul_6_7] 28/28 = 1.0000
+g key_id=87: 1.66 dB → 18.60 dB
+the remaining coff after scaled classifier is 457
+[g] [    scaled] 490/512 = 0.9570
+[g] [   shift55] 161/161 = 1.0000
+[g] [   mul_4_5] 43/43 = 1.0000   (mis-routed here: 1)
+[g] [   mul_6_7] 30/30 = 1.0000
+total-determined (remove some after scaled classifier) is 584
+jinru
+need is 206
+len of candidates is 278
+the 87th key guess's state is 2, #attempt = 1780
+#+end_example
+
+key 88
+
+#+begin_example
+f key_id=88: 1.59 dB → 18.63 dB
+the remaining coff after scaled classifier is 469
+[f] [    scaled] 488/512 = 0.9531
+[f] [   shift55] 177/177 = 1.0000
+[f] [   mul_4_5] 38/38 = 1.0000   (mis-routed here: 2)
+[f] [   mul_6_7] 36/36 = 1.0000
+g key_id=88: 1.63 dB → 18.56 dB
+the remaining coff after scaled classifier is 465
+[g] [    scaled] 485/512 = 0.9473
+[g] [   shift55] 180/180 = 1.0000
+[g] [   mul_4_5] 57/57 = 1.0000   (mis-routed here: 2)
+[g] [   mul_6_7] 28/28 = 1.0000
+total-determined (remove some after scaled classifier) is 610
+jinru
+need is 204
+len of candidates is 302
+the 88th key guess's state is 2, #attempt = 371150
+#+end_example
+
+key 89
+
+#+begin_example
+f key_id=89: 1.57 dB → 18.60 dB
+the remaining coff after scaled classifier is 458
+[f] [    scaled] 483/512 = 0.9434
+[f] [   shift55] 170/170 = 1.0000
+[f] [   mul_4_5] 45/45 = 1.0000   (mis-routed here: 4)
+[f] [   mul_6_7] 21/21 = 1.0000
+g key_id=89: 1.67 dB → 18.60 dB
+the remaining coff after scaled classifier is 456
+[g] [    scaled] 478/512 = 0.9336
+[g] [   shift55] 179/179 = 1.0000
+[g] [   mul_4_5] 52/52 = 1.0000   (mis-routed here: 2)
+[g] [   mul_6_7] 22/22 = 1.0000
+total-determined (remove some after scaled classifier) is 599
+jinru
+need is 199
+len of candidates is 286
+the 89th key guess's state is -4, #attempt = 1000000
+#+end_example
+
+key 90
+
+#+begin_example
+f key_id=90: 1.61 dB → 18.63 dB
+the remaining coff after scaled classifier is 459
+[f] [    scaled] 489/512 = 0.9551
+[f] [   shift55] 189/189 = 1.0000
+[f] [   mul_4_5] 43/43 = 1.0000   (mis-routed here: 1)
+[f] [   mul_6_7] 22/22 = 1.0000
+g key_id=90: 1.63 dB → 18.57 dB
+the remaining coff after scaled classifier is 459
+[g] [    scaled] 489/512 = 0.9551
+[g] [   shift55] 175/175 = 1.0000
+[g] [   mul_4_5] 36/36 = 1.0000   (mis-routed here: 1)
+[g] [   mul_6_7] 24/24 = 1.0000
+total-determined (remove some after scaled classifier) is 589
+jinru
+need is 221
+len of candidates is 298
+the 90th key guess's state is 2, #attempt = 8
+#+end_example
+
+key 91
+
+#+begin_example
+f key_id=91: 1.59 dB → 18.60 dB
+the remaining coff after scaled classifier is 465
+[f] [    scaled] 494/512 = 0.9648
+[f] [   shift55] 173/173 = 1.0000
+[f] [   mul_4_5] 43/43 = 1.0000   (mis-routed here: 1)
+[f] [   mul_6_7] 26/26 = 1.0000   (mis-routed here: 1)
+g key_id=91: 1.66 dB → 18.60 dB
+the remaining coff after scaled classifier is 453
+[g] [    scaled] 484/512 = 0.9453
+[g] [   shift55] 169/169 = 1.0000
+[g] [   mul_4_5] 46/46 = 1.0000   (mis-routed here: 1)
+[g] [   mul_6_7] 22/22 = 1.0000
+total-determined (remove some after scaled classifier) is 606
+jinru
+need is 187
+len of candidates is 281
+the 91th key guess's state is 2, #attempt = 7996
+#+end_example
+
+key 92
+
+#+begin_example
+f key_id=92: 1.60 dB → 18.62 dB
+the remaining coff after scaled classifier is 467
+[f] [    scaled] 483/512 = 0.9434
+[f] [   shift55] 180/180 = 1.0000
+[f] [   mul_4_5] 45/45 = 1.0000   (mis-routed here: 3)
+[f] [   mul_6_7] 30/30 = 1.0000
+g key_id=92: 1.64 dB → 18.61 dB
+the remaining coff after scaled classifier is 459
+[g] [    scaled] 483/512 = 0.9434
+[g] [   shift55] 164/164 = 1.0000
+[g] [   mul_4_5] 39/39 = 1.0000
+[g] [   mul_6_7] 23/23 = 1.0000
+total-determined (remove some after scaled classifier) is 586
+jinru
+need is 199
+len of candidates is 273
+the 92th key guess's state is 2, #attempt = 1888
+#+end_example
+
+key 93
+
+#+begin_example
+f key_id=93: 1.60 dB → 18.62 dB
+the remaining coff after scaled classifier is 466
+[f] [    scaled] 486/512 = 0.9492
+[f] [   shift55] 180/180 = 1.0000
+[f] [   mul_4_5] 49/49 = 1.0000   (mis-routed here: 2)
+[f] [   mul_6_7] 30/30 = 1.0000
+g key_id=93: 1.65 dB → 18.61 dB
+the remaining coff after scaled classifier is 453
+[g] [    scaled] 485/512 = 0.9473
+[g] [   shift55] 173/173 = 1.0000
+[g] [   mul_4_5] 36/36 = 1.0000   (mis-routed here: 2)
+[g] [   mul_6_7] 26/26 = 1.0000
+total-determined (remove some after scaled classifier) is 586
+jinru
+need is 206
+len of candidates is 280
+the 93th key guess's state is -4, #attempt = 1000000
+#+end_example
+
+key 94
+
+#+begin_example
+f key_id=94: 1.61 dB → 18.62 dB
+the remaining coff after scaled classifier is 450
+[f] [    scaled] 469/512 = 0.9160
+[f] [   shift55] 194/194 = 1.0000
+[f] [   mul_4_5] 43/43 = 1.0000   (mis-routed here: 3)
+[f] [   mul_6_7] 31/31 = 1.0000
+g key_id=94: 1.65 dB → 18.60 dB
+the remaining coff after scaled classifier is 461
+[g] [    scaled] 485/512 = 0.9473
+[g] [   shift55] 178/178 = 1.0000
+[g] [   mul_4_5] 47/47 = 1.0000   (mis-routed here: 1)
+[g] [   mul_6_7] 24/24 = 1.0000
+total-determined (remove some after scaled classifier) is 573
+jinru
+need is 238
+len of candidates is 299
+the 94th key guess's state is -4, #attempt = 1000000
+#+end_example
+
+key 95
+
+#+begin_example
+f key_id=95: 1.61 dB → 18.64 dB
+the remaining coff after scaled classifier is 457
+[f] [    scaled] 483/512 = 0.9434
+[f] [   shift55] 182/182 = 1.0000
+[f] [   mul_4_5] 45/45 = 1.0000   (mis-routed here: 1)
+[f] [   mul_6_7] 35/35 = 1.0000
+g key_id=95: 1.66 dB → 18.61 dB
+the remaining coff after scaled classifier is 442
+[g] [    scaled] 481/512 = 0.9395
+[g] [   shift55] 182/182 = 1.0000
+[g] [   mul_4_5] 56/56 = 1.0000   (mis-routed here: 1)
+[g] [   mul_6_7] 20/20 = 1.0000
+total-determined (remove some after scaled classifier) is 599
+jinru
+need is 212
+len of candidates is 299
+the 95th key guess's state is 2, #attempt = 3625
+#+end_example
+
+key 96
+
+#+begin_example
+f key_id=96: 1.61 dB → 18.64 dB
+the remaining coff after scaled classifier is 467
+[f] [    scaled] 482/512 = 0.9414
+[f] [   shift55] 176/176 = 1.0000
+[f] [   mul_4_5] 51/51 = 1.0000   (mis-routed here: 2)
+[f] [   mul_6_7] 29/29 = 1.0000
+g key_id=96: 1.69 dB → 18.64 dB
+the remaining coff after scaled classifier is 452
+[g] [    scaled] 478/512 = 0.9336
+[g] [   shift55] 180/180 = 1.0000
+[g] [   mul_4_5] 39/39 = 1.0000   (mis-routed here: 1)
+[g] [   mul_6_7] 25/25 = 1.0000
+total-determined (remove some after scaled classifier) is 610
+jinru
+need is 196
+len of candidates is 294
+the 96th key guess's state is 2, #attempt = 17564
+#+end_example
+
+key 97
+
+#+begin_example
+f key_id=97: 1.63 dB → 18.64 dB
+the remaining coff after scaled classifier is 464
+[f] [    scaled] 482/512 = 0.9414
+[f] [   shift55] 188/188 = 1.0000
+[f] [   mul_4_5] 46/46 = 1.0000   (mis-routed here: 1)
+[f] [   mul_6_7] 30/30 = 1.0000
+g key_id=97: 1.68 dB → 18.63 dB
+the remaining coff after scaled classifier is 459
+[g] [    scaled] 485/512 = 0.9473
+[g] [   shift55] 184/184 = 1.0000
+[g] [   mul_4_5] 48/48 = 1.0000
+[g] [   mul_6_7] 22/22 = 1.0000
+total-determined (remove some after scaled classifier) is 589
+jinru
+need is 235
+len of candidates is 312
+the 97th key guess's state is 2, #attempt = 14256
+#+end_example
+
+key 98
+
+#+begin_example
+f key_id=98: 1.62 dB → 18.63 dB
+the remaining coff after scaled classifier is 450
+[f] [    scaled] 473/512 = 0.9238
+[f] [   shift55] 189/189 = 1.0000
+[f] [   mul_4_5] 46/46 = 1.0000   (mis-routed here: 2)
+[f] [   mul_6_7] 21/21 = 1.0000
+g key_id=98: 1.65 dB → 18.59 dB
+the remaining coff after scaled classifier is 463
+[g] [    scaled] 490/512 = 0.9570
+[g] [   shift55] 176/176 = 1.0000
+[g] [   mul_4_5] 49/49 = 1.0000
+[g] [   mul_6_7] 36/36 = 1.0000
+total-determined (remove some after scaled classifier) is 598
+jinru
+need is 220
+len of candidates is 306
+the 98th key guess's state is -4, #attempt = 1000000
+#+end_example
+
+key 99
+
+#+begin_example
+f key_id=99: 1.60 dB → 18.57 dB
+the remaining coff after scaled classifier is 457
+[f] [    scaled] 482/512 = 0.9414
+[f] [   shift55] 183/183 = 1.0000
+[f] [   mul_4_5] 49/49 = 1.0000   (mis-routed here: 1)
+[f] [   mul_6_7] 31/31 = 1.0000
+g key_id=99: 1.65 dB → 18.60 dB
+the remaining coff after scaled classifier is 459
+[g] [    scaled] 484/512 = 0.9453
+[g] [   shift55] 178/178 = 1.0000
+[g] [   mul_4_5] 40/40 = 1.0000   (mis-routed here: 2)
+[g] [   mul_6_7] 24/24 = 1.0000
+total-determined (remove some after scaled classifier) is 589
+jinru
+need is 211
+len of candidates is 288
+the 99th key guess's state is 2, #attempt = 19410
+#+end_example
+
+
+2026-07-12 15:01:19.744291
+
+the succ count is 50
+
+#+begin_example
+cross-key stage correctness (all attacked keys, f + g)
+[f + g] [    scaled] 96527/102400 = 0.9426
+[f + g] [   shift55] 36016/36016 = 1.0000
+[f + g] [   mul_4_5] 9299/9299 = 1.0000   (mis-routed: 324)
+[f + g] [   mul_6_7] 5147/5147 = 1.0000   (mis-routed: 41)
+#+end_example
