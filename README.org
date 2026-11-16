@@ -1,0 +1,99 @@
+* One Fell Swoop: A Single-Trace Key-Recovery Attack on the Falcon Signing Algorithm
+
+This repository contains the code accompanying the [[https://eprint.iacr.org/2025/2159][paper]]
+
+#+begin_quote
+*One Fell Swoop: A Single-Trace Key-Recovery Attack on the Falcon Signing Algorithm* Kang Li, Shouran Ma, Haochen Dou and Qian Guo IACR Transactions on Cryptographic Hardware and Embedded Systems (TCHES)
+#+end_quote
+
+** Authors
+
+- [[https://github.com/likang175][Kang Li]] (0009-0005-4928-4483)
+- [[https://github.com/OChicken][Shouran Ma]] (0009-0003-0472-6458)
+- [[https://github.com/YagamiTakayuki][Haochen Dou]] (0009-0000-0062-5463)
+- [[https://sites.google.com/view/qianguo/][Qian Guo]] (0000-0003-0930-3174)
+
+
+** Abstract
+
+Falcon, a lattice-based signature scheme selected for NIST post-quantum standardization, is notable for its compact signature size alongside a complex signing procedure involving extensive floating-point arithmetic. Prior side-channel attacks on Falcon signing, while demonstrating vulnerabilities, have consistently required a large number of power traces for successful key recovery, which limits their real-world practicality. This paper presents a new single-trace attack on the Falcon signing procedure. We exploit side-channel leakage in the FP conversion and identify additional leakage in the FP multiplication at the first layer of the Fast Fourier Transform (FFT) during secret key expansion. By combining these leakages, we progressively partition the secret-key coefficients and establish a linear system to recover the entire key. Our attack is particularly devastating for the =sign_dyn= design---the memory-efficient implementation widely adopted in cryptographic libraries---which executes key expansion during every signature operation. We validate our attack on an ARM Cortex-M4 microcontroller, achieving a 100% key recovery success rate with just one power trace for Falcon-512 across the baseline =-O0=, size-optimized =-Os=, and highest =-O3= compilation levels of the PQClean implementation. Crucially, we also evaluate the Falcon team's highly optimized embedded assembly (ASM) implementation. Despite its reduced leakage, our adapted multi-trace attack successfully recovers 53 out of 100 test keys with only 10 traces. This marks the first successful single-trace attack at the =-O3= level and the first practical attack against the embedded ASM Falcon. Furthermore, our in-depth assembly analysis of these vulnerabilities provides critical guidelines for designing more secure, hardened embedded assembly implementations.
+
+
+** Call-chain (Falcon-impl-20211101, taken from [[https://falcon-sign.info/][falcon-sign.info]])
+
+*** test_falcon.c
+
+Note: =Zf(xxx)= expands via preprocessor to =falcon_inner_xxx=.
+
+#+begin_example
+5007 main
+├── 5021 test_sign                                  [internal-API path]
+│   └── 3711,3713,3715 test_sign_self
+│       └── 3604 test_sign_self
+│           ├── 3656 Zf(sign_dyn)                   [= falcon_inner_sign_dyn]
+│           │   └── ➡️ sign.c:1487 Zf(sign_dyn)
+│           │       └── 1522 do_sign_dyn            👈
+│           └── 3682 Zf(sign_tree)                  [= falcon_inner_sign_tree]
+│               └── ➡️ sign.c:1443  Zf(sign_tree)
+│                   └── 1477 do_sign_tree           👈
+│
+└── 5023 test_external_API                      [external-API path]
+    └── 3813 test_external_API_inner
+        ├── 3882 falcon_sign_dyn
+        │   └── ➡️ falcon.c:715 falcon_sign_dyn
+        │       └── 730 falcon_sign_dyn_finish
+        │           └── 329 falcon_sign_dyn_finish
+        │               └── 453 Zf(sign_dyn)
+        │                   └── ➡️ sign.c:1487 Zf(sign_dyn)
+        │                       └── 1522 do_sign_dyn()        👈
+        └── 3983 falcon_sign_tree()
+            └── ➡️ falcon.c:736 falcon_sign_tree
+                └── 751 falcon_sign_tree_finish
+                    └── 585 falcon_sign_tree_finish
+                        └── 667 Zf(sign_tree)
+                            └── ➡️ sign.c:1443 Zf(sign_tree)
+                                └── 1477 do_sign_tree         👈
+#+end_example
+
+
+*** sign.c:892 =do_sign_dyn=
+
+#+begin_example
+892 do_sign_dyn
+├── 913-916 smallints_to_fpr([b01←f, b00←g, b11←F, b10←G], logn), ×4
+│   └── 194 fpr_of
+│       └── ➡️ fpr.h
+│           ├── 32 #if FPEMU
+│           │   └── 223 fpr_of
+│           │       └── 225 fpr_scaled
+│           │           └── ➡️ fpr.c
+│           │               └── 37 #if FPEMU
+│           │                   ├── 46 FPR_NORM64
+│           │                   ├── 81 #if ASM_CORTEXM4
+│           │                   │   └── fpr_scaled  [ASM]  🚩
+│           │                   ├── 173 #else
+│           │                   │   └── fpr_scaled  [C]    🚩
+│           │                   └── 231 #endif
+│           ├── 498 #elif FPNATIVE
+│           ├── 935 #else                   [error]
+│           └── 939 #endif
+├── 917-920 Zf(FFT)([b01,b00,b11,b10], logn), ×4
+│   └── ➡️ fft.c
+│       └── 172 Zf(FFT)
+│           ├── 229 #if AVX2
+│           ├── 278 #else
+│           │   └── 290 FPC_MUL
+│           │       └── 70 FPC_MUL          [define]
+│           │           └── 79,80,82,83 fpr_mul
+│           │               └── ➡️ fpr.c
+│           │                   ├── 583 #if ASM_CORTEXM4
+│           │                   │   └── 587 fpr_mul  [ASM]  🚩
+│           │                   ├── 703 #else
+│           │                   │   └── 706 fpr_mul  [C]    🚩
+│           │                   └── 801 #endif
+│           └── 296 #endif
+├── 1025-1028 smallints_to_fpr([b01←f, b00←g, b11←F, b10←G], logn), ×4
+│   └── ditto
+└── 1029-1032 Zf(FFT)([b01,b00,b11,b10], logn), ×4
+    └── ditto
+#+end_example
